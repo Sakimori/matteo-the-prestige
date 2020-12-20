@@ -1,4 +1,4 @@
-import discord, json, os
+import discord, json, os, roman
 import database as db
 import onomancer as ono
 
@@ -48,6 +48,13 @@ async def on_message(msg):
             await msg.channel.send(ono.get_stats(msg.author.name))
         except AttributeError:
             await msg.channel.send(ono.get_stats(msg.author.name))
+
+    elif command.startswith("roman "):
+        possible_int_string = command.split(" ",1)[1]
+        try:
+            await msg.channel.send(roman.roman_convert(possible_int_string))
+        except ValueError:
+            await msg.channel.send(f"\"{possible_int_string}\" isn't an integer in Arabic numerals.")
 
     elif command == "credit":
         await msg.channel.send("Our avatar was graciously provided to us, with permission, by @HetreaSky on Twitter.")

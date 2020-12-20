@@ -28,6 +28,7 @@
     <Compile Include="onomancer.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="roman.py" />
     <Compile Include="the_prestige.py" />
   </ItemGroup>
   <ItemGroup>
