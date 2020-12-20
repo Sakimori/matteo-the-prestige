@@ -42,7 +42,6 @@ def get_soulscream(username):
         
         try:
             cachetime = datetime.datetime.fromisoformat(scream[3])
-            print(datetime.datetime.now(datetime.timezone.utc) - cachetime)
             if datetime.datetime.now(datetime.timezone.utc) - cachetime >= datetime.timedelta(days = 7):
                 #delete old cache
                 c.execute("DELETE FROM soulscreams WHERE name=?", (username,))
