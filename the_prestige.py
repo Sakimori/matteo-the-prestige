@@ -102,8 +102,9 @@ def build_star_embed(player_json):
     starkeys = {"batting_stars" : "Batting", "pitching_stars" : "Pitching", "baserunning_stars" : "Baserunning", "defense_stars" : "Defense"}
     embed = discord.Embed(color=discord.Color.purple(), title=player_json["name"])
     for key in starkeys.keys():
+        embedstring = ""
         starstring = str(player_json[key])
-        if "." in starstring:
+        if ".5" in starstring:
             starnum = int(starstring[0])
             addhalf = True
         else:
