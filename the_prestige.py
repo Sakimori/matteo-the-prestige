@@ -48,15 +48,18 @@ async def on_message(msg):
         except TypeError:
             await msg.channel.send(ono.get_stats(msg.author.name))
 
+    elif command == "credit":
+        await msg.channel.send("Our avatar was graciously provided to us, with permission, by @HetreaSky on Twitter.")
 
 
 async def introduce(channel):
     text = """**Your name, favorite team, and pronouns**: Matteo Prestige, CHST, they/them ***only.*** There's more than one of us up here, after all.
 **What are you majoring in (wrong answers only)**: Economics.
-**Your favorite and least favorite beverage, without specifying which**: Vanilla milkshakes, chocolate milkshakes
+**Your favorite and least favorite beverage, without specifying which**: Vanilla milkshakes, chocolate milkshakes.
 **Favorite non-Mild Low team**: The Mills. We hope they're treating Ren alright.
 **If you were a current blaseball player, who would you be**: We refuse to answer this question.
 **Your hobbies/interests**: Minigolf, blaseball, felony insider trading.
+Our avatar was graciously provided to us, with permission, by @HetreaSky on Twitter.
 """
     await channel.send(text)
 
