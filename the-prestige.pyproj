@@ -42,7 +42,6 @@
     </Interpreter>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="config.json" />
     <Content Include="ids" />
     <Content Include="matteo.db" />
   </ItemGroup>

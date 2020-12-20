@@ -30,20 +30,35 @@ async def on_ready():
 
 @client.event
 async def on_message(msg):
-    command = False
+    command_b = False
     for prefix in config()["prefix"]:
         if msg.content.startswith(prefix):
-            command = True
-            command_s = msg.content.split(prefix, 1)
-    if not command:
+            command_b = True
+            command = msg.content.split(prefix, 1)[1]
+            print(command)
+    if not command_b:
         return
 
-    if msg.channel.id == config()["soulscream channel id"]:
-        #try:
-        await msg.channel.send(ono.get_stats(msg.author.nick))
-        #except TypeError:
-            #await msg.channel.send(ono.get_stats(msg.author.name))
-        
+    if msg.author.id in config()["owners"] and command == "introduce":
+        await introduce(msg.channel)
+
+    elif msg.channel.id == config()["soulscream channel id"]:
+        try:
+            await msg.channel.send(ono.get_stats(msg.author.nick))
+        except TypeError:
+            await msg.channel.send(ono.get_stats(msg.author.name))
+
+
+
+async def introduce(channel):
+    text = """**Your name, favorite team, and pronouns**: Matteo Prestige, CHST, they/them ***only.*** There's more than one of us up here, after all.
+**What are you majoring in (wrong answers only)**: Economics.
+**Your favorite and least favorite beverage, without specifying which**: Vanilla milkshakes, chocolate milkshakes
+**Favorite non-Mild Low team**: The Mills. We hope they're treating Ren alright.
+**If you were a current blaseball player, who would you be**: We refuse to answer this question.
+**Your hobbies/interests**: Minigolf, blaseball, felony insider trading.
+"""
+    await channel.send(text)
 
 
 client.run(config()["token"])
