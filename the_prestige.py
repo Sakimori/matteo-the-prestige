@@ -2,6 +2,7 @@ import discord
 import json
 import database as db
 import os
+import onomancer as ono
 
 client = discord.Client()
 
@@ -12,7 +13,9 @@ def config():
                 "token" : "",
                 "owners" : [
                     0000
-                    ]
+                    ],
+                "prefix" : ["m;", "m!"],
+                "soulscream channel id" : 0
             }
         with open("config.json", "w") as config_file:
             json.dump(config_dic, config_file, indent=4)
@@ -28,7 +31,20 @@ async def on_ready():
 
 @client.event
 async def on_message(msg):
-    print(
+    command = False
+    for prefix in config()["prefix"]:
+        if msg.content.startswith(prefix):
+            command = True
+            command_s = msg.content.split(prefix, 1)
+    if not command:
+        return
+
+    if msg.channel.id == config()["soulscream channel id"]:
+        try:
+            await msg.channel.send(ono.get_stats(msg.author.nick)["soulscream"])
+        except TypeError:
+            await msg.channel.send(ono.get_stats(msg.author.name)["soulscream"])
+        
 
 
 client.run(config()["token"])
