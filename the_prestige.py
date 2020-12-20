@@ -1,7 +1,5 @@
-import discord
-import json
+import discord, json, os
 import database as db
-import os
 import onomancer as ono
 
 client = discord.Client()
@@ -27,6 +25,7 @@ def config():
 
 @client.event
 async def on_ready():
+    db.initialcheck()
     print(f"logged in as {client.user} with token {config()['token']}")
 
 @client.event
@@ -40,10 +39,10 @@ async def on_message(msg):
         return
 
     if msg.channel.id == config()["soulscream channel id"]:
-        try:
-            await msg.channel.send(ono.get_stats(msg.author.nick)["soulscream"])
-        except TypeError:
-            await msg.channel.send(ono.get_stats(msg.author.name)["soulscream"])
+        #try:
+        await msg.channel.send(ono.get_stats(msg.author.nick))
+        #except TypeError:
+            #await msg.channel.send(ono.get_stats(msg.author.name))
         
 
 

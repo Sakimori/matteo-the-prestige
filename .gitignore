@@ -342,3 +342,6 @@ healthchecksdb
 # Personal config file, contains bot token
 config.json
 ids
+
+# database
+matteo.db
