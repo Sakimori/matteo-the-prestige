@@ -35,7 +35,6 @@ async def on_message(msg):
         if msg.content.startswith(prefix):
             command_b = True
             command = msg.content.split(prefix, 1)[1]
-            print(command)
     if not command_b:
         return
 
@@ -46,6 +45,8 @@ async def on_message(msg):
         try:
             await msg.channel.send(ono.get_stats(msg.author.nick))
         except TypeError:
+            await msg.channel.send(ono.get_stats(msg.author.name))
+        except AttributeError:
             await msg.channel.send(ono.get_stats(msg.author.name))
 
     elif command == "credit":
