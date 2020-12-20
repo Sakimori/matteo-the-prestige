@@ -43,11 +43,11 @@ async def on_message(msg):
 
     elif msg.channel.id == config()["soulscream channel id"]:
         try:
-            await msg.channel.send(ono.get_stats(msg.author.nick))
+            await msg.channel.send(ono.get_scream(msg.author.nick))
         except TypeError or AttributeError:
-            await msg.channel.send(ono.get_stats(msg.author.name))
+            await msg.channel.send(ono.get_scream(msg.author.name))
         except AttributeError:
-            await msg.channel.send(ono.get_stats(msg.author.name))
+            await msg.channel.send(ono.get_scream(msg.author.name))
 
     elif command.startswith("roman "):
         possible_int_string = command.split(" ",1)[1]
@@ -55,6 +55,32 @@ async def on_message(msg):
             await msg.channel.send(roman.roman_convert(possible_int_string))
         except ValueError:
             await msg.channel.send(f"\"{possible_int_string}\" isn't an integer in Arabic numerals.")
+
+    elif command.startswith("idolize"):
+        if (command.startswith("idolizememe")):
+            meme = True
+        else:
+            meme = False
+        player_name = command.split(" ",1)[1]
+        try:
+            player_json = ono.get_stats(player_name)
+            db.designate_player(msg.author, player_json)
+            if not meme:
+                await msg.channel.send(f"{player_name} is now your idol.")
+            else:
+                await msg.channel.send(f"{player_name} is now {msg.author.display_name}'s idol.")
+                await msg.channel.send(f"Reply if {player_name} is your idol also.")
+        except:
+            await msg.channel.send("Something went wrong. Tell 16.")
+
+    elif command == "showidol":
+        try:
+            player_json = db.get_user_player(msg.author)
+            embed=build_star_embed(player_json)
+            embed.set_footer(text=msg.author.display_name)
+            await msg.channel.send(embed=embed)
+        except:
+            await msg.channel.send("We can't find your idol. Looked everywhere, too.")
 
     elif command == "credit":
         await msg.channel.send("Our avatar was graciously provided to us, with permission, by @HetreaSky on Twitter.")
@@ -70,6 +96,24 @@ async def introduce(channel):
 Our avatar was graciously provided to us, with permission, by @HetreaSky on Twitter.
 """
     await channel.send(text)
+
+
+def build_star_embed(player_json):
+    starkeys = {"batting_stars" : "Batting", "pitching_stars" : "Pitching", "baserunning_stars" : "Baserunning", "defense_stars" : "Defense"}
+    embed = discord.Embed(color=discord.Color.purple(), title=player_json["name"])
+    for key in starkeys.keys():
+        starstring = str(player_json[key])
+        if "." in starstring:
+            starnum = int(starstring[0])
+            addhalf = True
+        else:
+            starnum = int(player_json[key])
+            addhalf = False
+        embedstring = "⭐" * starnum
+        if addhalf:
+            embedstring += "✨"
+        embed.add_field(name=starkeys[key], value=embedstring, inline=False)
+    return embed
 
 
 client.run(config()["token"])

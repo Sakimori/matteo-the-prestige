@@ -23,9 +23,17 @@ def initialcheck():
                                             timestamp text NOT NULL
                                         ); """
     
+    player_table_check_string = """ CREATE TABLE IF NOT EXISTS user_designated_players (
+                                        user_id integer PRIMARY KEY,
+                                        user_name text,
+                                        player_id text NOT NULL,
+                                        player_name text NOT NULL,
+                                        player_json_string text NOT NULL
+                                    );"""
     if conn is not None:
         c = conn.cursor()
         c.execute(soulscream_table_check_string)
+        c.execute(player_table_check_string)
 
     conn.commit()
     conn.close()
@@ -68,8 +76,38 @@ def cache_soulscream(username, soulscream):
     if conn is not None:
         c = conn.cursor()
         c.execute(store_string, (username, soulscream, datetime.datetime.now(datetime.timezone.utc)))
-        conn.commit()
-
-        
+        conn.commit() 
 
     conn.close()
+
+
+def designate_player(user, player_json):
+    conn = create_connection()
+    store_string = """ INSERT INTO user_designated_players(user_id, user_name, player_id, player_name, player_json_string)
+                        VALUES (?, ?, ?, ?, ?)"""
+
+    user_player = get_user_player_conn(conn, user)
+    c = conn.cursor()
+    if user_player is not None:
+        c.execute("DELETE FROM user_designated_players WHERE user_id=?", (user.id,)) #delete player if already exists
+    c.execute(store_string, (user.id, user.name, player_json["id"], player_json["name"], json.dumps(player_json)))
+            
+    conn.commit()
+    conn.close()
+
+def get_user_player_conn(conn, user): 
+    try:
+        if conn is not None:
+            c = conn.cursor()
+            c.execute("SELECT player_json_string FROM user_designated_players WHERE user_id=?", (user.id,))
+            return json.loads(c.fetchone()[0])
+        else:
+            return False
+    except:
+        return False
+
+def get_user_player(user): 
+    conn = create_connection()
+    player = get_user_player_conn(conn, user)
+    conn.close()
+    return player
