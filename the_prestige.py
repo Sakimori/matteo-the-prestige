@@ -44,7 +44,7 @@ async def on_message(msg):
     elif msg.channel.id == config()["soulscream channel id"]:
         try:
             await msg.channel.send(ono.get_stats(msg.author.nick))
-        except TypeError:
+        except TypeError or AttributeError:
             await msg.channel.send(ono.get_stats(msg.author.name))
         except AttributeError:
             await msg.channel.send(ono.get_stats(msg.author.name))
