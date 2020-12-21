@@ -100,6 +100,8 @@ async def on_message(msg):
         except KeyError:
             await msg.channel.send(f"{batter.name} {atbat['text'].value}")
 
+
+
     elif command == "credit":
         await msg.channel.send("Our avatar was graciously provided to us, with permission, by @HetreaSky on Twitter.")
 

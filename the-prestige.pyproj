@@ -25,6 +25,9 @@
     <Compile Include="database.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="debug storage.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="onomancer.py">
       <SubType>Code</SubType>
     </Compile>

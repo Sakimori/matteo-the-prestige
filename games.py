@@ -28,7 +28,7 @@ class appearance_outcomes(Enum):
     flyout = "flies out to"
     fielderschoice = "reaches on fielder's choice."
     doubleplay = "grounds into a double play!"
-    walks = "draws a walk."
+    walk = "draws a walk."
     single = "hits a single!"
     double = "hits a double!"
     triple = "hits a triple!"
@@ -110,22 +110,24 @@ class game(object):
         bat_stat = random_star_gen("batting_stars", batter)
         pitch_stat = random_star_gen("pitching_stars", pitcher)
         def_stat = random_star_gen("defense_stars", defender)
-        pb_system_stat = (random.gauss(1.5*math.erf((bat_stat - pitch_stat)/2)-1.5,3))
-        hitnum = random.gauss(2*math.erf(bat_stat)-0.5,3)
+        pb_system_stat = (random.gauss(1*math.erf((bat_stat - pitch_stat)*1.5)-1.8,2.2))
+        hitnum = random.gauss(2*math.erf(bat_stat/4)-1,3)
 
 
         outcome = {}
         if pb_system_stat <= 0:
             outcome["ishit"] = False
             fc_flag = False
-            if hitnum < 1:
+            if hitnum < -1.5:
                 outcome["text"] = random.choice([appearance_outcomes.strikeoutlooking, appearance_outcomes.strikeoutswinging])
-            elif hitnum < 2:
+            elif hitnum < 1:
                 outcome["text"] = appearance_outcomes.groundout
                 outcome["defender"] = defender
-            else:
+            elif hitnum < 4: 
                 outcome["text"] = appearance_outcomes.flyout
                 outcome["defender"] = defender
+            else:
+                outcome["text"] = appearance_outcomes.walk
 
             if self.bases[1] is not None and hitnum < 1:
                 outcome["text"] = appearance_outcomes.doubleplay
@@ -135,11 +137,12 @@ class game(object):
             if fc_flag and 1 <= hitnum and hitnum < 2:
                 outcome["text"] = appearance_outcomes.fielderschoice
         else:
+            outcome["ishit"] = True
             if hitnum < 1:
                 outcome["text"] = appearance_outcomes.single
-            elif hitnum < 2:
+            elif hitnum < 2.85:
                 outcome["text"] = appearance_outcomes.double
-            elif hitnum < 3:
+            elif hitnum < 3.1:
                 outcome["text"] = appearance_outcomes.triple
             else:
                 if self.bases[1] is not None and self.bases[2] is not None and self.bases[3] is not None:
@@ -153,7 +156,7 @@ class game(object):
            self.teams["home"].lineup_position += 1
         return outcome
         
-        
+
 
 def random_star_gen(key, player):
     return random.gauss(config()["stlat_weights"][key] * player.stlats[key],1)
