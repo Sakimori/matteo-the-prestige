@@ -30,10 +30,31 @@ def initialcheck():
                                         player_name text NOT NULL,
                                         player_json_string text NOT NULL
                                     );"""
+
+    player_stats_table_check_string = """ CREATE TABLE IF NOT EXISTS stats (
+                                            counter integer PRIMARY KEY,
+                                            id text,
+                                            name text,
+                                            json_string text,
+                                            outs_pitched integer DEFAULT 0,
+                                            walks_allowed integer DEFAULT 0,
+                                            hits_allowed integer DEFAULT 0,
+                                            strikeouts_given integer DEFAULT 0,
+                                            runs_allowed integer DEFAULT 0,
+                                            plate_appearances integer DEFAULT 0,
+                                            walks_taken integer DEFAULT 0,
+                                            hits integer DEFAULT 0,
+                                            home_runs integer DEFAULT 0,
+                                            total_bases integer DEFAULT 0,
+                                            rbis integer DEFAULT 0,
+                                            strikeouts_taken integer DEFAULT 0
+                                            );"""
+
     if conn is not None:
         c = conn.cursor()
         c.execute(soulscream_table_check_string)
         c.execute(player_table_check_string)
+        c.execute(player_stats_table_check_string)
 
     conn.commit()
     conn.close()

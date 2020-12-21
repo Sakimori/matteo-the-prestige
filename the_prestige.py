@@ -1,4 +1,4 @@
-import discord, json, os, roman
+import discord, json, os, roman, games
 import database as db
 import onomancer as ono
 
@@ -82,6 +82,24 @@ async def on_message(msg):
         except:
             await msg.channel.send("We can't find your idol. Looked everywhere, too.")
 
+    elif command == "testab":
+        team1 = games.team()
+        team2 = games.team()
+        team1.add_lineup(games.player(json.dumps(ono.get_stats("xvi"))))
+        team1.set_pitcher(games.player(json.dumps(ono.get_stats("16"))))
+        team1.finalize()
+        team2.add_lineup(games.player(json.dumps(ono.get_stats("artemis"))))
+        team2.set_pitcher(games.player(json.dumps(ono.get_stats("alphy"))))
+        team2.finalize()
+
+        game = games.game(team1, team2)
+        batter = game.get_batter()
+        atbat = game.at_bat()
+        try:
+            await msg.channel.send(f"{batter.name} {atbat['text'].value} {atbat['defender'].name}.")
+        except KeyError:
+            await msg.channel.send(f"{batter.name} {atbat['text'].value}")
+
     elif command == "credit":
         await msg.channel.send("Our avatar was graciously provided to us, with permission, by @HetreaSky on Twitter.")
 
@@ -110,11 +128,12 @@ def build_star_embed(player_json):
         else:
             starnum = int(player_json[key])
             addhalf = False
-        embedstring = "⭐" * starnum
+        embedstring += "⭐" * starnum
         if addhalf:
             embedstring += "✨"
         embed.add_field(name=starkeys[key], value=embedstring, inline=False)
     return embed
+
 
 
 client.run(config()["token"])
