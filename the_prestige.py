@@ -103,7 +103,7 @@ async def on_message(msg):
 
 
     elif command == "startgame" and msg.author.id in config()["owners"]:
-        game_task = asyncio.create_task(start_game(msg.channel))
+        game_task = asyncio.create_task(watch_game(msg.channel))
         await game_task
 
 
@@ -132,9 +132,99 @@ async def start_game(channel):
         state = newgame.gamestate_update_full()
         if not state.startswith("Game over"):
             await msg.edit(content=state)
-        await asyncio.sleep(10)
+        await asyncio.sleep(3)
     await channel.send(state)
     gamesarray.pop()
+
+async def watch_game(channel):
+    blank_emoji = discord.utils.get(client.emojis, id = 790899850295509053)
+    empty_base = discord.utils.get(client.emojis, id = 790899850395779074)
+    first_base = discord.utils.get(client.emojis, id = 790899850320543745)
+    second_base = discord.utils.get(client.emojis, id = 790900139656740865)
+    third_base = discord.utils.get(client.emojis, id = 790900156597403658)
+    
+    newgame = games.debug_game()
+    embed = await channel.send("Play ball!")
+    msg_top = await channel.send(f"{newgame.teams['away'].name} at ")
+    msg_bot = await channel.send(f"{newgame.teams['home'].name} starting...")
+    await asyncio.sleep(4)
+    use_emoji_names = True
+    for game in gamesarray:
+        if game[1]:
+            use_emoji_names = False
+    gamesarray.append((newgame,use_emoji_names))
+    
+   
+    while not newgame.over:
+        state = newgame.gamestate_update_full()
+        punc = ""
+        if newgame.last_update[0]["defender"] != "":
+            punc = "."
+        new_embed = discord.Embed(color=discord.Color.purple(), title=f"{newgame.teams['away'].name} at {newgame.teams['home'].name}")
+        new_embed.add_field(name=newgame.teams['away'].name, value=newgame.teams['away'].score, inline=True)
+        new_embed.add_field(name=newgame.teams['home'].name, value=newgame.teams['home'].score, inline=True)
+        if newgame.top_of_inning:
+            new_embed.add_field(name="Inning:", value=f"🔼 {newgame.inning}", inline=True)
+        else:
+            new_embed.add_field(name="Inning:", value=f"🔽 {newgame.inning}", inline=True)
+        new_embed.add_field(name="Outs:", value=newgame.outs, inline=True)
+        new_embed.add_field(name="Pitcher:", value=newgame.get_pitcher(), inline=False)
+        new_embed.add_field(name="Batter:", value=newgame.get_batter(), inline=False)
+        if use_emoji_names:
+            new_embed.set_footer(text="This game is using emoji names to indicate baserunners.")
+
+        updatestring = f"{newgame.last_update[0]['batter']} {newgame.last_update[0]['text'].value} {newgame.last_update[0]['defender']}{punc} "
+        if newgame.last_update[1] > 0:
+                updatestring += f"{newgame.last_update[1]} runs scored!"
+
+        new_embed.add_field(name="🏏", value=updatestring, inline=False)
+
+        basemessage_t = str(blank_emoji)
+        if newgame.bases[2] is not None:
+            if use_emoji_names:
+                await second_base.edit(name=newgame.bases[2].name)
+            basemessage_t += str(second_base)
+        else:
+            basemessage_t += str(empty_base)
+        
+        basemessage_b = ""
+        if newgame.bases[3] is not None:
+            if use_emoji_names:
+                await third_base.edit(name=newgame.bases[3].name)
+            basemessage_b += str(third_base)
+        else:
+            basemessage_b += str(empty_base)
+        basemessage_b += str(blank_emoji)
+
+        if newgame.bases[1] is not None:
+            if use_emoji_names:
+                await first_base.edit(name=newgame.bases[1].name)
+            basemessage_b += str(first_base)
+        else:
+            basemessage_b += str(empty_base)
+
+        await embed.edit(content=None, embed=new_embed)
+        await msg_top.edit(content=basemessage_t)
+        await msg_bot.edit(content=basemessage_b)
+        await asyncio.sleep(3)
+
+    punc = ""
+    if newgame.last_update[0]["defender"] != "":
+        punc = "."
+    final_embed = discord.Embed(color=discord.Color.dark_purple(), title=f"{newgame.teams['away'].name} at {newgame.teams['home'].name}")
+    final_embed.add_field(name="Final score:", value=f"{newgame.teams['away'].score} to {newgame.teams['home'].score}")
+    final_embed.add_field(name="Last update:", value=f"{newgame.last_update[0]['batter']} {newgame.last_update[0]['text'].value} {newgame.last_update[0]['defender']}{punc}" )
+    await embed.edit(content=None, embed=final_embed)
+    if newgame.teams['away'].score > newgame.teams['home'].score:
+        await msg_top.edit(content = f"Game over!\n{newgame.teams['away'].name} wins!")
+    else:
+        await msg_top.edit(content = f"Game over!\n{newgame.teams['home'].name} wins!")
+    
+    await msg_bot.delete()
+    gamesarray.pop(gamesarray.index((newgame,use_emoji_names))) #cleanup is important!
+    del newgame
+        
+
 
 
 def build_star_embed(player_json):

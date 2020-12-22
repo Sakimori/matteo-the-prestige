@@ -154,7 +154,7 @@ class game(object):
             else:
                 outcome["text"] = appearance_outcomes.walk
 
-            if self.bases[1] is not None and hitnum < -1 and self.outs != 2:
+            if self.bases[1] is not None and hitnum < -1.3 and self.outs != 2:
                 outcome["text"] = appearance_outcomes.doubleplay
                 outcome["defender"] = ""
 
@@ -377,18 +377,22 @@ class game(object):
                 "home_pitcher" : self.teams["home"].pitcher
             }
 
+
     def gamestate_update_full(self):   
         self.last_update = self.batterup()
         return self.gamestate_display_full()
 
     def gamestate_display_full(self):
+        punc = ""
+        if self.last_update[0]["defender"] != "":
+            punc = "."
         if not self.over:
             if self.top_of_inning:
                 inningtext = "top"
             else:
                 inningtext = "bottom"
 
-            updatestring = f"{self.last_update[0]['batter']} {self.last_update[0]['text'].value} {self.last_update[0]['defender']}\n"
+            updatestring = f"{self.last_update[0]['batter']} {self.last_update[0]['text'].value} {self.last_update[0]['defender']}{punc}\n"
 
             if self.last_update[1] > 0:
                 updatestring += f"{self.last_update[1]} runs scored!"
@@ -403,7 +407,7 @@ Bases: 3: {str(self.bases[3])} 2: {str(self.bases[2])} 1: {str(self.bases[1])}
 """
         else:
             return f"""Game over! Final score: **{self.teams['away'].score} - {self.teams['home'].score}**
-Last update: {updatestring}"""
+Last update: {self.last_update[0]['batter']} {self.last_update[0]['text'].value} {self.last_update[0]['defender']}{punc}"""
         
 
 
@@ -431,6 +435,7 @@ def debug_game():
     max_player = player('{"id" : "max", "name" : "max", "batting_stars" : 5, "pitching_stars" : 5, "defense_stars" : 5, "baserunning_stars" : 5}')
     min_player = player('{"id" : "min", "name" : "min", "batting_stars" : 1, "pitching_stars" : 1, "defense_stars" : 1, "baserunning_stars" : 1}')
     team_avg = team()
+    team_avg.name = "Arizona Aways"
     team_avg.add_lineup(average_player)
     team_avg.add_lineup(average_player2)
     team_avg.add_lineup(average_player3)
@@ -438,6 +443,7 @@ def debug_game():
     team_avg.set_pitcher(average_player5)
     team_avg.finalize()
     team_avg2 = team()
+    team_avg2.name = "Houston Homes"
     team_avg2.add_lineup(average_player5)
     team_avg2.add_lineup(average_player4)
     team_avg2.add_lineup(average_player3)
