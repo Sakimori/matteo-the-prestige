@@ -1,8 +1,9 @@
-import discord, json, os, roman, games
+import discord, json, os, roman, games, asyncio
 import database as db
 import onomancer as ono
 
 client = discord.Client()
+gamesarray = []
 
 def config():
     if not os.path.exists("config.json"):
@@ -101,6 +102,11 @@ async def on_message(msg):
             await msg.channel.send(f"{batter.name} {atbat['text'].value}")
 
 
+    elif command == "startgame" and msg.author.id in config()["owners"]:
+        game_task = asyncio.create_task(start_game(msg.channel))
+        await game_task
+
+
 
     elif command == "credit":
         await msg.channel.send("Our avatar was graciously provided to us, with permission, by @HetreaSky on Twitter.")
@@ -116,6 +122,19 @@ async def introduce(channel):
 Our avatar was graciously provided to us, with permission, by @HetreaSky on Twitter.
 """
     await channel.send(text)
+
+async def start_game(channel):
+    msg = await channel.send("Play ball!")
+    await asyncio.sleep(4)
+    newgame = games.debug_game()
+    gamesarray.append(newgame)
+    while not newgame.over:
+        state = newgame.gamestate_update_full()
+        if not state.startswith("Game over"):
+            await msg.edit(content=state)
+        await asyncio.sleep(10)
+    await channel.send(state)
+    gamesarray.pop()
 
 
 def build_star_embed(player_json):

@@ -43,6 +43,7 @@ def initialcheck():
                                             runs_allowed integer DEFAULT 0,
                                             plate_appearances integer DEFAULT 0,
                                             walks_taken integer DEFAULT 0,
+                                            sacrifices integer DEFAULT 0,
                                             hits integer DEFAULT 0,
                                             home_runs integer DEFAULT 0,
                                             total_bases integer DEFAULT 0,
