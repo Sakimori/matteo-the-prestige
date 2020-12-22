@@ -31,6 +31,11 @@ async def on_ready():
 
 @client.event
 async def on_message(msg):
+
+    if msg.author == client.user:
+        return
+
+
     command_b = False
     for prefix in config()["prefix"]:
         if msg.content.startswith(prefix):
