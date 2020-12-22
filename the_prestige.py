@@ -67,7 +67,10 @@ async def on_message(msg):
             meme = True
         else:
             meme = False
-        player_name = command.split(" ",1)[1]
+        player_name = discord.utils.escape_mentions(command.split(" ",1)[1])
+        if len(player_name) >= 70:
+            await msg.channel.send("That name is too long. Please keep it below 70 characters, for my sake and yours.")
+            return
         try:
             player_json = ono.get_stats(player_name)
             db.designate_player(msg.author, player_json)
