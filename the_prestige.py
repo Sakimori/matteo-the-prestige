@@ -88,16 +88,16 @@ async def on_message(msg):
         if len(player_name) >= 70:
             await msg.channel.send("That name is too long. Please keep it below 70 characters, for my sake and yours.")
             return
-        try:
-            player_json = ono.get_stats(player_name)
-            db.designate_player(msg.author, player_json)
-            if not meme:
-                await msg.channel.send(f"{player_name} is now your idol.")
-            else:
-                await msg.channel.send(f"{player_name} is now {msg.author.display_name}'s idol.")
-                await msg.channel.send(f"Reply if {player_name} is your idol also.")
-        except:
-            await msg.channel.send("Something went wrong. Tell 16.")
+        #try:
+        player_json = ono.get_stats(player_name)
+        db.designate_player(msg.author, json.loads(player_json))
+        if not meme:
+            await msg.channel.send(f"{player_name} is now your idol.")
+        else:
+            await msg.channel.send(f"{player_name} is now {msg.author.display_name}'s idol.")
+            await msg.channel.send(f"Reply if {player_name} is your idol also.")
+        #except:
+            #await msg.channel.send("Something went wrong. Tell 16.")
 
     elif command == "showidol":
         try:
@@ -107,24 +107,6 @@ async def on_message(msg):
             await msg.channel.send(embed=embed)
         except:
             await msg.channel.send("We can't find your idol. Looked everywhere, too.")
-
-    elif command == "testab":
-        team1 = games.team()
-        team2 = games.team()
-        team1.add_lineup(games.player(json.dumps(ono.get_stats("xvi"))))
-        team1.set_pitcher(games.player(json.dumps(ono.get_stats("16"))))
-        team1.finalize()
-        team2.add_lineup(games.player(json.dumps(ono.get_stats("artemis"))))
-        team2.set_pitcher(games.player(json.dumps(ono.get_stats("alphy"))))
-        team2.finalize()
-
-        game = games.game(team1, team2)
-        batter = game.get_batter()
-        atbat = game.at_bat()
-        try:
-            await msg.channel.send(f"{batter.name} {atbat['text'].value} {atbat['defender'].name}.")
-        except KeyError:
-            await msg.channel.send(f"{batter.name} {atbat['text'].value}")
 
 
     elif command == "startgame" and msg.author.id in config()["owners"]:
