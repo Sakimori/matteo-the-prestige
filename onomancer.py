@@ -24,6 +24,6 @@ def get_scream(username):
     if scream is not None:
         return scream
     else:
-        scream = get_stats(username)["soulscream"]
+        scream = json.loads(get_stats(username))["soulscream"]
         db.cache_soulscream(username, scream)
         return scream

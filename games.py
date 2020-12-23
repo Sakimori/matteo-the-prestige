@@ -212,11 +212,11 @@ class game(object):
             return runs
 
         elif "advance" in outcome.keys():
+            runs = 0
             if self.bases[3] is not None:
                 self.bases[3] = None
                 runs = 1
             if self.bases[2] is not None:
-                runs = 0
                 run_roll = random.gauss(math.erf(random_star_gen("baserunning_stars", self.bases[2])-def_stat)-.5,1.5)
                 if run_roll > 0:
                     self.bases[3] = self.bases[2]

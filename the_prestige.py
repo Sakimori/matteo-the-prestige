@@ -88,16 +88,16 @@ async def on_message(msg):
         if len(player_name) >= 70:
             await msg.channel.send("That name is too long. Please keep it below 70 characters, for my sake and yours.")
             return
-        #try:
-        player_json = ono.get_stats(player_name)
-        db.designate_player(msg.author, json.loads(player_json))
-        if not meme:
-            await msg.channel.send(f"{player_name} is now your idol.")
-        else:
-            await msg.channel.send(f"{player_name} is now {msg.author.display_name}'s idol.")
-            await msg.channel.send(f"Reply if {player_name} is your idol also.")
-        #except:
-            #await msg.channel.send("Something went wrong. Tell 16.")
+        try:
+            player_json = ono.get_stats(player_name)
+            db.designate_player(msg.author, json.loads(player_json))
+            if not meme:
+                await msg.channel.send(f"{player_name} is now your idol.")
+            else:
+                await msg.channel.send(f"{player_name} is now {msg.author.display_name}'s idol.")
+                await msg.channel.send(f"Reply if {player_name} is your idol also.")
+        except:
+            await msg.channel.send("Something went wrong. Tell 16.")
 
     elif command == "showidol":
         try:
