@@ -4,6 +4,7 @@ import onomancer as ono
 
 client = discord.Client()
 gamesarray = []
+setupmessages = {}
 
 def config():
     if not os.path.exists("config.json"):
@@ -28,6 +29,22 @@ def config():
 async def on_ready():
     db.initialcheck()
     print(f"logged in as {client.user} with token {config()['token']}")
+
+@client.event
+async def on_reaction_add(reaction, user):
+    if reaction.message in setupmessages.keys():
+        game = setupmessages[reaction.message]
+        try:
+            if str(reaction.emoji) == "🔼" and not user == client.user:
+                new_player = games.player(ono.get_stats(db.get_user_player(user)["name"]))
+                game.teams["away"].add_lineup(new_player)
+                await reaction.message.channel.send(f"{new_player} {new_player.star_string('batting_stars')} takes spot #{len(game.teams['away'].lineup)} on the away lineup.")
+            elif str(reaction.emoji) == "🔽" and not user == client.user:
+                new_player = games.player(ono.get_stats(db.get_user_player(user)["name"]))
+                game.teams["home"].add_lineup(new_player)
+                await reaction.message.channel.send(f"{new_player} {new_player.star_string('batting_stars')} takes spot #{len(game.teams['home'].lineup)} on the home lineup.")
+        except:
+            await reaction.message.channel.send(f"{user.display_name}, we can't find your idol. Maybe you don't have one yet?")
 
 @client.event
 async def on_message(msg):
@@ -114,6 +131,15 @@ async def on_message(msg):
         game_task = asyncio.create_task(watch_game(msg.channel))
         await game_task
 
+    elif command.startswith("setupgame") and msg.author.id in config()["owners"]:
+        for game in gamesarray:
+            if game[0].name == msg.author.name:
+                await msg.channel.send("There's already an active game with that name.")
+                return
+
+        game_task = asyncio.create_task(setup_game(msg.channel, msg.author, games.game(msg.author.name, games.team(), games.team())))
+        await game_task
+
 
 
     elif command == "credit":
@@ -144,17 +170,135 @@ async def start_game(channel):
     await channel.send(state)
     gamesarray.pop()
 
-async def watch_game(channel):
+
+async def setup_game(channel, owner, newgame):
+    newgame.owner = owner
+    await channel.send(f"Game sucessfully created!\nStart any commands for this game with `{newgame.name}` so I know who's talking about what.")
+    await asyncio.sleep(1)
+    await channel.send("Who's pitching for the away team?")
+
+    def input(msg):
+            return msg.content.startswith(newgame.name) and msg.channel == channel #if author or willing participant and in correct channel
+
+    while newgame.teams["home"].pitcher == None:
+
+        def nameinput(msg):
+            return msg.content.startswith(newgame.name) and msg.channel == channel #if author or willing participant and in correct channel
+
+        
+
+        while newgame.teams["away"].pitcher == None:
+            try:
+                namemsg = await client.wait_for('message', check=input)
+                new_pitcher_name = discord.utils.escape_mentions(namemsg.content.split(f"{newgame.name} ")[1])
+                if len(new_pitcher_name) > 70:
+                    await channel.send("That player name is too long, chief. 70 or less.")
+                else:
+                    new_pitcher = games.player(ono.get_stats(new_pitcher_name))
+                    newgame.teams["away"].set_pitcher(new_pitcher)
+                    await channel.send(f"{new_pitcher} {new_pitcher.star_string('pitching_stars')}, pitching for the away team!\nNow, the home team's pitcher. Same dance, folks.")
+            except NameError:
+                await channel.send("Uh.")
+
+        try:
+            namemsg = await client.wait_for('message', check=input)
+            new_pitcher_name = discord.utils.escape_mentions(namemsg.content.split(f"{newgame.name} ")[1])
+            if len(new_pitcher_name) > 70:
+                await channel.send("That player name is too long, chief. 70 or less.")
+            else:
+                new_pitcher = games.player(ono.get_stats(new_pitcher_name))
+                newgame.teams["home"].set_pitcher(new_pitcher)
+                await channel.send(f"And {new_pitcher} {new_pitcher.star_string('pitching_stars')}, pitching for the home team.")
+        except:
+            await channel.send("Uh.")
+
+    #pitchers assigned!
+    team_join_message = await channel.send(f"""Now, the lineups! I need somewhere between 1 and 12 batters. Cloning helps a lot with this sort of thing.
+React to this message with 🔼 to have your idol join the away team, or 🔽 to have them join the home team.
+You can also enter names like you did for the pitchers, with a slight difference: `away [name]` or `home [name]` instead of just the name.
+
+Creator, type `{newgame.name} done` to finalize lineups.""")
+    await team_join_message.add_reaction("🔼")
+    await team_join_message.add_reaction("🔽")
+
+    setupmessages[team_join_message] = newgame
+
+    #emoji_task = asyncio.create_task(watch_for_reacts(team_join_message, ready, newgame))
+    #msg_task = asyncio.create_task(watch_for_messages(channel, ready, newgame))
+    #await asyncio.gather(
+    #    watch_for_reacts(team_join_message, newgame),
+    #    watch_for_messages(channel, newgame)
+    #    )
+
+    def messagecheck(msg):
+        return (msg.content.startswith(newgame.name)) and msg.channel == channel and msg.author != client.user
+
+    while not newgame.ready:
+        msg = await client.wait_for('message', check=messagecheck)
+        new_player = None
+        if msg.author == newgame.owner and msg.content == f"{newgame.name} done":
+            if newgame.teams['home'].finalize() and newgame.teams['away'].finalize():
+                newgame.ready = True
+                break
+        else:
+            side = None
+            if msg.content.split(f"{newgame.name} ")[1].split(" ",1)[0] == "home":
+                side = "home"
+            elif msg.content.split(f"{newgame.name} ")[1].split(" ",1)[0] == "away":
+                side = "away"
+
+            if side is not None:
+                new_player_name = discord.utils.escape_mentions(msg.content.split(f"{newgame.name} ")[1].split(" ",1)[1])
+                if len(new_player_name) > 70:
+                    await channel.send("That player name is too long, chief. 70 or less.")
+                else:
+                    new_player = games.player(ono.get_stats(new_player_name))
+        try:
+            if new_player is not None:
+                newgame.teams[side].add_lineup(new_player)
+                await channel.send(f"{new_player} {new_player.star_string('batting_stars')} takes spot #{len(newgame.teams[side].lineup)} on the {side} lineup.")
+        except:
+            True
+
+    del setupmessages[team_join_message] #cleanup!
+
+    await channel.send("Name the away team, creator.")
+
+    def ownercheck(msg):
+        return msg.author == newgame.owner
+
+    while newgame.teams["home"].name == None:
+        while newgame.teams["away"].name == None:
+            newname = await client.wait_for('message', check=ownercheck)
+            if len(newname.content) < 30:
+                newgame.teams['away'].name = newname.content
+                await channel.send(f"Stepping onto the field, the visitors: {newname.content}!\nFinally, the home team, and we can begin.")
+            else:
+                await channel.send("Hey, keep these to 30 characters or less please. Discord messages have to stay short.")
+        newname = await client.wait_for('message', check=ownercheck)
+        if len(newname.content) < 30:
+            newgame.teams['home'].name = newname.content
+            await channel.send(f"Next on the diamond, your home team: {newname.content}!")
+        else:
+            await channel.send("Hey, keep these to 30 characters or less please. Discord messages have to stay short.")
+
+    await asyncio.sleep(3)
+    await channel.send(f"**{newgame.teams['away'].name} at {newgame.teams['home'].name}**")
+
+    game_task = asyncio.create_task(watch_game(channel, newgame))
+    await game_task
+
+async def watch_game(channel, game):
     blank_emoji = discord.utils.get(client.emojis, id = 790899850295509053)
     empty_base = discord.utils.get(client.emojis, id = 790899850395779074)
     first_base = discord.utils.get(client.emojis, id = 790899850320543745)
     second_base = discord.utils.get(client.emojis, id = 790900139656740865)
     third_base = discord.utils.get(client.emojis, id = 790900156597403658)
     
-    newgame = games.debug_game()
+    newgame = game
     embed = await channel.send("Play ball!")
-    msg_top = await channel.send(f"{newgame.teams['away'].name} at ")
-    msg_bot = await channel.send(f"{newgame.teams['home'].name} starting...")
+    msg_top = await channel.send(f"{newgame.name}")
+    msg_bot = await channel.send(f"starting...")
     await asyncio.sleep(4)
     use_emoji_names = True
     for game in gamesarray:
@@ -178,8 +322,6 @@ async def watch_game(channel):
         new_embed.add_field(name="Outs:", value=newgame.outs, inline=True)
         new_embed.add_field(name="Pitcher:", value=newgame.get_pitcher(), inline=False)
         new_embed.add_field(name="Batter:", value=newgame.get_batter(), inline=False)
-        if use_emoji_names:
-            new_embed.set_footer(text="This game is using emoji names to indicate baserunners.")
 
         updatestring = f"{newgame.last_update[0]['batter']} {newgame.last_update[0]['text'].value} {newgame.last_update[0]['defender']}{punc} "
         if newgame.last_update[1] > 0:
@@ -189,32 +331,27 @@ async def watch_game(channel):
 
         basemessage_t = str(blank_emoji)
         if newgame.bases[2] is not None:
-            if use_emoji_names:
-                await second_base.edit(name=newgame.bases[2].name)
             basemessage_t += str(second_base)
         else:
             basemessage_t += str(empty_base)
         
         basemessage_b = ""
         if newgame.bases[3] is not None:
-            if use_emoji_names:
-                await third_base.edit(name=newgame.bases[3].name)
             basemessage_b += str(third_base)
         else:
             basemessage_b += str(empty_base)
         basemessage_b += str(blank_emoji)
 
         if newgame.bases[1] is not None:
-            if use_emoji_names:
-                await first_base.edit(name=newgame.bases[1].name)
             basemessage_b += str(first_base)
         else:
             basemessage_b += str(empty_base)
 
         await embed.edit(content=None, embed=new_embed)
+        await asyncio.sleep(.5)
         await msg_top.edit(content=basemessage_t)
         await msg_bot.edit(content=basemessage_b)
-        await asyncio.sleep(3)
+        await asyncio.sleep(5)
 
     punc = ""
     if newgame.last_update[0]["defender"] != "":

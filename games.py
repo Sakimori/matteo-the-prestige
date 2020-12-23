@@ -57,6 +57,20 @@ class player(object):
                             "strikeouts_taken" : 0
             }
 
+    def star_string(self, key):
+        str_out = ""
+        starstring = str(self.stlats[key])
+        if ".5" in starstring:
+            starnum = int(starstring[0])
+            addhalf = True
+        else:
+            starnum = int(starstring[0])
+            addhalf = False
+        str_out += "⭐" * starnum
+        if addhalf:
+            str_out += "✨"
+        return str_out
+
     def __str__(self):
         return self.name
 
@@ -94,13 +108,16 @@ class team(object):
 
 class game(object):
 
-    def __init__(self, team1, team2, length=None):
+    def __init__(self, name, team1, team2, length=None):
+        self.name = name
         self.over = False
         self.teams = {"away" : team1, "home" : team2}
         self.inning = 1
         self.outs = 0
         self.top_of_inning = True
         self.last_update = None
+        self.owner = None
+        self.ready = False
         if length is not None:
             self.max_innings = length
         else:
@@ -455,7 +472,7 @@ def debug_game():
     team_min.set_pitcher(min_player)
     team_min.finalize()
 
-    average_game = game(team_avg, team_avg2)
+    average_game = game("test", team_avg, team_avg2)
     #slugging_game = game(team_max, team_min)
     #shutout_game = game(team_min, team_max)
 

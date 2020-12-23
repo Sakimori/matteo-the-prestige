@@ -22,6 +22,13 @@ def initialcheck():
                                             soulscream text NOT NULL,
                                             timestamp text NOT NULL
                                         ); """
+
+    player_cache_table_check_string = """ CREATE TABLE IF NOT EXISTS players (
+                                            counter integer PRIMARY KEY,
+                                            name text NOT NULL,
+                                            json_string text NOT NULL,
+                                            timestamp text NOT NULL
+                                        ); """
     
     player_table_check_string = """ CREATE TABLE IF NOT EXISTS user_designated_players (
                                         user_id integer PRIMARY KEY,
@@ -54,10 +61,48 @@ def initialcheck():
     if conn is not None:
         c = conn.cursor()
         c.execute(soulscream_table_check_string)
+        c.execute(player_cache_table_check_string)
         c.execute(player_table_check_string)
         c.execute(player_stats_table_check_string)
 
     conn.commit()
+    conn.close()
+
+def get_stats(player_name):
+    conn = create_connection()
+
+    if conn is not None:
+        c = conn.cursor()
+        c.execute("SELECT * FROM players WHERE name=?", (player_name,))
+        player = c.fetchone()
+        try:
+            cachetime = datetime.datetime.fromisoformat(player[3])
+            if datetime.datetime.now(datetime.timezone.utc) - cachetime >= datetime.timedelta(days = 7):
+                #delete old cache
+                c.execute("DELETE FROM players WHERE name=?", (player_name,))
+                conn.commit()
+                conn.close()
+                return None
+        except TypeError:
+            conn.close()
+            return None
+
+        conn.close()
+        return player[2] #returns a json_string
+
+    conn.close()
+    return None
+
+def cache_stats(name, json_string):
+    conn = create_connection()
+    store_string = """ INSERT INTO players(name, json_string, timestamp)
+                            VALUES (?,?, ?) """
+
+    if conn is not None:
+        c = conn.cursor()
+        c.execute(store_string, (name, json_string, datetime.datetime.now(datetime.timezone.utc)))
+        conn.commit() 
+
     conn.close()
 
 
@@ -118,15 +163,18 @@ def designate_player(user, player_json):
     conn.close()
 
 def get_user_player_conn(conn, user): 
-    try:
-        if conn is not None:
-            c = conn.cursor()
-            c.execute("SELECT player_json_string FROM user_designated_players WHERE user_id=?", (user.id,))
+    #try:
+    if conn is not None:
+        c = conn.cursor()
+        c.execute("SELECT player_json_string FROM user_designated_players WHERE user_id=?", (user.id,))
+        try:
             return json.loads(c.fetchone()[0])
-        else:
+        except TypeError:
             return False
-    except:
-        return False
+    else:
+        print(conn)
+    #except:
+        #print(conn)
 
 def get_user_player(user): 
     conn = create_connection()
