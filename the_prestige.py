@@ -108,6 +108,11 @@ async def on_message(msg):
         except:
             await msg.channel.send("We can't find your idol. Looked everywhere, too.")
 
+    elif command.startswith("showplayer "):
+        player_name = json.loads(ono.get_stats(command.split(" ",1)[1]))
+        await msg.channel.send(embed=build_star_embed(player_name))
+
+
 
     elif command == "startgame" and msg.author.id in config()["owners"]:
         game_task = asyncio.create_task(watch_game(msg.channel))
@@ -118,11 +123,23 @@ async def on_message(msg):
             if game[0].name == msg.author.name:
                 await msg.channel.send("There's already an active game with that name.")
                 return
-
-        game_task = asyncio.create_task(setup_game(msg.channel, msg.author, games.game(msg.author.name, games.team(), games.team())))
+        try:
+            inningmax = int(command.split("setupgame ")[1])
+        except:
+            inningmax = 3
+        game_task = asyncio.create_task(setup_game(msg.channel, msg.author, games.game(msg.author.name, games.team(), games.team(), length=inningmax)))
         await game_task
 
+    elif command.startswith("saveteam\n") and msg.author.id in config()["owners"]:
+        save_task = asyncio.create_task(save_team_batch(msg, command))
+        await save_task
 
+    elif command.startswith("showteam "):
+        team = games.get_team(command.split(" ",1)[1]) 
+        if team is not None:
+            await msg.channel.send(embed=build_team_embed(team))
+        else:
+            await msg.channel.send("Can't find that team, boss. Typo?")
 
     elif command == "credit":
         await msg.channel.send("Our avatar was graciously provided to us, with permission, by @HetreaSky on Twitter.")
@@ -276,6 +293,8 @@ async def watch_game(channel, game):
     first_base = discord.utils.get(client.emojis, id = 790899850320543745)
     second_base = discord.utils.get(client.emojis, id = 790900139656740865)
     third_base = discord.utils.get(client.emojis, id = 790900156597403658)
+    out_emoji = discord.utils.get(client.emojis, id = 791578957241778226)
+    in_emoji = discord.utils.get(client.emojis, id = 791578957244792832)
     
     newgame = game
     embed = await channel.send("Play ball!")
@@ -301,7 +320,7 @@ async def watch_game(channel, game):
             new_embed.add_field(name="Inning:", value=f"🔼 {newgame.inning}", inline=True)
         else:
             new_embed.add_field(name="Inning:", value=f"🔽 {newgame.inning}", inline=True)
-        new_embed.add_field(name="Outs:", value=newgame.outs, inline=True)
+        new_embed.add_field(name="Outs:", value=f"{str(out_emoji)*newgame.outs+str(in_emoji)*(2-newgame.outs)}", inline=True)
         new_embed.add_field(name="Pitcher:", value=newgame.get_pitcher(), inline=False)
         new_embed.add_field(name="Batter:", value=newgame.get_batter(), inline=False)
 
@@ -351,8 +370,16 @@ async def watch_game(channel, game):
     gamesarray.pop(gamesarray.index((newgame,use_emoji_names))) #cleanup is important!
     del newgame
         
+def build_team_embed(team):
+    embed = discord.Embed(color=discord.Color.purple(), title=team.name)
+    lineup_string = ""
+    for player in team.lineup:
+        lineup_string += f"{player.name} {player.star_string('batting_stars')}\n"
 
-
+    embed.add_field(name="Pitcher:", value=f"{team.pitcher.name} {team.pitcher.star_string('pitching_stars')}.", inline = False)
+    embed.add_field(name="Lineup:", value=lineup_string, inline = False)
+    embed.set_footer(text=team.slogan)
+    return embed
 
 def build_star_embed(player_json):
     starkeys = {"batting_stars" : "Batting", "pitching_stars" : "Pitching", "baserunning_stars" : "Baserunning", "defense_stars" : "Defense"}
@@ -373,5 +400,44 @@ def build_star_embed(player_json):
     return embed
 
 
+async def save_team_batch(message, command):
+    newteam = games.team()
+    #try:
+    roster = command.split("\n",1)[1].split("\n")
+    newteam.name = roster[0] #first line is team name
+    newteam.slogan = roster[1] #second line is slogan
+    for rosternum in range(2,len(roster)-1):
+        if roster[rosternum] != "":
+            newteam.add_lineup(games.player(ono.get_stats(roster[rosternum])))
+    newteam.set_pitcher(games.player(ono.get_stats(roster[len(roster)-1]))) #last line is pitcher name
 
+    if len(newteam.name) > 30:
+        await message.send("Team names have to be less than 30 characters! Try again.")
+        return
+    elif len(newteam.slogan) > 100:
+        await message.send("We've given you 100 characters for the slogan. Discord puts limits on us and thus, we put limits on you. C'est la vie.")
+
+    await message.channel.send(embed=build_team_embed(newteam))
+    checkmsg = await message.channel.send("Does this look good to you, boss?")
+    await checkmsg.add_reaction("👍")
+    await checkmsg.add_reaction("👎")
+
+    def react_check(react, user):
+        return user == message.author and react.message == checkmsg
+
+    try:
+        react, user = await client.wait_for('reaction_add', timeout=20.0, check=react_check)
+        if react.emoji == "👍":
+            await message.channel.send("You got it, chief. Saving now.")
+            games.save_team(newteam)
+            await message.channel.send("Saved! Thank you for flying Air Matteo. We hope you had a pleasant data entry.")
+            return
+        elif react.emoji == "👎":
+            await message.channel.send("Message received. Pumping brakes, turning this car around. Try again, chief.")
+            return
+    except asyncio.TimeoutError:
+        await message.channel.send("Look, I don't have all day. 20 seconds is long enough, right? Try again.")
+        return
+    #except:
+        #await message.channel.send("uh.")
 client.run(config()["token"])

@@ -1,4 +1,4 @@
-import json, random, os, math
+import json, random, os, math, jsonpickle
 from enum import Enum
 import database as db
 
@@ -82,6 +82,7 @@ class team(object):
         self.lineup_position = 0
         self.pitcher = None
         self.score = 0
+        self.slogan = None
 
     def add_lineup(self, new_player):
         if len(self.lineup) <= 12:
@@ -96,6 +97,14 @@ class team(object):
 
     def is_ready(self):
         return (len(self.lineup) >= 1 and self.pitcher is not None)
+
+    def prepare_for_save(self):
+        self.lineup_position = 0
+        self.score = 0
+        for this_player in self.lineup:
+            for stat in this_player.game_stats.keys():
+                this_player.game_stats[stat] = 0
+        return True
 
     def finalize(self):
         if self.is_ready():
@@ -123,6 +132,7 @@ class game(object):
         else:
             self.max_innings = config()["default_length"]
         self.bases = {1 : None, 2 : None, 3 : None}
+
 
     def get_batter(self):
         if self.top_of_inning:
@@ -443,37 +453,20 @@ def random_star_gen(key, player):
 #    strikeouts_taken
 
 
-def debug_game():
-    average_player = player('{"id" : "average", "name" : "AJ", "batting_stars" : 2.5, "pitching_stars" : 2.5, "defense_stars" : 2.5, "baserunning_stars" : 2.5}')
-    average_player2 = player('{"id" : "average", "name" : "Astrid", "batting_stars" : 2.5, "pitching_stars" : 2.5, "defense_stars" : 2.5, "baserunning_stars" : 2.5}')
-    average_player3 = player('{"id" : "average", "name" : "xvi", "batting_stars" : 2.5, "pitching_stars" : 2.5, "defense_stars" : 2.5, "baserunning_stars" : 2.5}')
-    average_player4 = player('{"id" : "average", "name" : "Fox", "batting_stars" : 2.5, "pitching_stars" : 2.5, "defense_stars" : 2.5, "baserunning_stars" : 2.5}')
-    average_player5 = player('{"id" : "average", "name" : "Pigeon", "batting_stars" : 2.5, "pitching_stars" : 2.5, "defense_stars" : 2.5, "baserunning_stars" : 2.5}')
-    max_player = player('{"id" : "max", "name" : "max", "batting_stars" : 5, "pitching_stars" : 5, "defense_stars" : 5, "baserunning_stars" : 5}')
-    min_player = player('{"id" : "min", "name" : "min", "batting_stars" : 1, "pitching_stars" : 1, "defense_stars" : 1, "baserunning_stars" : 1}')
-    team_avg = team()
-    team_avg.name = "Arizona Aways"
-    team_avg.add_lineup(average_player)
-    team_avg.add_lineup(average_player2)
-    team_avg.add_lineup(average_player3)
-    team_avg.add_lineup(average_player4)
-    team_avg.set_pitcher(average_player5)
-    team_avg.finalize()
-    team_avg2 = team()
-    team_avg2.name = "Houston Homes"
-    team_avg2.add_lineup(average_player5)
-    team_avg2.add_lineup(average_player4)
-    team_avg2.add_lineup(average_player3)
-    team_avg2.add_lineup(average_player2)
-    team_avg2.set_pitcher(average_player)
-    team_avg2.finalize()
-    team_min = team()
-    team_min.add_lineup(min_player)
-    team_min.set_pitcher(min_player)
-    team_min.finalize()
+def get_team(name):
+    #try:
+    team_json = jsonpickle.decode(db.get_team(name), keys=True, classes=team)
+    if team_json is not None:
+        return team_json
+    return None
+   # except:
+        #return None
 
-    average_game = game("test", team_avg, team_avg2)
-    #slugging_game = game(team_max, team_min)
-    #shutout_game = game(team_min, team_max)
-
-    return average_game
+def save_team(this_team):
+    try:
+        this_team.prepare_for_save()
+        team_json_string = jsonpickle.encode(this_team, keys=True)
+        db.save_team(this_team.name, team_json_string)
+        return True
+    except:
+        return None

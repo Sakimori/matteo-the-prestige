@@ -96,3 +96,39 @@ def large_scale_debug(): #massive debug, goes in games.py
 #        there were {result[9]}, {result[10]}, and {result[11]} strikeouts, respectively.
 #        there were {result[12]}, {result[13]}, and {result[14]} groundouts, respectively.
 #        there were {result[15]}, {result[16]}, and {result[17]} flyouts, respectively.""")
+
+
+def debug_game(): #returns a game object ready to run
+    average_player = player('{"id" : "average", "name" : "AJ", "batting_stars" : 2.5, "pitching_stars" : 2.5, "defense_stars" : 2.5, "baserunning_stars" : 2.5}')
+    average_player2 = player('{"id" : "average", "name" : "Astrid", "batting_stars" : 2.5, "pitching_stars" : 2.5, "defense_stars" : 2.5, "baserunning_stars" : 2.5}')
+    average_player3 = player('{"id" : "average", "name" : "xvi", "batting_stars" : 2.5, "pitching_stars" : 2.5, "defense_stars" : 2.5, "baserunning_stars" : 2.5}')
+    average_player4 = player('{"id" : "average", "name" : "Fox", "batting_stars" : 2.5, "pitching_stars" : 2.5, "defense_stars" : 2.5, "baserunning_stars" : 2.5}')
+    average_player5 = player('{"id" : "average", "name" : "Pigeon", "batting_stars" : 2.5, "pitching_stars" : 2.5, "defense_stars" : 2.5, "baserunning_stars" : 2.5}')
+    max_player = player('{"id" : "max", "name" : "max", "batting_stars" : 5, "pitching_stars" : 5, "defense_stars" : 5, "baserunning_stars" : 5}')
+    min_player = player('{"id" : "min", "name" : "min", "batting_stars" : 1, "pitching_stars" : 1, "defense_stars" : 1, "baserunning_stars" : 1}')
+    team_avg = team()
+    team_avg.name = "Arizona Aways"
+    team_avg.add_lineup(average_player)
+    team_avg.add_lineup(average_player2)
+    team_avg.add_lineup(average_player3)
+    team_avg.add_lineup(average_player4)
+    team_avg.set_pitcher(average_player5)
+    team_avg.finalize()
+    team_avg2 = team()
+    team_avg2.name = "Houston Homes"
+    team_avg2.add_lineup(average_player5)
+    team_avg2.add_lineup(average_player4)
+    team_avg2.add_lineup(average_player3)
+    team_avg2.add_lineup(average_player2)
+    team_avg2.set_pitcher(average_player)
+    team_avg2.finalize()
+    team_min = team()
+    team_min.add_lineup(min_player)
+    team_min.set_pitcher(min_player)
+    team_min.finalize()
+
+    average_game = game("test", team_avg, team_avg2)
+    #slugging_game = game(team_max, team_min)
+    #shutout_game = game(team_min, team_max)
+
+    return average_game

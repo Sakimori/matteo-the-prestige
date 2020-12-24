@@ -58,12 +58,20 @@ def initialcheck():
                                             strikeouts_taken integer DEFAULT 0
                                             );"""
 
+    teams_table_check_string = """ CREATE TABLE IF NOT EXISTS teams (
+                                            counter integer PRIMARY KEY,
+                                            name text NOT NULL,
+                                            team_json_string text NOT NULL,
+                                            timestamp text NOT NULL
+                                        ); """
+
     if conn is not None:
         c = conn.cursor()
         c.execute(soulscream_table_check_string)
         c.execute(player_cache_table_check_string)
         c.execute(player_table_check_string)
         c.execute(player_stats_table_check_string)
+        c.execute(teams_table_check_string)
 
     conn.commit()
     conn.close()
@@ -163,21 +171,51 @@ def designate_player(user, player_json):
     conn.close()
 
 def get_user_player_conn(conn, user): 
-    #try:
-    if conn is not None:
-        c = conn.cursor()
-        c.execute("SELECT player_json_string FROM user_designated_players WHERE user_id=?", (user.id,))
-        try:
-            return json.loads(c.fetchone()[0])
-        except TypeError:
-            return False
-    else:
+    try:
+        if conn is not None:
+            c = conn.cursor()
+            c.execute("SELECT player_json_string FROM user_designated_players WHERE user_id=?", (user.id,))
+            try:
+                return json.loads(c.fetchone()[0])
+            except TypeError:
+                return False
+        else:
+            print(conn)
+    except:
         print(conn)
-    #except:
-        #print(conn)
 
 def get_user_player(user): 
     conn = create_connection()
     player = get_user_player_conn(conn, user)
     conn.close()
     return player
+
+def save_team(name, team_json_string):
+    conn = create_connection()
+    try:
+        if conn is not None:
+            c = conn.cursor()
+            store_string = """ INSERT INTO teams(name, team_json_string, timestamp)
+                            VALUES (?,?, ?) """
+            c.execute(store_string, (name, team_json_string, datetime.datetime.now(datetime.timezone.utc)))
+            conn.commit() 
+            conn.close()
+            return True
+        conn.close()
+        return False
+    except:
+        return False
+
+def get_team(name):
+    conn = create_connection()
+    if conn is not None:
+        c = conn.cursor()
+        c.execute("SELECT * FROM teams WHERE name=?", (name,))
+        team = c.fetchone()
+        
+        conn.close()
+        print(team[2])
+        return team[2] #returns a json string
+
+    conn.close()
+    return None
