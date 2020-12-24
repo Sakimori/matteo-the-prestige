@@ -424,10 +424,11 @@ async def save_team_batch(message, command):
     newteam.set_pitcher(games.player(ono.get_stats(roster[len(roster)-1]))) #last line is pitcher name
 
     if len(newteam.name) > 30:
-        await message.send("Team names have to be less than 30 characters! Try again.")
+        await message.channel.send("Team names have to be less than 30 characters! Try again.")
         return
     elif len(newteam.slogan) > 100:
-        await message.send("We've given you 100 characters for the slogan. Discord puts limits on us and thus, we put limits on you. C'est la vie.")
+        await message.channel.send("We've given you 100 characters for the slogan. Discord puts limits on us and thus, we put limits on you. C'est la vie.")
+        return
 
     await message.channel.send(embed=build_team_embed(newteam))
     checkmsg = await message.channel.send("Does this look good to you, boss?")
