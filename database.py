@@ -214,7 +214,6 @@ def get_team(name):
         team = c.fetchone()
         
         conn.close()
-        print(team[2])
         return team[2] #returns a json string
 
     conn.close()

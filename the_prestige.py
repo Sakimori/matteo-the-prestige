@@ -114,9 +114,21 @@ async def on_message(msg):
 
 
 
-    elif command == "startgame" and msg.author.id in config()["owners"]:
-        game_task = asyncio.create_task(watch_game(msg.channel))
-        await game_task
+    elif command.startswith("startgame\n") and msg.author.id in config()["owners"]:
+        try:
+            team1 = games.get_team(command.split("\n")[1])
+            team2 = games.get_team(command.split("\n")[2])
+            innings = int(command.split("\n")[3])
+        except IndexError:
+            await msg.channel.send("We need four lines: startgame, away team, home team, and the number of innings.")
+            return
+        except:
+            await msg.channel.send("Something about that command tripped us up. Probably the number of innings at the end?")
+
+        if team1 is not None and team2 is not None:
+            game = games.game(msg.author.name, team1, team2, length=innings)
+            game_task = asyncio.create_task(watch_game(msg.channel, game))
+            await game_task
 
     elif command.startswith("setupgame") and msg.author.id in config()["owners"]:
         for game in gamesarray:
