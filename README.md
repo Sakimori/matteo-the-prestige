@@ -8,4 +8,7 @@ custom players, custom teams, custom leagues (that last one is coming soon™) a
 
 
 we've also got things like player  idolization, easy setup for quick pick-up games featuring any players you like (including those not on a team), and onomancer lookup
+
 (command description coming soon, i promise)
+
+accepting pull requests, check the issues for to-dos
