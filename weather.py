@@ -52,6 +52,7 @@ class NameSwappyWeather(Weather):
 
 class Feedback(Weather):
     def __init__(self):
+        self.name = "Feedback"
         self.activation_chance = 0.01
         self.swap_batter_vs_pitcher_chance = 0.8
     def activate(self, game):

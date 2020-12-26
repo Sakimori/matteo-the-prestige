@@ -442,6 +442,7 @@ class game(object):
             return f"""Last update: {updatestring}
 
 Score: {self.teams['away'].score} - {self.teams['home'].score}.
+Weather: {'None' if not self.weather else self.weather.name}.
 Current inning: {inningtext} of {self.inning}. {self.outs} outs.
 Pitcher: {self.get_pitcher().name}
 Batter: {self.get_batter().name}
