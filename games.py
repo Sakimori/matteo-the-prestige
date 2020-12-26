@@ -1,6 +1,7 @@
 import json, random, os, math, jsonpickle
 from enum import Enum
 import database as db
+import weather
 
 def config():
     if not os.path.exists("games_config.json"):
@@ -127,10 +128,14 @@ class game(object):
         self.last_update = None
         self.owner = None
         self.ready = False
+        self.weather = None
         if length is not None:
             self.max_innings = length
         else:
             self.max_innings = config()["default_length"]
+        # choose weather
+        if random.random() > 0.5:
+            self.weather = random.choice(weather.all_weathers)()
         self.bases = {1 : None, 2 : None, 3 : None}
 
 
@@ -302,7 +307,16 @@ class game(object):
 
     def batterup(self):
         scores_to_add = 0
-        result = self.at_bat()
+
+        if not self.weather:
+          result = self.at_bat()
+        else:
+          weatheraction = self.weather.activate(self)
+          if weatheraction:
+            result = weatheraction
+          else:
+            result = self.at_bat()
+
         self.get_batter()
         if self.top_of_inning:
             offense_team = self.teams["away"]
@@ -312,6 +326,7 @@ class game(object):
             offense_team = self.teams["home"]
             defense_team = self.teams["away"]
             defender = random.choice(self.teams["away"].lineup)
+
 
         if result["ishit"]: #if batter gets a hit:
             self.get_batter().game_stats["hits"] += 1
