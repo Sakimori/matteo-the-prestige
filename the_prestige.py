@@ -302,17 +302,13 @@ Creator, type `{newgame.name} done` to finalize lineups.""")
 async def watch_game(channel, game):
     blank_emoji = discord.utils.get(client.emojis, id = 790899850295509053)
     empty_base = discord.utils.get(client.emojis, id = 790899850395779074)
-    first_base = discord.utils.get(client.emojis, id = 790899850320543745)
-    second_base = discord.utils.get(client.emojis, id = 790900139656740865)
-    third_base = discord.utils.get(client.emojis, id = 790900156597403658)
+    occupied_base = discord.utils.get(client.emojis, id = 790899850320543745)
     out_emoji = discord.utils.get(client.emojis, id = 791578957241778226)
     in_emoji = discord.utils.get(client.emojis, id = 791578957244792832)
     
     newgame = game
-    embed = await channel.send("Play ball!")
-    msg_top = await channel.send(f"{newgame.name}")
-    msg_bot = await channel.send(f"starting...")
-    await asyncio.sleep(4)
+    embed = await channel.send("Starting...")
+    await asyncio.sleep(2)
     use_emoji_names = True
     for game in gamesarray:
         if game[1]:
@@ -342,28 +338,28 @@ async def watch_game(channel, game):
 
         new_embed.add_field(name="🏏", value=updatestring, inline=False)
 
-        basemessage_t = str(blank_emoji)
+        basemessage = str(blank_emoji)
         if newgame.bases[2] is not None:
-            basemessage_t += str(second_base)
+            basemessage += str(occupied_base) + "\n"
         else:
-            basemessage_t += str(empty_base)
+            basemessage += str(empty_base) + "\n"
         
         basemessage_b = ""
         if newgame.bases[3] is not None:
-            basemessage_b += str(third_base)
+            basemessage += str(occupied_base)
         else:
-            basemessage_b += str(empty_base)
-        basemessage_b += str(blank_emoji)
+            basemessage += str(empty_base)
+        basemessage += str(blank_emoji)
 
         if newgame.bases[1] is not None:
-            basemessage_b += str(first_base)
+            basemessage += str(occupied_base)
         else:
-            basemessage_b += str(empty_base)
+            basemessage += str(empty_base)
+
+        new_embed.add_field(name="Bases:", value=basemessage, inline = False)
 
         await embed.edit(content=None, embed=new_embed)
         await asyncio.sleep(.5)
-        await msg_top.edit(content=basemessage_t)
-        await msg_bot.edit(content=basemessage_b)
         await asyncio.sleep(5)
 
     punc = ""
