@@ -438,6 +438,16 @@ class game(object):
     Last update: {self.last_update[0]['batter']} {self.last_update[0]['text'].value} {self.last_update[0]['defender']}{punc}"""
         except TypeError:
             return "Game not started."
+
+    def add_stats(self):
+        players = []
+        for this_player in self.teams["away"].lineup:
+            players.append((this_player.name, this_player.game_stats))
+        for this_player in self.teams["home"].lineup:
+            players.append((this_player.name, this_player.game_stats))
+        players.append((self.teams["home"].pitcher.name, self.teams["home"].pitcher.game_stats))
+        players.append((self.teams["away"].pitcher.name, self.teams["away"].pitcher.game_stats))
+        db.add_stats(players)
         
 
 
@@ -458,7 +468,7 @@ def random_star_gen(key, player):
 
 def get_team(name):
     #try:
-    team_json = jsonpickle.decode(db.get_team(name), keys=True, classes=team)
+    team_json = jsonpickle.decode(db.get_team(name)[0], keys=True, classes=team)
     if team_json is not None:
         return team_json
     return None
@@ -473,3 +483,17 @@ def save_team(this_team):
         return True
     except:
         return None
+
+def get_all_teams():
+    teams = []
+    for team_pickle in db.get_all_teams():
+        this_team = jsonpickle.decode(team_pickle[0], keys=True, classes=team)
+        teams.append(this_team)
+    return teams
+
+def search_team(search_term):
+    teams = []
+    for team_pickle in db.search_teams(search_term):
+        this_team = jsonpickle.decode(team_pickle[0], keys=True, classes=team)
+        teams.append(this_team)
+    return teams

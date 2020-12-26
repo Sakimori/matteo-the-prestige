@@ -1,4 +1,4 @@
-import discord, json, os, roman, games, asyncio
+import discord, json, math, os, roman, games, asyncio
 import database as db
 import onomancer as ono
 
@@ -156,8 +156,12 @@ async def on_message(msg):
         await game_task
 
     elif command.startswith("saveteam\n"):
-        save_task = asyncio.create_task(save_team_batch(msg, command))
-        await save_task
+        if db.get_team(command.split("\n",1)[1].split("\n")[0]) == None: 
+            save_task = asyncio.create_task(save_team_batch(msg, command))
+            await save_task
+        else:
+            name = command.split('\n',1)[1].split('\n')[0]
+            await msg.channel.send(f"{name} already exists. Try a new name, maybe?")
 
     elif command.startswith("showteam "):
         team = games.get_team(command.split(" ",1)[1]) 
@@ -165,6 +169,15 @@ async def on_message(msg):
             await msg.channel.send(embed=build_team_embed(team))
         else:
             await msg.channel.send("Can't find that team, boss. Typo?")
+
+    elif command == ("showallteams"):
+        list_task = asyncio.create_task(team_pages(msg, games.get_all_teams()))
+        await list_task
+
+    elif command.startswith("searchteams "):
+        search_term = command.split("searchteams ",1)[1]
+        list_task = asyncio.create_task(team_pages(msg, games.search_team(search_term)))
+        await list_task
 
     elif command == "credit":
         await msg.channel.send("Our avatar was graciously provided to us, with permission, by @HetreaSky on Twitter.")
@@ -336,6 +349,7 @@ async def watch_game(channel, game):
         state = newgame.gamestate_display_full()
 
         new_embed = discord.Embed(color=discord.Color.purple(), title=f"{newgame.teams['away'].name} at {newgame.teams['home'].name}")
+        new_embed.set_footer(text="🌟 Supernova")
         new_embed.add_field(name=newgame.teams['away'].name, value=newgame.teams['away'].score, inline=True)
         new_embed.add_field(name=newgame.teams['home'].name, value=newgame.teams['home'].score, inline=True)
         if top_of_inning:
@@ -365,7 +379,7 @@ async def watch_game(channel, game):
         if pause != 1 and state != "Game not started.":
             punc = ""
             if newgame.last_update[0]["defender"] != "":
-                punc = "."          
+                punc = ". "          
 
             updatestring = f"{newgame.last_update[0]['batter']} {newgame.last_update[0]['text'].value} {newgame.last_update[0]['defender']}{punc}"
             if newgame.last_update[1] > 0:
@@ -414,6 +428,7 @@ async def watch_game(channel, game):
     
     await embed.unpin()
     gamesarray.pop(gamesarray.index((newgame,use_emoji_names))) #cleanup is important!
+    newgame.add_stats()
     del newgame
         
 def build_team_embed(team):
@@ -493,4 +508,44 @@ async def save_team_batch(message, command):
         return
     #except:
         #await message.channel.send("uh.")
+
+
+async def team_pages(msg, all_teams):
+    pages = []
+    page_max = math.ceil(len(all_teams)/25)
+    
+    for page in range(0,page_max):
+        embed = discord.Embed(color=discord.Color.purple(), title="All Teams")
+        embed.set_footer(text = f"Page {page+1} of {page_max}")
+        for i in range(0,25):
+            try:
+                embed.add_field(name=all_teams[i+25*page].name, value=all_teams[i+25*page].slogan)
+            except:
+                break
+        pages.append(embed)
+
+    teams_list = await msg.channel.send(embed=pages[0])
+    current_page = 0
+
+    if page_max > 1:
+        await teams_list.add_reaction("◀")
+        await teams_list.add_reaction("▶")
+
+        def react_check(react, user):
+            return user == msg.author and react.message == teams_list
+
+        while True:
+            try:
+                react, user = await client.wait_for('reaction_add', timeout=20.0, check=react_check)
+                if react.emoji == "◀" and current_page > 0:
+                    current_page -= 1
+                elif react.emoji == "▶" and current_page < page_max:
+                    current_page += 1
+                await teams_list.edit(embed=pages[current_page])
+            except asyncio.TimeoutError:
+                await message.channel.send("We hope you found what you were looking for. If not, you can always look again.")
+                return
+
+
+
 client.run(config()["token"])

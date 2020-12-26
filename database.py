@@ -1,5 +1,5 @@
 #handles the database interactions
-import os, json, datetime
+import os, json, datetime, re
 import sqlite3 as sql
 
 
@@ -197,7 +197,7 @@ def save_team(name, team_json_string):
             c = conn.cursor()
             store_string = """ INSERT INTO teams(name, team_json_string, timestamp)
                             VALUES (?,?, ?) """
-            c.execute(store_string, (name, team_json_string, datetime.datetime.now(datetime.timezone.utc)))
+            c.execute(store_string, (re.sub('[^A-Za-z0-9 ]+', '', name), team_json_string, datetime.datetime.now(datetime.timezone.utc))) #this regex removes all non-standard characters
             conn.commit() 
             conn.close()
             return True
@@ -210,11 +210,57 @@ def get_team(name):
     conn = create_connection()
     if conn is not None:
         c = conn.cursor()
-        c.execute("SELECT * FROM teams WHERE name=?", (name,))
+        c.execute("SELECT team_json_string FROM teams WHERE name=?", (re.sub('[^A-Za-z0-9 ]+', '', name),)) #see above note re: regex
         team = c.fetchone()
         
         conn.close()
-        return team[2] #returns a json string
+
+        return team #returns a json string
+
 
     conn.close()
     return None
+
+def get_all_teams():
+    conn = create_connection()
+    if conn is not None:
+        c = conn.cursor()
+        c.execute("SELECT team_json_string FROM teams")
+        team_strings = c.fetchall()
+        conn.close()
+        return team_strings
+
+    conn.close()
+    return None
+
+def search_teams(search_string):
+    conn = create_connection()
+    if conn is not None:
+        c = conn.cursor()
+        c.execute("SELECT team_json_string FROM teams WHERE name LIKE ?",(f"%{search_string}%",))
+        team_json_strings = c.fetchall()
+        conn.close()
+        return team_json_strings
+
+    conn.close()
+    return None
+
+def add_stats(player_game_stats_list):
+    conn = create_connection()
+    if conn is not None:
+        c=conn.cursor()
+        for (name, player_stats_dic) in player_game_stats_list:
+            c.execute("SELECT * FROM stats WHERE name=?",(name,))
+            this_player = c.fetchone()
+            print(this_player)
+            if this_player is not None:
+                for stat in player_stats_dic.keys():
+                    c.execute(f"SELECT {stat} FROM stats WHERE name=?",(name,))
+                    old_value = int(c.fetchone()[0])
+                    c.execute(f"UPDATE stats SET {stat} = ? WHERE name=?",(player_stats_dic[stat]+old_value,name))
+            else:
+                c.execute("INSERT INTO stats(name) VALUES (?)",(name,))
+                for stat in player_stats_dic.keys():
+                    c.execute(f"UPDATE stats SET {stat} = ? WHERE name=?",(player_stats_dic[stat],name))
+        conn.commit()
+    conn.close()
