@@ -388,7 +388,7 @@ def build_team_embed(team):
     for player in team.lineup:
         lineup_string += f"{player.name} {player.star_string('batting_stars')}\n"
 
-    embed.add_field(name="Pitcher:", value=f"{team.pitcher.name} {team.pitcher.star_string('pitching_stars')}.", inline = False)
+    embed.add_field(name="Pitcher:", value=f"{team.pitcher.name} {team.pitcher.star_string('pitching_stars')}", inline = False)
     embed.add_field(name="Lineup:", value=lineup_string, inline = False)
     embed.set_footer(text=team.slogan)
     return embed
