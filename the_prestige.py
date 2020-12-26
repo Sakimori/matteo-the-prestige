@@ -176,7 +176,10 @@ async def on_message(msg):
 
     elif command.startswith("searchteams "):
         search_term = command.split("searchteams ",1)[1]
-        list_task = asyncio.create_task(team_pages(msg, games.search_team(search_term)))
+        if len(search_term) > 30:
+            await msg.channel.send("Team names can't even be that long, chief. Try something shorter.")
+            return
+        list_task = asyncio.create_task(team_pages(msg, games.search_team(search_term), search_term=search_term))
         await list_task
 
     elif command == "credit":
@@ -510,12 +513,16 @@ async def save_team_batch(message, command):
         #await message.channel.send("uh.")
 
 
-async def team_pages(msg, all_teams):
+async def team_pages(msg, all_teams, search_term=None):
     pages = []
     page_max = math.ceil(len(all_teams)/25)
-    
+    if search_term is not None:
+        title_text = f"All teams matching\"{search_term}\":"
+    else:
+        title_text = "All Teams"
+
     for page in range(0,page_max):
-        embed = discord.Embed(color=discord.Color.purple(), title="All Teams")
+        embed = discord.Embed(color=discord.Color.purple(), title=title_text)
         embed.set_footer(text = f"Page {page+1} of {page_max}")
         for i in range(0,25):
             try:
