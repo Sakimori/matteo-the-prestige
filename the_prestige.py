@@ -115,6 +115,10 @@ async def on_message(msg):
 
 
     elif command.startswith("startgame\n") and msg.author.id in config()["owners"]:
+        if len(gamesarray > 45):
+            await msg.channel.send("We're running 45 games and we doubt Discord will be happy with any more. These edit requests don't come cheap.")
+            return
+
         try:
             team1 = games.get_team(command.split("\n")[1])
             team2 = games.get_team(command.split("\n")[2])
@@ -131,9 +135,13 @@ async def on_message(msg):
             await game_task
 
     elif command.startswith("setupgame") and msg.author.id in config()["owners"]:
+        if len(gamesarray > 45):
+            await msg.channel.send("We're running 45 games and we doubt Discord will be happy with any more. These edit requests don't come cheap.")
+            return 
+
         for game in gamesarray:
             if game[0].name == msg.author.name:
-                await msg.channel.send("There's already an active game with that name.")
+                await msg.channel.send("You've already got a game in progress! Wait a tick, boss.")
                 return
         try:
             inningmax = int(command.split("setupgame ")[1])
@@ -308,7 +316,9 @@ async def watch_game(channel, game):
     
     newgame = game
     embed = await channel.send("Starting...")
-    await asyncio.sleep(2)
+    await asyncio.sleep(1)
+    await embed.pin()
+    await asyncio.sleep(1)
     use_emoji_names = True
     for game in gamesarray:
         if game[1]:
@@ -397,6 +407,7 @@ async def watch_game(channel, game):
     final_embed.add_field(name="Final score:", value=scorestring)
     await embed.edit(content=None, embed=final_embed)
     
+    await embed.unpin()
     gamesarray.pop(gamesarray.index((newgame,use_emoji_names))) #cleanup is important!
     del newgame
         
