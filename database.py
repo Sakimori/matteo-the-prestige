@@ -252,7 +252,6 @@ def add_stats(player_game_stats_list):
         for (name, player_stats_dic) in player_game_stats_list:
             c.execute("SELECT * FROM stats WHERE name=?",(name,))
             this_player = c.fetchone()
-            print(this_player)
             if this_player is not None:
                 for stat in player_stats_dic.keys():
                     c.execute(f"SELECT {stat} FROM stats WHERE name=?",(name,))
