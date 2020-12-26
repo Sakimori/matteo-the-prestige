@@ -35,6 +35,12 @@ accepting pull requests, check the issues for to-dos
 
 - m;showteam [name]
   - you can view any saved team with this command
+  
+- m;showallteams
+  - this displays a paginated list of all teams available for `startgame`
+  
+- m;searchteams [searchterm]
+  - displays paginated list of all teams whose names contain `searchterm`
 
 - m;startgame
   - to start a game with premade teams, use this command at the top of a list as above
