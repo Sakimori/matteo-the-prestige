@@ -517,7 +517,7 @@ async def team_pages(msg, all_teams, search_term=None):
     pages = []
     page_max = math.ceil(len(all_teams)/25)
     if search_term is not None:
-        title_text = f"All teams matching\"{search_term}\":"
+        title_text = f"All teams matching \"{search_term}\":"
     else:
         title_text = "All Teams"
 
