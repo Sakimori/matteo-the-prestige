@@ -28,6 +28,7 @@ class appearance_outcomes(Enum):
     flyout = "flies out to"
     fielderschoice = "reaches on fielder's choice."
     doubleplay = "grounds into a double play!"
+    sacrifice = "hits a sacrifice fly towards"
     walk = "draws a walk."
     single = "hits a single!"
     double = "hits a double!"
@@ -224,6 +225,8 @@ class game(object):
         elif "advance" in outcome.keys():
             runs = 0
             if self.bases[3] is not None:
+                outcome["text"] = appearance_outcomes.sacrifice
+                self.get_batter().game_stats["sacrifices"] += 1 
                 self.bases[3] = None
                 runs = 1
             if self.bases[2] is not None:
@@ -374,11 +377,12 @@ class game(object):
                 self.get_pitcher().game_stats["outs_pitched"] += 1
                 self.outs += 1
 
-        offense_team.lineup_position += 1 #put next batter up
+        self.get_batter().game_stats["plate_appearances"] += 1
+        
         offense_team.score += scores_to_add
         self.get_batter().game_stats["rbis"] += scores_to_add
         self.get_pitcher().game_stats["runs_allowed"] += scores_to_add
-
+        offense_team.lineup_position += 1 #put next batter up
         if self.outs >= 3:
             self.flip_inning()
          
