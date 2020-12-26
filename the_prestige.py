@@ -115,7 +115,7 @@ async def on_message(msg):
 
 
     elif command.startswith("startgame\n"):
-        if len(gamesarray > 45):
+        if len(gamesarray) > 45:
             await msg.channel.send("We're running 45 games and we doubt Discord will be happy with any more. These edit requests don't come cheap.")
             return
 
@@ -140,7 +140,7 @@ async def on_message(msg):
             await game_task
 
     elif command.startswith("setupgame"):
-        if len(gamesarray > 45):
+        if len(gamesarray) > 45:
             await msg.channel.send("We're running 45 games and we doubt Discord will be happy with any more. These edit requests don't come cheap.")
             return 
 
