@@ -543,7 +543,7 @@ async def team_pages(msg, all_teams):
                     current_page += 1
                 await teams_list.edit(embed=pages[current_page])
             except asyncio.TimeoutError:
-                await message.channel.send("We hope you found what you were looking for. If not, you can always look again.")
+                await msg.channel.send("We hope you found what you were looking for. If not, you can always look again.")
                 return
 
 
