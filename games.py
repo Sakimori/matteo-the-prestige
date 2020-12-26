@@ -410,31 +410,34 @@ class game(object):
         return self.gamestate_display_full()
 
     def gamestate_display_full(self):
-        punc = ""
-        if self.last_update[0]["defender"] != "":
-            punc = "."
-        if not self.over:
-            if self.top_of_inning:
-                inningtext = "top"
+        try:
+            punc = ""
+            if self.last_update[0]["defender"] != "":
+                punc = "."
+            if not self.over:
+                if self.top_of_inning:
+                    inningtext = "top"
+                else:
+                    inningtext = "bottom"
+
+                updatestring = f"{self.last_update[0]['batter']} {self.last_update[0]['text'].value} {self.last_update[0]['defender']}{punc}\n"
+
+                if self.last_update[1] > 0:
+                    updatestring += f"{self.last_update[1]} runs scored!"
+
+                return f"""Last update: {updatestring}
+
+    Score: {self.teams['away'].score} - {self.teams['home'].score}.
+    Current inning: {inningtext} of {self.inning}. {self.outs} outs.
+    Pitcher: {self.get_pitcher().name}
+    Batter: {self.get_batter().name}
+    Bases: 3: {str(self.bases[3])} 2: {str(self.bases[2])} 1: {str(self.bases[1])}
+    """
             else:
-                inningtext = "bottom"
-
-            updatestring = f"{self.last_update[0]['batter']} {self.last_update[0]['text'].value} {self.last_update[0]['defender']}{punc}\n"
-
-            if self.last_update[1] > 0:
-                updatestring += f"{self.last_update[1]} runs scored!"
-
-            return f"""Last update: {updatestring}
-
-Score: {self.teams['away'].score} - {self.teams['home'].score}.
-Current inning: {inningtext} of {self.inning}. {self.outs} outs.
-Pitcher: {self.get_pitcher().name}
-Batter: {self.get_batter().name}
-Bases: 3: {str(self.bases[3])} 2: {str(self.bases[2])} 1: {str(self.bases[1])}
-"""
-        else:
-            return f"""Game over! Final score: **{self.teams['away'].score} - {self.teams['home'].score}**
-Last update: {self.last_update[0]['batter']} {self.last_update[0]['text'].value} {self.last_update[0]['defender']}{punc}"""
+                return f"""Game over! Final score: **{self.teams['away'].score} - {self.teams['home'].score}**
+    Last update: {self.last_update[0]['batter']} {self.last_update[0]['text'].value} {self.last_update[0]['defender']}{punc}"""
+        except TypeError:
+            return "Game not started."
         
 
 
