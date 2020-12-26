@@ -185,6 +185,43 @@ async def on_message(msg):
     elif command == "credit":
         await msg.channel.send("Our avatar was graciously provided to us, with permission, by @HetreaSky on Twitter.")
 
+    elif command.startswith("help"):
+        command_descriptions = {
+            "idolize":("m;idolize [name]", "Records any name as your idol, used elsewhere. There's a limit of 70 characters. That should be *plenty*."),
+            "showidol":("m;showidol", "Displays your idol's name and stars in a nice discord embed."),
+            "showplayer":("m;showplayer [name]", "Displays any name's stars in a nice discord embed."),
+            "setupgame":("m;setupgame", "Begins setting up a 3-inning pickup game. Pitchers, lineups, and team names are given during the setup process by anyone able to type in that channel. Idols are easily signed up via emoji during the process. The game will start automatically after setup."),
+            "saveteam":("m;saveteam", """To save an entire team, send this command at the top of a list, with lines seperated by newlines (shift+enter in discord, or copy+paste from notepad)
+  - the first line of the list is your team's name (cannot contain emoji)
+  - the second is your team's slogan
+  - the rest of the lines are your players' names   
+  - the last player is designated your pitcher
+if you did it correctly, you'll get a team embed with a prompt to confirm. Hit the 👍 and it'll be saved."""),  
+            "showteam":("m;showteam [name]", "You can view any saved team with this command"),
+            "showallteams":("m;showallteams", "This displays a paginated list of all teams available for `startgame`"),
+            "searchteams":("m;searchteams [searchterm]", "Displays paginated list of all teams whose names contain `searchterm`"),
+            "startgame":("m;startgame", """To start a game with premade teams, use this command at the top of a list as above
+  - the first line is the away team's name
+  - the second is the home team's name
+  - the third is the number of innings, which must be greater than 2."""),
+            "credit":("m;credit", "Shows artist credit for matteo's avatar."),
+            "roman":("m;roman [number]", "Converts any natural number less than 4,000,000 into roman numerals. This one is just for fun."),
+            "help":("m;help [command]", "Displays a list of all commands, or the description of the given command if one is present.")
+        }
+        if command == "help":
+            text = "Here's everything we know how to do; use `m;help [command]` for more info:"
+            for name in command_descriptions:
+                text += "\n  - {}".format(name)
+        else:
+            lookup = command[4:].strip()
+            if lookup in command_descriptions:
+                text = "`{}`:\n{}".format(command_descriptions[lookup][0], command_descriptions[lookup][1])
+            else:
+                text = "Can't find that command, boss; try checking the list with `m;help`."
+        await msg.channel.send(text)
+
+
+
 
 async def introduce(channel):
     text = """**Your name, favorite team, and pronouns**: Matteo Prestige, CHST, they/them ***only.*** There's more than one of us up here, after all.
