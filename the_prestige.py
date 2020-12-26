@@ -512,11 +512,11 @@ async def save_team_batch(message, command):
             if len(roster[rosternum]) > 70:
                 await channel.send(f"{roster[rosternum]} is too long, chief. 70 or less.")
                 return
-            newteam.add_lineup(games.player(ono.get_stats(roster[rosternum])))
+            newteam.add_lineup(games.player(ono.get_stats(roster[rosternum].rstrip())))
     if len(roster[len(roster)-1]) > 70:
         await channel.send(f"{roster[len(roster)-1]} is too long, chief. 70 or less.")
         return
-    newteam.set_pitcher(games.player(ono.get_stats(roster[len(roster)-1]))) #last line is pitcher name
+    newteam.set_pitcher(games.player(ono.get_stats(roster[len(roster)-1].rstrip()))) #last line is pitcher name
 
     if len(newteam.name) > 30:
         await message.channel.send("Team names have to be less than 30 characters! Try again.")
