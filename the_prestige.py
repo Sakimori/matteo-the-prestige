@@ -114,7 +114,7 @@ async def on_message(msg):
 
 
 
-    elif command.startswith("startgame\n") and msg.author.id in config()["owners"]:
+    elif command.startswith("startgame\n"):
         if len(gamesarray > 45):
             await msg.channel.send("We're running 45 games and we doubt Discord will be happy with any more. These edit requests don't come cheap.")
             return
@@ -128,13 +128,18 @@ async def on_message(msg):
             return
         except:
             await msg.channel.send("Something about that command tripped us up. Probably the number of innings at the end?")
+            return
+
+        if innings < 2:
+            await msg.channel.send("Anything less than 2 innings isn't even an outing. Try again.")
+            return 
 
         if team1 is not None and team2 is not None:
             game = games.game(msg.author.name, team1, team2, length=innings)
             game_task = asyncio.create_task(watch_game(msg.channel, game))
             await game_task
 
-    elif command.startswith("setupgame") and msg.author.id in config()["owners"]:
+    elif command.startswith("setupgame"):
         if len(gamesarray > 45):
             await msg.channel.send("We're running 45 games and we doubt Discord will be happy with any more. These edit requests don't come cheap.")
             return 
@@ -150,7 +155,7 @@ async def on_message(msg):
         game_task = asyncio.create_task(setup_game(msg.channel, msg.author, games.game(msg.author.name, games.team(), games.team(), length=inningmax)))
         await game_task
 
-    elif command.startswith("saveteam\n") and msg.author.id in config()["owners"]:
+    elif command.startswith("saveteam\n"):
         save_task = asyncio.create_task(save_team_batch(msg, command))
         await save_task
 
@@ -449,7 +454,13 @@ async def save_team_batch(message, command):
     newteam.slogan = roster[1] #second line is slogan
     for rosternum in range(2,len(roster)-1):
         if roster[rosternum] != "":
+            if len(roster[rosternum]) > 70:
+                await channel.send(f"{roster[rosternum]} is too long, chief. 70 or less.")
+                return
             newteam.add_lineup(games.player(ono.get_stats(roster[rosternum])))
+    if len(roster[len(roster)-1]) > 70:
+        await channel.send(f"{roster[len(roster)-1]} is too long, chief. 70 or less.")
+        return
     newteam.set_pitcher(games.player(ono.get_stats(roster[len(roster)-1]))) #last line is pitcher name
 
     if len(newteam.name) > 30:
