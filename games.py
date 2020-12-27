@@ -264,7 +264,7 @@ class game(object):
                 self.bases[3] = None
             if self.bases[2] is not None:
                 run_roll = random.gauss(2*math.erf((random_star_gen("baserunning_stars", self.bases[2])-def_stat)/4)-1,3)
-                if run_roll > 1.5:
+                if run_roll > 1.5 or outcome["text"] == appearance_outcomes.doubleplay: #double play gives them time to run, guaranteed
                     self.bases[3] = self.bases[2]
                     self.bases[2] = None
             if self.bases[1] is not None: #double plays set this to None before this call
@@ -421,7 +421,10 @@ class game(object):
 
         self.get_batter().game_stats["plate_appearances"] += 1
         
-        offense_team.score += scores_to_add
+        if self.outs < 3:
+            offense_team.score += scores_to_add #only add points if inning isn't over
+        else:
+            scores_to_add = 0
         self.get_batter().game_stats["rbis"] += scores_to_add
         self.get_pitcher().game_stats["runs_allowed"] += scores_to_add
         offense_team.lineup_position += 1 #put next batter up
