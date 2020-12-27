@@ -411,10 +411,10 @@ async def watch_game(channel, game):
         new_embed.add_field(name=newgame.teams['home'].name, value=newgame.teams['home'].score, inline=True)
 
         if top_of_inning:
-            new_embed.add_field(name="Inning:", value=f"🔼 {newgame.inning} / {newgame.max_inning}", inline=True)
+            new_embed.add_field(name="Inning:", value=f"🔼 {newgame.inning} / {newgame.max_innings}", inline=True)
             new_embed.set_footer(text=f"{newgame.teams['away'].name} batting.")
         else:
-            new_embed.add_field(name="Inning:", value=f"🔽 {newgame.inning} / {newgame.max_inning}", inline=True)
+            new_embed.add_field(name="Inning:", value=f"🔽 {newgame.inning} / {newgame.max_innings}", inline=True)
             new_embed.set_footer(text=f"{newgame.teams['home'].name} batting.")
 
         new_embed.add_field(name="Outs:", value=f"{str(out_emoji)*newgame.outs+str(in_emoji)*(2-newgame.outs)}", inline=False)
@@ -429,7 +429,7 @@ async def watch_game(channel, game):
             new_embed.set_field_at(4, name="Pitcher:", value="-", inline=False)
             new_embed.set_field_at(5, name="Batter:", value="-", inline=False)
             if newgame.top_of_inning:
-                new_embed.set_field_at(2,name="Inning:",value=f"🔽 {newgame.inning-1} / {newgame.max_inning}")
+                new_embed.set_field_at(2,name="Inning:",value=f"🔽 {newgame.inning-1} / {newgame.max_innings}")
 
         if pause == 1:
             if newgame.top_of_inning:
@@ -481,8 +481,8 @@ async def watch_game(channel, game):
         await asyncio.sleep(6)
         
     title_string = f"{newgame.teams['away'].name} at {newgame.teams['home'].name} ended after {newgame.inning} innings"
-    if newgame.inning > newgame.max_innings: #if extra innings
-        title_string += f" with {newgame.inning - newgame.max_innings} extra innings."
+    if newgame.inning > (newgame.max_innings - 1): #if extra innings
+        title_string += f" with {newgame.inning - (newgame.max_innings-1)} extra innings."
     else:
         title_string += "."
 
