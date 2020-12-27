@@ -148,7 +148,7 @@ async def on_message(msg):
 
     elif command.startswith("setupgame"):
         if len(gamesarray) > 45:
-            await msg.channel.send("We're running 45 games and we doubt Discord will be happy with any more. These edit requests don't come cheap."
+            await msg.channel.send("We're running 45 games and we doubt Discord will be happy with any more. These edit requests don't come cheap.")
             return 
         elif config()["game_freeze"]:
             await msg.channel.send("Patch incoming. We're not allowing new games right now.")
