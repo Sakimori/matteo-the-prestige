@@ -641,10 +641,10 @@ async def team_pages(msg, all_teams, search_term=None):
                 react, user = await client.wait_for('reaction_add', timeout=60.0, check=react_check)
                 if react.emoji == "◀" and current_page > 0:
                     current_page -= 1
-                    react.remove(user)
+                    await react.remove(user)
                 elif react.emoji == "▶" and current_page < (page_max-1):
                     current_page += 1
-                    react.remove(user)
+                    await react.remove(user)
                 await teams_list.edit(embed=pages[current_page])
             except asyncio.TimeoutError:
                 return
