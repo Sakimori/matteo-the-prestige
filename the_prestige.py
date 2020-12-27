@@ -140,6 +140,7 @@ async def on_message(msg):
                                                     
         elif innings > 30 and msg.author.id not in config()["owners"]:
             await msg.channel.send("Y'all can't behave, so we've limited games to 30 innings. Ask xvi to start it with more if you really want to.")
+            return
 
         if team1 is not None and team2 is not None:
             game = games.game(msg.author.name, team1, team2, length=innings)
