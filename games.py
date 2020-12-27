@@ -198,11 +198,12 @@ class game(object):
             outcome["runners"] = runners #list of consecutive baserunners: (base number, player object)
 
             if self.outs < 2 and len(runners) > 1: #fielder's choice replaces not great groundouts if any forceouts are present
+                def_stat = random_star_gen("defense_stars", defender)
                 if -1.5 <= hitnum and hitnum < 0.5: #poorly hit groundouts
                     outcome["text"] = appearance_outcomes.fielderschoice
                     outcome["defender"] = ""
             
-            if 2.5 <= hitnum: #well hit flyouts can lead to sacrifice flies/advanced runners
+            if 2.5 <= hitnum and self.outs < 2: #well hit flyouts can lead to sacrifice flies/advanced runners
                 if self.bases[2] is not None or self.bases[3] is not None:
                     outcome["advance"] = True
         else:
@@ -268,7 +269,16 @@ class game(object):
                     self.bases[2] = None
             if self.bases[1] is not None: #double plays set this to None before this call
                 run_roll = random.gauss(math.erf(random_star_gen("baserunning_stars", self.bases[1])-def_stat)-.5,1.5)
-                if run_roll > 1:
+                if run_roll < 1 or self.bases[2] is not None: #if runner can't make it or if baserunner blocking on second, convert to fielder's choice
+                    outcome["text"] == appearance_outcomes.fielderschoice
+                    runners = [(0,self.get_batter())]
+                    for base in range(1,4):
+                        if self.bases[base] == None:
+                            break
+                        runners.append((base, self.bases[base]))
+                    outcome["runners"] = runners #rebuild consecutive runners
+                    return runs + self.baserunner_check(defender, outcome) #run again as fielder's choice instead
+                else:
                     self.bases[2] = self.bases[1]
                     self.bases[1] = None
             return runs
@@ -380,32 +390,30 @@ class game(object):
             elif result["text"] == appearance_outcomes.doubleplay:
                 self.get_pitcher().game_stats["outs_pitched"] += 2
                 self.outs += 2
-                self.bases[1] = None      
-                scores_to_add += self.baserunner_check(defender, result)
-                self.get_batter().game_stats["rbis"] -= scores_to_add #remove the fake rbi from the player in advance
+                self.bases[1] = None     
+                if self.outs < 3:
+                    scores_to_add += self.baserunner_check(defender, result)
+                    self.get_batter().game_stats["rbis"] -= scores_to_add #remove the fake rbi from the player in advance
 
-            elif result["text"] == appearance_outcomes.fielderschoice:
+            elif result["text"] == appearance_outcomes.fielderschoice or result["text"] == appearance_outcomes.groundout:
                 self.get_pitcher().game_stats["outs_pitched"] += 1
                 self.outs += 1
-                scores_to_add += self.baserunner_check(defender, result)
+                if self.outs < 3:
+                    scores_to_add += self.baserunner_check(defender, result)
 
             elif "advance" in result.keys():
                 self.get_pitcher().game_stats["outs_pitched"] += 1
                 self.outs += 1
-                if self.bases[3] is not None:
-                    self.get_batter().game_stats["sacrifices"] += 1
-                scores_to_add += self.baserunner_check(defender, result)
+                if self.outs < 3:
+                    if self.bases[3] is not None:
+                        self.get_batter().game_stats["sacrifices"] += 1
+                    scores_to_add += self.baserunner_check(defender, result)
 
             elif result["text"] == appearance_outcomes.strikeoutlooking or result["text"] == appearance_outcomes.strikeoutswinging:
                 self.get_pitcher().game_stats["outs_pitched"] += 1
                 self.outs += 1
                 self.get_batter().game_stats["strikeouts_taken"] += 1
                 self.get_pitcher().game_stats["strikeouts_given"] += 1
-
-            elif result["text"] == appearance_outcomes.groundout:
-                self.get_pitcher().game_stats["outs_pitched"] += 1
-                self.outs += 1
-                scores_to_add += self.baserunner_check(defender, result)
 
             else: 
                 self.get_pitcher().game_stats["outs_pitched"] += 1
