@@ -15,7 +15,8 @@ def config():
                     0000
                     ],
                 "prefix" : ["m;", "m!"],
-                "soulscream channel id" : 0
+                "soulscream channel id" : 0,
+                "game_freeze" : 0
             }
         with open("config.json", "w") as config_file:
             json.dump(config_dic, config_file, indent=4)
@@ -118,6 +119,9 @@ async def on_message(msg):
         if len(gamesarray) > 45:
             await msg.channel.send("We're running 45 games and we doubt Discord will be happy with any more. These edit requests don't come cheap.")
             return
+        elif config()["game_freeze"]:
+            await msg.channel.send("Patch incoming. We're not allowing new games right now.")
+            return
 
         try:
             team1 = games.get_team(command.split("\n")[1])
@@ -127,12 +131,14 @@ async def on_message(msg):
             await msg.channel.send("We need four lines: startgame, away team, home team, and the number of innings.")
             return
         except:
-            await msg.channel.send("Something about that command tripped us up. Probably the number of innings at the end?")
+            await msg.channel.send("Something about that command tripped us up. Either we couldn't find a team, or you gave us a bad number of innings.")
             return
 
         if innings < 2:
             await msg.channel.send("Anything less than 2 innings isn't even an outing. Try again.")
             return 
+        elif innings > 30 and msg.author.id not in config()["owners"]:
+            await msg.channel.send("Y'all can't behave, so we've limited games to 30 innings. Ask xvi to start it with more if you really want to.")
 
         if team1 is not None and team2 is not None:
             game = games.game(msg.author.name, team1, team2, length=innings)
@@ -143,6 +149,9 @@ async def on_message(msg):
         if len(gamesarray) > 45:
             await msg.channel.send("We're running 45 games and we doubt Discord will be happy with any more. These edit requests don't come cheap.")
             return 
+        elif config()["game_freeze"]:
+            await msg.channel.send("Patch incoming. We're not allowing new games right now.")
+            return
 
         for game in gamesarray:
             if game[0].name == msg.author.name:
