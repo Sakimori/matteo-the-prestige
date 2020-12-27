@@ -411,10 +411,10 @@ async def watch_game(channel, game):
 
         if top_of_inning:
             new_embed.add_field(name="Inning:", value=f"🔼 {newgame.inning}", inline=True)
-            new_embed.set_footer(text=f"{newgame.teams['away'].name} batting.)
+            new_embed.set_footer(text=f"{newgame.teams['away'].name} batting.")
         else:
             new_embed.add_field(name="Inning:", value=f"🔽 {newgame.inning}", inline=True)
-            new_embed.set_footer(text=f"{newgame.teams['home'].name} batting.)
+            new_embed.set_footer(text=f"{newgame.teams['home'].name} batting.")
 
         new_embed.add_field(name="Outs:", value=f"{str(out_emoji)*newgame.outs+str(in_emoji)*(2-newgame.outs)}", inline=False)
         new_embed.add_field(name="Pitcher:", value=newgame.get_pitcher(), inline=False)
