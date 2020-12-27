@@ -2,6 +2,254 @@ import discord, json, math, os, roman, games, asyncio
 import database as db
 import onomancer as ono
 
+class Command:
+    def isauthorized(self, user):
+        return True
+
+    async def execute(self, msg, command):
+        return
+
+class IntroduceCommand(Command):
+    name = "introduce"
+    template = ""
+    description = ""
+
+    def isauthorized(self, user):
+        return user.id in config()["owners"]
+
+    async def execute(self, msg, command):
+        text = """**Your name, favorite team, and pronouns**: Matteo Prestige, CHST, they/them ***only.*** There's more than one of us up here, after all.
+**What are you majoring in (wrong answers only)**: Economics.
+**Your favorite and least favorite beverage, without specifying which**: Vanilla milkshakes, chocolate milkshakes.
+**Favorite non-Mild Low team**: The Mills. We hope they're treating Ren alright.
+**If you were a current blaseball player, who would you be**: We refuse to answer this question.
+**Your hobbies/interests**: Minigolf, blaseball, felony insider trading.
+Our avatar was graciously provided to us, with permission, by @HetreaSky on Twitter.
+"""
+        await msg.channel.send(text)
+
+class RomanCommand(Command):
+    name = "roman"
+    template = "m;roman [number]"
+    description = "Converts any natural number less than 4,000,000 into roman numerals. This one is just for fun."
+
+    async def execute(self, msg, command):
+        try:
+            await msg.channel.send(roman.roman_convert(command))
+        except ValueError:
+            await msg.channel.send(f"\"{command}\" isn't an integer in Arabic numerals.")
+
+class IdolizeCommand(Command):
+    name = "idolize"
+    template = "m;idolize [name]"
+    description = "Records any name as your idol, used elsewhere. There's a limit of 70 characters. That should be *plenty*."
+
+    async def execute(self, msg, command):
+        if (command.startswith("meme")):
+            meme = True
+            command = command.split(" ",1)[1]
+        else:
+            meme = False
+
+        player_name = discord.utils.escape_mentions(command)
+        if len(player_name) >= 70:
+            await msg.channel.send("That name is too long. Please keep it below 70 characters, for my sake and yours.")
+            return
+        try:
+            player_json = ono.get_stats(player_name)
+            db.designate_player(msg.author, json.loads(player_json))
+            if not meme:
+                await msg.channel.send(f"{player_name} is now your idol.")
+            else:
+                await msg.channel.send(f"{player_name} is now {msg.author.display_name}'s idol.")
+                await msg.channel.send(f"Reply if {player_name} is your idol also.")
+        except:
+            await msg.channel.send("Something went wrong. Tell xvi.")
+
+class ShowIdolCommand(Command):
+    name = "showidol"
+    template = "m;showidol"
+    description = "Displays your idol's name and stars in a nice discord embed."
+
+    async def execute(self, msg, command):
+        try:
+            player_json = db.get_user_player(msg.author)
+            embed=build_star_embed(player_json)
+            embed.set_footer(text=msg.author.display_name)
+            await msg.channel.send(embed=embed)
+        except:
+            await msg.channel.send("We can't find your idol. Looked everywhere, too.")
+
+class ShowPlayerCommand(Command):
+    name = "showplayer"
+    template = "m;showplayer [name]"
+    description = "Displays any name's stars in a nice discord embed."
+
+    async def execute(self, msg, command):
+        player_name = json.loads(ono.get_stats(command.split(" ",1)[1]))
+        await msg.channel.send(embed=build_star_embed(player_name))
+
+class StartGameCommand(Command):
+    name = "startgame"
+    template = "m;startgame [away] [home] [innings]"
+    description ="""To start a game with premade teams, use this command at the top of a list, with lines seperated by newlines (shift+enter in discord, or copy+paste from notepad)
+  - the first line is the away team's name
+  - the second is the home team's name
+  - the third is the number of innings, which must be greater than 2."""
+
+    async def execute(self, msg, command):
+        if len(gamesarray) > 45:
+            await msg.channel.send("We're running 45 games and we doubt Discord will be happy with any more. These edit requests don't come cheap.")
+            return
+        elif config()["game_freeze"]:
+            await msg.channel.send("Patch incoming. We're not allowing new games right now.")
+            return
+
+        try:
+            team1 = games.get_team(command.split("\n")[1])
+            team2 = games.get_team(command.split("\n")[2])
+            innings = int(command.split("\n")[3])
+        except IndexError:
+            await msg.channel.send("We need four lines: startgame, away team, home team, and the number of innings.")
+            return
+        except:
+            await msg.channel.send("Something about that command tripped us up. Either we couldn't find a team, or you gave us a bad number of innings.")
+            return
+
+        if innings < 2:
+            await msg.channel.send("Anything less than 2 innings isn't even an outing. Try again.")
+            return 
+                                                    
+        elif innings > 30 and msg.author.id not in config()["owners"]:
+            await msg.channel.send("Y'all can't behave, so we've limited games to 30 innings. Ask xvi to start it with more if you really want to.")
+            return
+
+        if team1 is not None and team2 is not None:
+            game = games.game(msg.author.name, team1, team2, length=innings)
+            game_task = asyncio.create_task(watch_game(msg.channel, game))
+            await game_task
+
+class SetupGameCommand(Command):
+    name = "setupgame"
+    template = "m;setupgame"
+    description =  "Begins setting up a 3-inning pickup game. Pitchers, lineups, and team names are given during the setup process by anyone able to type in that channel. Idols are easily signed up via emoji during the process. The game will start automatically after setup."
+
+    async def execute(self, msg, command):
+        if len(gamesarray) > 45:
+            await msg.channel.send("We're running 45 games and we doubt Discord will be happy with any more. These edit requests don't come cheap.")
+            return 
+        elif config()["game_freeze"]:
+            await msg.channel.send("Patch incoming. We're not allowing new games right now.")
+            return
+
+        for game in gamesarray:
+            if game[0].name == msg.author.name:
+                await msg.channel.send("You've already got a game in progress! Wait a tick, boss.")
+                return
+        try:
+            inningmax = int(command)
+        except:
+            inningmax = 3
+        game_task = asyncio.create_task(setup_game(msg.channel, msg.author, games.game(msg.author.name, games.team(), games.team(), length=inningmax)))
+        await game_task
+
+class SaveTeamCommand(Command):
+    name = "saveteam"
+    template = "m;saveteam [name] [slogan] [players]"
+    description = """To save an entire team, send this command at the top of a list, with lines seperated by newlines (shift+enter in discord, or copy+paste from notepad)
+  - the first line of the list is your team's name (cannot contain emoji)
+  - the second is your team's slogan
+  - the rest of the lines are your players' names
+  - the last player is designated your pitcher
+if you did it correctly, you'll get a team embed with a prompt to confirm. Hit the 👍 and it'll be saved."""
+    
+    async def execute(self, msg, command):
+        if db.get_team(command.split("\n")[0]) == None:
+            save_task = asyncio.create_task(save_team_batch(msg, command))
+            await save_task
+        else:
+            name = command.split('\n',1)[1].split('\n')[0]
+            await msg.channel.send(f"{name} already exists. Try a new name, maybe?")
+
+class ShowTeamCommand(Command):
+    name = "showteam"
+    template = "m;showteam [name]"
+    description = "You can view any saved team with this command"
+    
+
+    async def execute(self, msg, command):
+        team = games.get_team(command.strip())
+        if team is not None:
+            await msg.channel.send(embed=build_team_embed(team))
+        else:
+            await msg.channel.send("Can't find that team, boss. Typo?")
+
+class ShowAllTeamsCommand(Command):
+    name = "showallteams"
+    template = "m;showallteams" 
+    description = "This displays a paginated list of all teams available for `startgame`"
+
+    async def execute(self, msg, command):
+        list_task = asyncio.create_task(team_pages(msg, games.get_all_teams()))
+        await list_task
+
+class SearchTeamsCommand(Command):
+    name = "searchteams"
+    template = "m;searchteams [searchterm]"
+    description = "Displays paginated list of all teams whose names contain `searchterm`"
+
+    async def execute(self, msg, command):
+        search_term = command.strip()
+        if len(search_term) > 30:
+            await msg.channel.send("Team names can't even be that long, chief. Try something shorter.")
+            return
+        list_task = asyncio.create_task(team_pages(msg, games.search_team(search_term), search_term=search_term))
+        await list_task
+
+class CreditCommand(Command):
+    name = "credit"
+    template = "m;credit"
+    description = "Shows artist credit for matteo's avatar."
+
+    async def execute(self, msg, command):
+        await msg.channel.send("Our avatar was graciously provided to us, with permission, by @HetreaSky on Twitter.")
+
+class HelpCommand(Command):
+    name = "help"
+    template = "m;help [command]"
+    description = "Displays a list of all commands, or the description of the given command if one is present."
+
+    async def execute(self, msg, command):
+        query = command.strip()
+        if query == "":
+            text = "Here's everything we know how to do; use `m;help [command]` for more info:"
+            for comm in commands:
+                if comm.isauthorized(msg.author):
+                    text += f"\n  - {comm.name}"
+        else:
+            try:
+                comm = next(c for c in commands if c.name == query and c.isauthorized(msg.author))
+                text = f"`{comm.template}`\n{comm.description}"
+            except:
+                text = "Can't find that command, boss; try checking the list with `m;help`."
+        await msg.channel.send(text)
+
+commands = [
+    IntroduceCommand(),
+    IdolizeCommand(),
+    ShowIdolCommand(),
+    ShowPlayerCommand(),
+    SetupGameCommand(),
+    SaveTeamCommand(),
+    ShowTeamCommand(),
+    ShowAllTeamsCommand(),
+    SearchTeamsCommand(),
+    StartGameCommand(),
+    CreditCommand(),
+    RomanCommand(),
+    HelpCommand()
+]
+
 client = discord.Client()
 gamesarray = []
 setupmessages = {}
@@ -53,7 +301,6 @@ async def on_message(msg):
     if msg.author == client.user:
         return
 
-
     command_b = False
     for prefix in config()["prefix"]:
         if msg.content.startswith(prefix):
@@ -62,188 +309,19 @@ async def on_message(msg):
     if not command_b:
         return
 
-    if msg.author.id in config()["owners"] and command == "introduce":
-        await introduce(msg.channel)
-
-    elif msg.channel.id == config()["soulscream channel id"]:
+    if msg.channel.id == config()["soulscream channel id"]:
         try:
             await msg.channel.send(ono.get_scream(msg.author.nick))
         except TypeError or AttributeError:
             await msg.channel.send(ono.get_scream(msg.author.name))
         except AttributeError:
             await msg.channel.send(ono.get_scream(msg.author.name))
-
-    elif command.startswith("roman "):
-        possible_int_string = command.split(" ",1)[1]
+    else:
         try:
-            await msg.channel.send(roman.roman_convert(possible_int_string))
-        except ValueError:
-            await msg.channel.send(f"\"{possible_int_string}\" isn't an integer in Arabic numerals.")
-
-    elif command.startswith("idolize"):
-        if (command.startswith("idolizememe")):
-            meme = True
-        else:
-            meme = False
-        player_name = discord.utils.escape_mentions(command.split(" ",1)[1])
-        if len(player_name) >= 70:
-            await msg.channel.send("That name is too long. Please keep it below 70 characters, for my sake and yours.")
+            comm = next(c for c in commands if command.startswith(c.name))
+            await comm.execute(msg, command[len(comm.name):])
+        except StopIteration:
             return
-        try:
-            player_json = ono.get_stats(player_name)
-            db.designate_player(msg.author, json.loads(player_json))
-            if not meme:
-                await msg.channel.send(f"{player_name} is now your idol.")
-            else:
-                await msg.channel.send(f"{player_name} is now {msg.author.display_name}'s idol.")
-                await msg.channel.send(f"Reply if {player_name} is your idol also.")
-        except:
-            await msg.channel.send("Something went wrong. Tell xvi.")
-
-    elif command == "showidol":
-        try:
-            player_json = db.get_user_player(msg.author)
-            embed=build_star_embed(player_json)
-            embed.set_footer(text=msg.author.display_name)
-            await msg.channel.send(embed=embed)
-        except:
-            await msg.channel.send("We can't find your idol. Looked everywhere, too.")
-
-    elif command.startswith("showplayer "):
-        player_name = json.loads(ono.get_stats(command.split(" ",1)[1]))
-        await msg.channel.send(embed=build_star_embed(player_name))
-
-
-
-    elif command.startswith("startgame\n"):
-        if len(gamesarray) > 45:
-            await msg.channel.send("We're running 45 games and we doubt Discord will be happy with any more. These edit requests don't come cheap.")
-            return
-        elif config()["game_freeze"]:
-            await msg.channel.send("Patch incoming. We're not allowing new games right now.")
-            return
-
-        try:
-            team1 = games.get_team(command.split("\n")[1])
-            team2 = games.get_team(command.split("\n")[2])
-            innings = int(command.split("\n")[3])
-        except IndexError:
-            await msg.channel.send("We need four lines: startgame, away team, home team, and the number of innings.")
-            return
-        except:
-            await msg.channel.send("Something about that command tripped us up. Either we couldn't find a team, or you gave us a bad number of innings.")
-            return
-
-        if innings < 2:
-            await msg.channel.send("Anything less than 2 innings isn't even an outing. Try again.")
-            return 
-                                                    
-        elif innings > 30 and msg.author.id not in config()["owners"]:
-            await msg.channel.send("Y'all can't behave, so we've limited games to 30 innings. Ask xvi to start it with more if you really want to.")
-            return
-
-        if team1 is not None and team2 is not None:
-            game = games.game(msg.author.name, team1, team2, length=innings)
-            game_task = asyncio.create_task(watch_game(msg.channel, game))
-            await game_task
-
-    elif command.startswith("setupgame"):
-        if len(gamesarray) > 45:
-            await msg.channel.send("We're running 45 games and we doubt Discord will be happy with any more. These edit requests don't come cheap.")
-            return 
-        elif config()["game_freeze"]:
-            await msg.channel.send("Patch incoming. We're not allowing new games right now.")
-            return
-
-        for game in gamesarray:
-            if game[0].name == msg.author.name:
-                await msg.channel.send("You've already got a game in progress! Wait a tick, boss.")
-                return
-        try:
-            inningmax = int(command.split("setupgame ")[1])
-        except:
-            inningmax = 3
-        game_task = asyncio.create_task(setup_game(msg.channel, msg.author, games.game(msg.author.name, games.team(), games.team(), length=inningmax)))
-        await game_task
-
-    elif command.startswith("saveteam\n"):
-        if db.get_team(command.split("\n",1)[1].split("\n")[0]) == None:
-            save_task = asyncio.create_task(save_team_batch(msg, command))
-            await save_task
-        else:
-            name = command.split('\n',1)[1].split('\n')[0]
-            await msg.channel.send(f"{name} already exists. Try a new name, maybe?")
-
-    elif command.startswith("showteam "):
-        team = games.get_team(command.split(" ",1)[1])
-        if team is not None:
-            await msg.channel.send(embed=build_team_embed(team))
-        else:
-            await msg.channel.send("Can't find that team, boss. Typo?")
-
-    elif command == ("showallteams"):
-        list_task = asyncio.create_task(team_pages(msg, games.get_all_teams()))
-        await list_task
-
-    elif command.startswith("searchteams "):
-        search_term = command.split("searchteams ",1)[1]
-        if len(search_term) > 30:
-            await msg.channel.send("Team names can't even be that long, chief. Try something shorter.")
-            return
-        list_task = asyncio.create_task(team_pages(msg, games.search_team(search_term), search_term=search_term))
-        await list_task
-
-    elif command == "credit":
-        await msg.channel.send("Our avatar was graciously provided to us, with permission, by @HetreaSky on Twitter.")
-
-    elif command.startswith("help"):
-        command_descriptions = {
-            "idolize":("m;idolize [name]", "Records any name as your idol, used elsewhere. There's a limit of 70 characters. That should be *plenty*."),
-            "showidol":("m;showidol", "Displays your idol's name and stars in a nice discord embed."),
-            "showplayer":("m;showplayer [name]", "Displays any name's stars in a nice discord embed."),
-            "setupgame":("m;setupgame", "Begins setting up a 3-inning pickup game. Pitchers, lineups, and team names are given during the setup process by anyone able to type in that channel. Idols are easily signed up via emoji during the process. The game will start automatically after setup."),
-            "saveteam":("m;saveteam", """To save an entire team, send this command at the top of a list, with lines seperated by newlines (shift+enter in discord, or copy+paste from notepad)
-  - the first line of the list is your team's name (cannot contain emoji)
-  - the second is your team's slogan
-  - the rest of the lines are your players' names
-  - the last player is designated your pitcher
-if you did it correctly, you'll get a team embed with a prompt to confirm. Hit the 👍 and it'll be saved."""),
-            "showteam":("m;showteam [name]", "You can view any saved team with this command"),
-            "showallteams":("m;showallteams", "This displays a paginated list of all teams available for `startgame`"),
-            "searchteams":("m;searchteams [searchterm]", "Displays paginated list of all teams whose names contain `searchterm`"),
-            "startgame":("m;startgame", """To start a game with premade teams, use this command at the top of a list as above
-  - the first line is the away team's name
-  - the second is the home team's name
-  - the third is the number of innings, which must be greater than 2."""),
-            "credit":("m;credit", "Shows artist credit for matteo's avatar."),
-            "roman":("m;roman [number]", "Converts any natural number less than 4,000,000 into roman numerals. This one is just for fun."),
-            "help":("m;help [command]", "Displays a list of all commands, or the description of the given command if one is present.")
-        }
-        if command == "help":
-            text = "Here's everything we know how to do; use `m;help [command]` for more info:"
-            for name in command_descriptions:
-                text += "\n  - {}".format(name)
-        else:
-            lookup = command[4:].strip()
-            if lookup in command_descriptions:
-                text = "`{}`:\n{}".format(command_descriptions[lookup][0], command_descriptions[lookup][1])
-            else:
-                text = "Can't find that command, boss; try checking the list with `m;help`."
-        await msg.channel.send(text)
-
-
-
-
-async def introduce(channel):
-    text = """**Your name, favorite team, and pronouns**: Matteo Prestige, CHST, they/them ***only.*** There's more than one of us up here, after all.
-**What are you majoring in (wrong answers only)**: Economics.
-**Your favorite and least favorite beverage, without specifying which**: Vanilla milkshakes, chocolate milkshakes.
-**Favorite non-Mild Low team**: The Mills. We hope they're treating Ren alright.
-**If you were a current blaseball player, who would you be**: We refuse to answer this question.
-**Your hobbies/interests**: Minigolf, blaseball, felony insider trading.
-Our avatar was graciously provided to us, with permission, by @HetreaSky on Twitter.
-"""
-    await channel.send(text)
 
 async def start_game(channel):
     msg = await channel.send("Play ball!")

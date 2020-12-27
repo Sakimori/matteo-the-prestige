@@ -471,13 +471,13 @@ def random_star_gen(key, player):
 
 
 def get_team(name):
-    #try:
-    team_json = jsonpickle.decode(db.get_team(name)[0], keys=True, classes=team)
-    if team_json is not None:
-        return team_json
-    return None
-   # except:
-        #return None
+    try:
+        team_json = jsonpickle.decode(db.get_team(name)[0], keys=True, classes=team)
+        if team_json is not None:
+            return team_json
+        return None
+    except:
+        return None
 
 def save_team(this_team):
     try:
