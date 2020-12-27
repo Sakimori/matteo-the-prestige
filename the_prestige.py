@@ -106,7 +106,7 @@ class StartGameCommand(Command):
     description ="""To start a game with premade teams, use this command at the top of a list, with lines seperated by newlines (shift+enter in discord, or copy+paste from notepad)
   - the first line is the away team's name
   - the second is the home team's name
-  - the third is the number of innings, which must be greater than 2."""
+  - optionally, the third is the number of innings, which must be greater than 2."""
 
     async def execute(self, msg, command):
         if config()["game_freeze"]:
@@ -124,6 +124,7 @@ class StartGameCommand(Command):
                 innings = None
             except IndexError:
                 await msg.channel.send("We need at least three lines: startgame, away team, and home team are required. Optionally, the number of innings can go at the end, if you want a change of pace.")
+                return
         except:
             await msg.channel.send("Something about that command tripped us up. Either we couldn't find a team, or you gave us a bad number of innings.")
             return
