@@ -501,8 +501,8 @@ async def watch_game(channel, newgame, user = None):
     top_of_inning = True
     victory_lap = False
 
-    weathers = [games.weather("Supernova", "🌟"), games.weather("Midnight", "🕶")]
-    newgame.weather = random.choice(weathers)
+    weathers = games.all_weathers()
+    newgame.weather = weathers[random.choice(list(weathers.keys()))]
 
     while not newgame.over or newgame.top_of_inning != top_of_inning:
         state = newgame.gamestate_display_full()

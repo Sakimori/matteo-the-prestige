@@ -23,6 +23,25 @@ def config():
         with open("games_config.json") as config_file:
             return json.load(config_file)
 
+def all_weathers():
+    if not os.path.exists("weather_config.json"):
+        #generate default config
+        super_weather_json = jsonpickle.encode(weather("Supernova", "🌟"))
+        mid_weather_json = jsonpickle.encode(weather("Midnight", "🕶"))
+        config_dic = {
+            "Supernova" : super_weather_json,
+            "Midnight": mid_weather_json
+            }
+        with open("weather_config.json", "w") as config_file:
+            json.dump(config_dic, config_file, indent=4)
+    with open("weather_config.json") as config_file:
+        weather_dic = {}
+        for weather_json in json.load(config_file).values():
+            this_weather = jsonpickle.decode(weather_json, classes=weather)
+            weather_dic[this_weather.name] = this_weather
+        return weather_dic
+
+
 class appearance_outcomes(Enum):
     strikeoutlooking = "strikes out looking."
     strikeoutswinging = "strikes out swinging."

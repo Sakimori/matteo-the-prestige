@@ -342,6 +342,7 @@ healthchecksdb
 # Personal config file, contains bot token
 config.json
 games_config.json
+weather_config.json
 ids
 
 # database
