@@ -479,11 +479,11 @@ def get_team(name):
    # except:
         #return None
 
-def save_team(this_team):
+def save_team(this_team, user_id):
     try:
         this_team.prepare_for_save()
         team_json_string = jsonpickle.encode(this_team, keys=True)
-        db.save_team(this_team.name, team_json_string)
+        db.save_team(this_team.name, team_json_string, user_id)
         return True
     except:
         return None

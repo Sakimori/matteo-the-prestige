@@ -573,7 +573,7 @@ async def save_team_batch(message, command):
         react, user = await client.wait_for('reaction_add', timeout=20.0, check=react_check)
         if react.emoji == "👍":
             await message.channel.send("You got it, chief. Saving now.")
-            games.save_team(newteam)
+            games.save_team(newteam, message.author.id)
             await message.channel.send("Saved! Thank you for flying Air Matteo. We hope you had a pleasant data entry.")
             return
         elif react.emoji == "👎":
