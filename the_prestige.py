@@ -98,7 +98,7 @@ async def on_message(msg):
                 await msg.channel.send(f"{player_name} is now {msg.author.display_name}'s idol.")
                 await msg.channel.send(f"Reply if {player_name} is your idol also.")
         except:
-            await msg.channel.send("Something went wrong. Tell 16.")
+            await msg.channel.send("Something went wrong. Tell xvi.")
 
     elif command == "showidol":
         try:
