@@ -156,7 +156,7 @@ async def on_message(msg):
             return
 
         for game in gamesarray:
-            if game[0].name == msg.author.name:
+            if game.name == msg.author.name:
                 await msg.channel.send("You've already got a game in progress! Wait a tick, boss.")
                 return
         try:
@@ -230,6 +230,9 @@ if you did it correctly, you'll get a team embed with a prompt to confirm. Hit t
             else:
                 text = "Can't find that command, boss; try checking the list with `m;help`."
         await msg.channel.send(text)
+
+    elif command == "countactivegames" and msg.author.id in config()["owners"]:
+        await msg.channel.send(f"There's {len(gamesarray)} active games right now, boss.")
 
 
 
@@ -395,11 +398,7 @@ async def watch_game(channel, game):
     await asyncio.sleep(1)
     await embed.pin()
     await asyncio.sleep(1)
-    use_emoji_names = True
-    for game in gamesarray:
-        if game[1]:
-            use_emoji_names = False
-    gamesarray.append((newgame,use_emoji_names))
+    gamesarray.append(newgame)
     pause = 0
     top_of_inning = True
     victory_lap = False
@@ -506,7 +505,7 @@ async def watch_game(channel, game):
     await embed.edit(content=None, embed=final_embed)
 
     await embed.unpin()
-    gamesarray.pop(gamesarray.index((newgame,use_emoji_names))) #cleanup is important!
+    gamesarray.pop(gamesarray.index(newgame)) #cleanup is important!
     newgame.add_stats()
     del newgame
 
