@@ -9,7 +9,7 @@ def config():
                 "default_length" : 3,
                 "stlat_weights" : {
                         "batting_stars" : 1, #batting
-                        "pitching_stars" : 1, #pitching
+                        "pitching_stars" : 0.8, #pitching
                         "baserunning_stars" : 1, #baserunning
                         "defense_stars" : 1 #defense
                     },
@@ -280,7 +280,7 @@ class game(object):
             defender = random.choice(defense_team.lineup) #excludes pitcher
             run_stat = random_star_gen("baserunning_stars", baserunner)
             def_stat = random_star_gen("defense_stars", defender)
-            run_roll = random.gauss(2*math.erf((run_stat-def_stat)/4)-1,3)
+            run_roll = random.gauss(2*math.erf((run_stat-def_stat)/4)-1,3)*config()["stolen_base_success_mod"]
             if start_base == 2:
                 run_roll = run_roll * .9 #stealing third is harder
             if run_roll < 1:
