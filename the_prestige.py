@@ -128,11 +128,11 @@ class StartGameCommand(Command):
             await msg.channel.send("Something about that command tripped us up. Either we couldn't find a team, or you gave us a bad number of innings.")
             return
 
-        if innings < 2:
+        if innings is not None and innings < 2:
             await msg.channel.send("Anything less than 2 innings isn't even an outing. Try again.")
             return 
                                                     
-        elif innings > 30 and msg.author.id not in config()["owners"]:
+        elif innings is not None and innings > 30 and msg.author.id not in config()["owners"]:
             await msg.channel.send("Y'all can't behave, so we've limited games to 30 innings. Ask xvi to start it with more if you really want to.")
             return
 
