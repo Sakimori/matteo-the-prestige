@@ -488,15 +488,13 @@ def build_star_embed(player_json):
     for key in starkeys.keys():
         embedstring = ""
         starstring = str(player_json[key])
-        if ".5" in starstring:
-            starnum = int(starstring[0])
-            addhalf = True
-        else:
-            starnum = int(player_json[key])
-            addhalf = False
+        starnum = int(starstring[0])
+        addhalf = ".5" in starstring
         embedstring += "⭐" * starnum
         if addhalf:
             embedstring += "✨"
+        elif starnum == 0:  # why check addhalf twice, amirite
+            embedstring += "⚪️"
         embed.add_field(name=starkeys[key], value=embedstring, inline=False)
     return embed
 
