@@ -405,13 +405,17 @@ async def watch_game(channel, game):
         state = newgame.gamestate_display_full()
 
         new_embed = discord.Embed(color=discord.Color.purple(), title=f"{newgame.teams['away'].name} at {newgame.teams['home'].name}")
-        new_embed.set_footer(text="🌟 Supernova")
+        
         new_embed.add_field(name=newgame.teams['away'].name, value=newgame.teams['away'].score, inline=True)
         new_embed.add_field(name=newgame.teams['home'].name, value=newgame.teams['home'].score, inline=True)
+
         if top_of_inning:
             new_embed.add_field(name="Inning:", value=f"🔼 {newgame.inning}", inline=True)
+            new_embed.set_footer(text=f"{newgame.teams['away'].name} batting.)
         else:
             new_embed.add_field(name="Inning:", value=f"🔽 {newgame.inning}", inline=True)
+            new_embed.set_footer(text=f"{newgame.teams['home'].name} batting.)
+
         new_embed.add_field(name="Outs:", value=f"{str(out_emoji)*newgame.outs+str(in_emoji)*(2-newgame.outs)}", inline=False)
         new_embed.add_field(name="Pitcher:", value=newgame.get_pitcher(), inline=False)
         new_embed.add_field(name="Batter:", value=newgame.get_batter(), inline=False)
@@ -465,6 +469,7 @@ async def watch_game(channel, game):
             basemessage += str(empty_base)
 
         new_embed.add_field(name="Bases:", value=basemessage, inline = False)
+        new_embed.add_field(name="Weather:", value="🌟 Supernova", inline = False)
 
         await embed.edit(content=None, embed=new_embed)
         top_of_inning = newgame.top_of_inning
