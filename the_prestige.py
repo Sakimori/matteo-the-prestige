@@ -411,10 +411,10 @@ async def watch_game(channel, game):
         new_embed.add_field(name=newgame.teams['home'].name, value=newgame.teams['home'].score, inline=True)
 
         if top_of_inning:
-            new_embed.add_field(name="Inning:", value=f"🔼 {newgame.inning}", inline=True)
+            new_embed.add_field(name="Inning:", value=f"🔼 {newgame.inning}/{newgame.max_inning}", inline=True)
             new_embed.set_footer(text=f"{newgame.teams['away'].name} batting.")
         else:
-            new_embed.add_field(name="Inning:", value=f"🔽 {newgame.inning}", inline=True)
+            new_embed.add_field(name="Inning:", value=f"🔽 {newgame.inning}/{newgame.max_inning}", inline=True)
             new_embed.set_footer(text=f"{newgame.teams['home'].name} batting.")
 
         new_embed.add_field(name="Outs:", value=f"{str(out_emoji)*newgame.outs+str(in_emoji)*(2-newgame.outs)}", inline=False)
@@ -429,7 +429,7 @@ async def watch_game(channel, game):
             new_embed.set_field_at(4, name="Pitcher:", value="-", inline=False)
             new_embed.set_field_at(5, name="Batter:", value="-", inline=False)
             if newgame.top_of_inning:
-                new_embed.set_field_at(2,name="Inning:",value=f"🔽 {newgame.inning-1}")
+                new_embed.set_field_at(2,name="Inning:",value=f"🔽 {newgame.inning-1}/{newgame.max_inning}")
 
         if pause == 1:
             if newgame.top_of_inning:
