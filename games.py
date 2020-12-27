@@ -199,7 +199,7 @@ class game(object):
 
             if self.outs < 2 and len(runners) > 1: #fielder's choice replaces not great groundouts if any forceouts are present
                 def_stat = random_star_gen("defense_stars", defender)
-                if -1.5 <= hitnum and hitnum < 0.5: #poorly hit groundouts
+                if -1.5 <= hitnum and hitnum < -0.5: #poorly hit groundouts
                     outcome["text"] = appearance_outcomes.fielderschoice
                     outcome["defender"] = ""
             
