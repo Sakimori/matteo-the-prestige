@@ -162,7 +162,7 @@ async def on_message(msg):
             return
 
         for game in gamesarray:
-            if game[0].name == msg.author.name:
+            if game.name == msg.author.name:
                 await msg.channel.send("You've already got a game in progress! Wait a tick, boss.")
                 return
         try:
@@ -246,6 +246,9 @@ if you did it correctly, you'll get a team embed with a prompt to confirm. Hit t
             else:
                 text = "Can't find that command, boss; try checking the list with `m;help`."
         await msg.channel.send(text)
+
+    elif command == "countactivegames" and msg.author.id in config()["owners"]:
+        await msg.channel.send(f"There's {len(gamesarray)} active games right now, boss.")
 
 
 
@@ -342,6 +345,8 @@ Creator, type `{newgame.name} done` to finalize lineups.""")
             msg = await client.wait_for('message', timeout=120.0, check=messagecheck)
         except asyncio.TimeoutError:
             await channel.send("Game timed out. 120 seconds between players is a bit much, see?")
+            del setupmessages[team_join_message]
+            del newgame
             return
 
         new_player = None
@@ -409,11 +414,7 @@ async def watch_game(channel, game):
     await asyncio.sleep(1)
     await embed.pin()
     await asyncio.sleep(1)
-    use_emoji_names = True
-    for game in gamesarray:
-        if game[1]:
-            use_emoji_names = False
-    gamesarray.append((newgame,use_emoji_names))
+    gamesarray.append(newgame)
     pause = 0
     top_of_inning = True
     victory_lap = False
@@ -497,8 +498,8 @@ async def watch_game(channel, game):
         await asyncio.sleep(6)
         
     title_string = f"{newgame.teams['away'].name} at {newgame.teams['home'].name} ended after {newgame.inning} innings"
-    if newgame.inning > (newgame.max_innings - 1): #if extra innings
-        title_string += f" with {newgame.inning - (newgame.max_innings-1)} extra innings."
+    if (newgame.inning - 1) > newgame.max_innings: #if extra innings
+        title_string += f" with {newgame.inning - (newgame.max_innings+1)} extra innings."
     else:
         title_string += "."
 
@@ -520,7 +521,7 @@ async def watch_game(channel, game):
     await embed.edit(content=None, embed=final_embed)
 
     await embed.unpin()
-    gamesarray.pop(gamesarray.index((newgame,use_emoji_names))) #cleanup is important!
+    gamesarray.pop(gamesarray.index(newgame)) #cleanup is important!
     newgame.add_stats()
     del newgame
 
