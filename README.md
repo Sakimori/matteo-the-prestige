@@ -46,10 +46,8 @@ accepting pull requests, check the issues for to-dos.
 
 ### other commands:
 - m;help [command]
-  - show the instuctions from here for given command. if no command is provided, it will instead provide a list of all of the commands that you can get help with.
-    
+  - show the instuctions from here for given command. if no command is provided, it will instead provide a list of all of the commands that you can get help with.    
 - m;credit
-  - shows artist credit for matteo's avatar.
-  
+  - shows artist credit for matteo's avatar.  
 - m;roman [number]
   - converts any natural number less than 4,000,000 into roman numerals, this one is just for fun.
