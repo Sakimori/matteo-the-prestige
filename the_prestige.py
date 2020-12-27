@@ -326,6 +326,8 @@ Creator, type `{newgame.name} done` to finalize lineups.""")
             msg = await client.wait_for('message', timeout=120.0, check=messagecheck)
         except asyncio.TimeoutError:
             await channel.send("Game timed out. 120 seconds between players is a bit much, see?")
+            del setupmessages[team_join_message]
+            del newgame
             return
 
         new_player = None
