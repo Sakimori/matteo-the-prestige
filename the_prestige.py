@@ -192,13 +192,17 @@ class ShowTeamCommand(Command):
     template = "m;showteam [name]"
     description = "You can view any saved team with this command"
     
-
     async def execute(self, msg, command):
-        team = games.get_team(command.strip())
+        team_name = command.strip()
+        team = games.get_team(team_name)
         if team is not None:
             await msg.channel.send(embed=build_team_embed(team))
         else:
-            await msg.channel.send("Can't find that team, boss. Typo?")
+            teams = games.search_team(team_name.lower())
+            if len(teams) == 1:
+                await msg.channel.send(embed=build_team_embed(teams[0]))
+            else:
+                await msg.channel.send("Can't find that team, boss. Typo?")
 
 class ShowAllTeamsCommand(Command):
     name = "showallteams"
