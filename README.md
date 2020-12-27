@@ -44,7 +44,10 @@ accepting pull requests, check the issues for to-dos.
 - m;setupgame
   - begins setting up a 3-inning pickup game. pitchers, lineups, and team names are given during the setup process by anyone able to type in that channel. idols are easily signed up via emoji during the process. the game will start automatically after setup.
 
-### other commands:    
+### other commands:
+- m;help [command]
+  - show the instuctions from here for given command. if no command is provided, it will instead provide a list of all of the commands that you can get help with.
+    
 - m;credit
   - shows artist credit for matteo's avatar.
   
