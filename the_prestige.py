@@ -124,7 +124,6 @@ class StartGameCommand(Command):
                 innings = None
             except IndexError:
                 await msg.channel.send("We need at least three lines: startgame, away team, and home team are required. Optionally, the number of innings can go at the end, if you want a change of pace.")
-            return
         except:
             await msg.channel.send("Something about that command tripped us up. Either we couldn't find a team, or you gave us a bad number of innings.")
             return
@@ -483,7 +482,7 @@ Creator, type `{newgame.name} done` to finalize lineups.""")
     game_task = asyncio.create_task(watch_game(channel, newgame))
     await game_task
 
-async def watch_game(channel, game, user = None):
+async def watch_game(channel, newgame, user = None):
     blank_emoji = discord.utils.get(client.emojis, id = 790899850295509053)
     empty_base = discord.utils.get(client.emojis, id = 790899850395779074)
     occupied_base = discord.utils.get(client.emojis, id = 790899850320543745)
