@@ -62,6 +62,9 @@ async def on_message(msg):
     if not command_b:
         return
 
+    # clear trailing spaces from each line
+    command = "\n".join([line.strip() for line in command.split("\n")])
+
     if msg.author.id in config()["owners"] and command == "introduce":
         await introduce(msg.channel)
 
@@ -100,7 +103,7 @@ async def on_message(msg):
         except:
             await msg.channel.send("Something went wrong. Tell xvi.")
 
-    elif command == "showidol":
+    elif command.startswith("showidol"):
         try:
             player_json = db.get_user_player(msg.author)
             embed=build_star_embed(player_json)
@@ -109,13 +112,16 @@ async def on_message(msg):
         except:
             await msg.channel.send("We can't find your idol. Looked everywhere, too.")
 
-    elif command.startswith("showplayer "):
-        player_name = json.loads(ono.get_stats(command.split(" ",1)[1]))
-        await msg.channel.send(embed=build_star_embed(player_name))
+    elif command.startswith("showplayer"):
+        if " " in command:
+            player_name = json.loads(ono.get_stats(command.split(" ",1)[1]))
+            await msg.channel.send(embed=build_star_embed(player_name))
+        else:
+            await msg.channel.send("If you wanna hear about anyone in particular, I'm gonna need a name.")
 
 
 
-    elif command.startswith("startgame\n"):
+    elif command.startswith("startgame"):
         if len(gamesarray) > 45:
             await msg.channel.send("We're running 45 games and we doubt Discord will be happy with any more. These edit requests don't come cheap.")
             return
@@ -166,32 +172,42 @@ async def on_message(msg):
         game_task = asyncio.create_task(setup_game(msg.channel, msg.author, games.game(msg.author.name, games.team(), games.team(), length=inningmax)))
         await game_task
 
-    elif command.startswith("saveteam\n"):
-        if db.get_team(command.split("\n",1)[1].split("\n")[0]) == None:
-            save_task = asyncio.create_task(save_team_batch(msg, command))
-            await save_task
+    elif command.startswith("saveteam"):
+        if "\n" in command:
+            if db.get_team(command.split("\n",1)[1].split("\n")[0]) == None:
+                save_task = asyncio.create_task(save_team_batch(msg, command))
+                await save_task
+            else:
+                name = command.split('\n',1)[1].split('\n')[0]
+                await msg.channel.send(f"{name} already exists. Try a new name, maybe?")
         else:
-            name = command.split('\n',1)[1].split('\n')[0]
-            await msg.channel.send(f"{name} already exists. Try a new name, maybe?")
+            await msg.channel.send("The Null Team's already in the League, chief.")
 
-    elif command.startswith("showteam "):
-        team = games.get_team(command.split(" ",1)[1])
-        if team is not None:
-            await msg.channel.send(embed=build_team_embed(team))
+    elif command.startswith("showteam"):
+        if " " in command:
+            team = games.get_team(command.split(" ",1)[1])
+            if team is not None:
+                await msg.channel.send(embed=build_team_embed(team))
+            else:
+                await msg.channel.send("Can't find that team, boss. Typo?")
         else:
-            await msg.channel.send("Can't find that team, boss. Typo?")
+            await msg.channel.send("I need a team name to look 'em up, boss. If you want to gaze from up high, you might like the 'showallteams' command.")
 
     elif command == ("showallteams"):
         list_task = asyncio.create_task(team_pages(msg, games.get_all_teams()))
         await list_task
 
-    elif command.startswith("searchteams "):
-        search_term = command.split("searchteams ",1)[1]
-        if len(search_term) > 30:
-            await msg.channel.send("Team names can't even be that long, chief. Try something shorter.")
-            return
-        list_task = asyncio.create_task(team_pages(msg, games.search_team(search_term), search_term=search_term))
-        await list_task
+    elif command.startswith("searchteams"):
+        if " " in command:
+            search_term = command.split("searchteams ",1)[1]
+            if len(search_term) > 30:
+                await msg.channel.send("Team names can't even be that long, chief. Try something shorter.")
+                return
+            list_task = asyncio.create_task(team_pages(msg, games.search_team(search_term), search_term=search_term))
+            await list_task
+        else:
+            await msg.channel.send("Gotta say what you're looking for if you want to search.")
+            
 
     elif command == "credit":
         await msg.channel.send("Our avatar was graciously provided to us, with permission, by @HetreaSky on Twitter.")
