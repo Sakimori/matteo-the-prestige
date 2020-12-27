@@ -144,7 +144,9 @@ async def on_message(msg):
 
         if team1 is not None and team2 is not None:
             game = games.game(msg.author.name, team1, team2, length=innings)
-            game_task = asyncio.create_task(watch_game(msg.channel, game))
+            channel = msg.channel
+            await msg.delete()
+            game_task = asyncio.create_task(watch_game(channel, game))
             await game_task
 
     elif command.startswith("setupgame"):
@@ -481,7 +483,7 @@ async def watch_game(channel, game):
         pause -= 1
         await asyncio.sleep(6)
         
-    title_string = f"{newgame.teams['away'].name} at {newgame.teams['home'].name} ended after {newgame.inning} innings"
+    title_string = f"{newgame.teams['away'].name} at {newgame.teams['home'].name} ended after {newgame.inning-1} innings"
     if (newgame.inning - 1) > newgame.max_innings: #if extra innings
         title_string += f" with {newgame.inning - (newgame.max_innings+1)} extra innings."
     else:
