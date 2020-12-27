@@ -4,6 +4,7 @@ import onomancer as ono
 
 client = discord.Client()
 gamesarray = []
+gamesqueue = []
 setupmessages = {}
 
 def config():
@@ -116,10 +117,8 @@ async def on_message(msg):
 
 
     elif command.startswith("startgame\n"):
-        if len(gamesarray) > 45:
-            await msg.channel.send("We're running 45 games and we doubt Discord will be happy with any more. These edit requests don't come cheap.")
-            return
-        elif config()["game_freeze"]:
+        
+        if config()["game_freeze"]:
             await msg.channel.send("Patch incoming. We're not allowing new games right now.")
             return
 
@@ -145,7 +144,13 @@ async def on_message(msg):
         if team1 is not None and team2 is not None:
             game = games.game(msg.author.name, team1, team2, length=innings)
             channel = msg.channel
+            user_mention = msg.author.mention
             await msg.delete()
+            if len(gamesarray) >= 45:
+                await channel.send(f"We're running 45 games right now, and Discord probably isn't very pleased about it. You're at #{len(gamesqueue)+1} in the list.\nWe'll ping you when it's ready, chief.")
+                gamesqueue.append((channel, game, user_mention))
+                return
+            
             game_task = asyncio.create_task(watch_game(channel, game))
             await game_task
 
@@ -510,6 +515,17 @@ async def watch_game(channel, game):
     gamesarray.pop(gamesarray.index(newgame)) #cleanup is important!
     newgame.add_stats()
     del newgame
+    if len(gamesqueue) > 0:
+        channel, game, user_mention = gamesqueue.pop(0)
+        queue_task = asyncio.create_task(play_from_queue(channel, game, user_mention))
+        await queue_task
+
+async def play_from_queue(channel, game, user_mention):
+    await channel.send(f"{user_mention}, your game's ready.")
+    game_task = asyncio.create_task(watch_game(channel, game))
+    await game_task
+
+
 
 def build_team_embed(team):
     embed = discord.Embed(color=discord.Color.purple(), title=team.name)
