@@ -14,22 +14,22 @@ accepting pull requests, check the issues for to-dos.
 
 ### team commands:
 - m;saveteam
-  - saves a team to the database allowing it to be used for games. send this command at the top of a list, with lines seperated by newlines (shift+enter in discord, or copy+paste from notepad).
+  - saves a team to the database allowing it to be used for games. send this command at the top of a list, with entries seperated by new lines (shift+enter in discord, or copy+paste from notepad).
 	- the first line of the list is your team's name (cannot contain emoji).
-	- the second is your team's slogan, this should begin with an emoji followed by a space.
-	- the next lines are your batters' names in the order you want them to appear in your lineup, can be any number of batters between 1 and 12.
-	- the final line is your pitcher.
+	- the second line is your team's icon and slogan, this should begin with an emoji followed by a space, followed by a short slogan.
+	- the next lines are your batters' names in the order you want them to appear in your lineup, lineups can contain any number of batters between 1 and 12.
+	- the final line is your pitcher's name.
   - if you did it correctly, you'll get a team embed with a prompt to confirm. hit the 👍 and it'll be saved.
 - m;showteam [name]
   - shows information about any saved team.
 - m;showallteams
   - shows a paginated list of all teams available for games which can be scrolled through.	  
 - m;searchteams [searchterm]
-  - displays paginated list of all teams whose names contain the given string.
+  - shows a paginated list of all teams whose names contain the given search term.
 
 ### player commands:	 
 - m;showplayer [name]
-  - displays any name's stars, there's a limit of 70 characters. that should be *plenty*. note: if you want to lookup a lot of different players you can do it here instead of spamming this a bunch and clogging up discord: https://onomancer.sibr.dev/reflect
+  - displays any name's stars, there's a limit of 70 characters. that should be *plenty*. note: if you want to lookup a lot of different players you can do it on onomancer instead of spamming this command a bunch and clogging up discord: https://onomancer.sibr.dev/reflect
 - m;idolize [name]
   - records any name as your idol, mostly for fun but also can be used for pickup games. 	  
 - m;showidol 
@@ -37,16 +37,16 @@ accepting pull requests, check the issues for to-dos.
   
 ### game commands:
 - m;startgame
-  - starts a game with premade teams, use this command at the top of a list followed by each of these in a new line:
+  - starts a game with premade teams made using saveteam, use this command at the top of a list followed by each of these in a new line:
 	- the away team's name.
 	- the home team's name.
 	- and finally, optionally, the number of innings, which must be greater than 2 and less than 31. if not included it will default to 9.	  
 - m;setupgame
-  - begins setting up a 3-inning pickup game. pitchers, lineups, and team names are given during the setup process by anyone able to type in that channel. idols are easily signed up via emoji during the process. the game will start automatically after setup.
+  - begins setting up a 3-inning pickup game. pitchers, lineups, and team names are given during the setup process by anyone. idols are easily signed up via emoji during the process. the game will start automatically after the setup is completed.
 
 ### other commands:
 - m;help [command]
-  - show the instuctions from here for given command. if no command is provided, it will instead provide a list of all of the commands that you can get help with.    
+  - shows the instuctions from here for given command. if no command is provided, it will instead provide a list of all of the commands that instructions can be provided for.    
 - m;credit
   - shows artist credit for matteo's avatar.  
 - m;roman [number]
