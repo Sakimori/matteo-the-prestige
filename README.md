@@ -51,3 +51,8 @@ accepting pull requests, check the issues for to-dos.
   - shows artist credit for matteo's avatar.  
 - m;roman [number]
   - converts any natural number less than 4,000,000 into roman numerals, this one is just for fun.
+
+## patreon!
+
+these folks are helping me a *ton* via patreon, and i cannot possibly thank them enough:
+- Ale Humano
