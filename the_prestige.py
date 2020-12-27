@@ -28,6 +28,17 @@ Our avatar was graciously provided to us, with permission, by @HetreaSky on Twit
 """
         await msg.channel.send(text)
 
+class CountActiveGamesCommand(Command):
+    name = "countactivegames"
+    template = ""
+    description = ""
+
+    def isauthorized(self, user):
+        return user.id in config()["owners"]
+
+    async def execute(self, msg, command):
+        await msg.channel.send(f"There's {len(gamesarray)} active games right now, boss.")
+
 class RomanCommand(Command):
     name = "roman"
     template = "m;roman [number]"
@@ -98,10 +109,7 @@ class StartGameCommand(Command):
   - the third is the number of innings, which must be greater than 2."""
 
     async def execute(self, msg, command):
-        if len(gamesarray) > 45:
-            await msg.channel.send("We're running 45 games and we doubt Discord will be happy with any more. These edit requests don't come cheap.")
-            return
-        elif config()["game_freeze"]:
+        if config()["game_freeze"]:
             await msg.channel.send("Patch incoming. We're not allowing new games right now.")
             return
 
@@ -126,7 +134,15 @@ class StartGameCommand(Command):
 
         if team1 is not None and team2 is not None:
             game = games.game(msg.author.name, team1, team2, length=innings)
-            game_task = asyncio.create_task(watch_game(msg.channel, game))
+            channel = msg.channel
+            user_mention = msg.author.mention
+            await msg.delete()
+            if len(gamesarray) >= 45:
+                await channel.send(f"We're running 45 games right now, and Discord probably isn't very pleased about it. You're at #{len(gamesqueue)+1} in the list.\nWe'll ping you when it's ready, chief.")
+                gamesqueue.append((channel, game, user_mention))
+                return
+            
+            game_task = asyncio.create_task(watch_game(channel, game))
             await game_task
 
 class SetupGameCommand(Command):
@@ -143,7 +159,7 @@ class SetupGameCommand(Command):
             return
 
         for game in gamesarray:
-            if game[0].name == msg.author.name:
+            if game.name == msg.author.name:
                 await msg.channel.send("You've already got a game in progress! Wait a tick, boss.")
                 return
         try:
@@ -236,6 +252,7 @@ class HelpCommand(Command):
 
 commands = [
     IntroduceCommand(),
+    CountActiveGamesCommand(),
     IdolizeCommand(),
     ShowIdolCommand(),
     ShowPlayerCommand(),
@@ -252,6 +269,7 @@ commands = [
 
 client = discord.Client()
 gamesarray = []
+gamesqueue = []
 setupmessages = {}
 
 def config():
@@ -473,11 +491,7 @@ async def watch_game(channel, game):
     await asyncio.sleep(1)
     await embed.pin()
     await asyncio.sleep(1)
-    use_emoji_names = True
-    for game in gamesarray:
-        if game[1]:
-            use_emoji_names = False
-    gamesarray.append((newgame,use_emoji_names))
+    gamesarray.append(newgame)
     pause = 0
     top_of_inning = True
     victory_lap = False
@@ -525,7 +539,11 @@ async def watch_game(channel, game):
             if newgame.last_update[0]["defender"] != "":
                 punc = ". "
 
-            updatestring = f"{newgame.last_update[0]['batter']} {newgame.last_update[0]['text'].value} {newgame.last_update[0]['defender']}{punc}"
+            if "fc_out" in newgame.last_update[0].keys():
+                name, base_string = newgame.last_update[0]['fc_out']
+                updatestring = f"{newgame.last_update[0]['batter']} {newgame.last_update[0]['text'].value.format(name, base_string)} {newgame.last_update[0]['defender']}{punc}"
+            else:
+                updatestring = f"{newgame.last_update[0]['batter']} {newgame.last_update[0]['text'].value} {newgame.last_update[0]['defender']}{punc}"
             if newgame.last_update[1] > 0:
                     updatestring += f"{newgame.last_update[1]} runs scored!"
 
@@ -560,9 +578,9 @@ async def watch_game(channel, game):
         pause -= 1
         await asyncio.sleep(6)
         
-    title_string = f"{newgame.teams['away'].name} at {newgame.teams['home'].name} ended after {newgame.inning} innings"
-    if newgame.inning > (newgame.max_innings - 1): #if extra innings
-        title_string += f" with {newgame.inning - (newgame.max_innings-1)} extra innings."
+    title_string = f"{newgame.teams['away'].name} at {newgame.teams['home'].name} ended after {newgame.inning-1} innings"
+    if (newgame.inning - 1) > newgame.max_innings: #if extra innings
+        title_string += f" with {newgame.inning - (newgame.max_innings+1)} extra innings."
     else:
         title_string += "."
 
@@ -584,9 +602,20 @@ async def watch_game(channel, game):
     await embed.edit(content=None, embed=final_embed)
 
     await embed.unpin()
-    gamesarray.pop(gamesarray.index((newgame,use_emoji_names))) #cleanup is important!
+    gamesarray.pop(gamesarray.index(newgame)) #cleanup is important!
     newgame.add_stats()
     del newgame
+    if len(gamesqueue) > 0:
+        channel, game, user_mention = gamesqueue.pop(0)
+        queue_task = asyncio.create_task(play_from_queue(channel, game, user_mention))
+        await queue_task
+
+async def play_from_queue(channel, game, user_mention):
+    await channel.send(f"{user_mention}, your game's ready.")
+    game_task = asyncio.create_task(watch_game(channel, game))
+    await game_task
+
+
 
 def build_team_embed(team):
     embed = discord.Embed(color=discord.Color.purple(), title=team.name)
@@ -652,7 +681,7 @@ async def save_team_batch(message, command):
         react, user = await client.wait_for('reaction_add', timeout=20.0, check=react_check)
         if react.emoji == "👍":
             await message.channel.send("You got it, chief. Saving now.")
-            games.save_team(newteam)
+            games.save_team(newteam, message.author.id)
             await message.channel.send("Saved! Thank you for flying Air Matteo. We hope you had a pleasant data entry.")
             return
         elif react.emoji == "👎":
@@ -698,8 +727,10 @@ async def team_pages(msg, all_teams, search_term=None):
                 react, user = await client.wait_for('reaction_add', timeout=60.0, check=react_check)
                 if react.emoji == "◀" and current_page > 0:
                     current_page -= 1
+                    await react.remove(user)
                 elif react.emoji == "▶" and current_page < (page_max-1):
                     current_page += 1
+                    await react.remove(user)
                 await teams_list.edit(embed=pages[current_page])
             except asyncio.TimeoutError:
                 return

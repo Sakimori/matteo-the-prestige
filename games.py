@@ -26,7 +26,7 @@ class appearance_outcomes(Enum):
     strikeoutswinging = "strikes out swinging."
     groundout = "grounds out to"
     flyout = "flies out to"
-    fielderschoice = "reaches on fielder's choice."
+    fielderschoice = "reaches on fielder's choice. {} is out at {} base." #requires .format(player, base_string)
     doubleplay = "grounds into a double play!"
     sacrifice = "hits a sacrifice fly towards"
     walk = "draws a walk."
@@ -182,21 +182,30 @@ class game(object):
             else:
                 outcome["text"] = appearance_outcomes.walk
 
-            if self.bases[1] is not None and hitnum < -1.3 and self.outs != 2:
+            if self.bases[1] is not None and hitnum < -2 and self.outs != 2:
                 outcome["text"] = appearance_outcomes.doubleplay
                 outcome["defender"] = ""
 
-            for base in self.bases.values():
-                if base is not None:
-                    fc_flag = True
+            #for base in self.bases.values():
+                #if base is not None:
+                    #fc_flag = True
 
-            if fc_flag and self.outs < 2:
-                if 0 <= hitnum and hitnum < 1.5:
+            runners = [(0,self.get_batter())]
+            for base in range(1,4):
+                if self.bases[base] == None:
+                    break
+                runners.append((base, self.bases[base]))
+            outcome["runners"] = runners #list of consecutive baserunners: (base number, player object)
+
+            if self.outs < 2 and len(runners) > 1: #fielder's choice replaces not great groundouts if any forceouts are present
+                def_stat = random_star_gen("defense_stars", defender)
+                if -1.5 <= hitnum and hitnum < -0.5: #poorly hit groundouts
                     outcome["text"] = appearance_outcomes.fielderschoice
                     outcome["defender"] = ""
-                elif 2.5 <= hitnum:
-                    if self.bases[2] is not None or self.bases[3] is not None:
-                        outcome["advance"] = True
+            
+            if 2.5 <= hitnum and self.outs < 2: #well hit flyouts can lead to sacrifice flies/advanced runners
+                if self.bases[2] is not None or self.bases[3] is not None:
+                    outcome["advance"] = True
         else:
             outcome["ishit"] = True
             if hitnum < 1:
@@ -230,21 +239,49 @@ class game(object):
                 self.bases[3] = None
                 runs = 1
             if self.bases[2] is not None:
-                run_roll = random.gauss(math.erf(random_star_gen("baserunning_stars", self.bases[2])-def_stat)-.5,1.5)
-                if run_roll > 0:
+                run_roll = random.gauss(2*math.erf((random_star_gen("baserunning_stars", self.bases[2])-def_stat)/4)-1,3)
+                if run_roll > 2:
                     self.bases[3] = self.bases[2]
                     self.bases[2] = None
             return runs
 
         elif outcome["text"] == appearance_outcomes.fielderschoice:
-            for base in range(3, 0, -1):
-                if self.bases[base] is not None:
-                    self.fc_out = self.bases[base]
-                    for movebase in range(base,1,-1):
-                        self.bases[movebase] = self.bases[movebase-1]
-                    break
-            self.bases[1] = self.get_batter()
+            furthest_base, runner = outcome["runners"].pop() #get furthest baserunner
+            self.bases[furthest_base] = None 
+            outcome["fc_out"] = (runner.name, base_string(furthest_base+1)) #runner thrown out
+            for index in range(0,len(outcome["runners"])):
+                base, this_runner = outcome["runners"].pop()
+                self.bases[base+1] = this_runner #includes batter, at base 0
+            if self.bases[3] is not None and furthest_base == 1: #fielders' choice with runners on the corners
+                self.bases[3] = None
+                return 1
             return 0
+
+        elif outcome["text"] == appearance_outcomes.groundout or outcome["text"] == appearance_outcomes.doubleplay:
+            runs = 0
+            if self.bases[3] is not None:
+                runs += 1
+                self.bases[3] = None
+            if self.bases[2] is not None:
+                run_roll = random.gauss(2*math.erf((random_star_gen("baserunning_stars", self.bases[2])-def_stat)/4)-1,3)
+                if run_roll > 1.5:
+                    self.bases[3] = self.bases[2]
+                    self.bases[2] = None
+            if self.bases[1] is not None: #double plays set this to None before this call
+                run_roll = random.gauss(2*math.erf((random_star_gen("baserunning_stars", self.bases[1])-def_stat)/4)-1,3)
+                if run_roll < 2 or self.bases[2] is not None: #if runner can't make it or if baserunner blocking on second, convert to fielder's choice
+                    outcome["text"] == appearance_outcomes.fielderschoice
+                    runners = [(0,self.get_batter())]
+                    for base in range(1,4):
+                        if self.bases[base] == None:
+                            break
+                        runners.append((base, self.bases[base]))
+                    outcome["runners"] = runners #rebuild consecutive runners
+                    return runs + self.baserunner_check(defender, outcome) #run again as fielder's choice instead
+                else:
+                    self.bases[2] = self.bases[1]
+                    self.bases[1] = None
+            return runs
 
         elif outcome["ishit"]:
             runs = 0
@@ -353,19 +390,24 @@ class game(object):
             elif result["text"] == appearance_outcomes.doubleplay:
                 self.get_pitcher().game_stats["outs_pitched"] += 2
                 self.outs += 2
-                self.bases[1] = None
+                self.bases[1] = None     
+                if self.outs < 3:
+                    scores_to_add += self.baserunner_check(defender, result)
+                    self.get_batter().game_stats["rbis"] -= scores_to_add #remove the fake rbi from the player in advance
 
-            elif result["text"] == appearance_outcomes.fielderschoice:
+            elif result["text"] == appearance_outcomes.fielderschoice or result["text"] == appearance_outcomes.groundout:
                 self.get_pitcher().game_stats["outs_pitched"] += 1
                 self.outs += 1
-                scores_to_add += self.baserunner_check(defender, result)
+                if self.outs < 3:
+                    scores_to_add += self.baserunner_check(defender, result)
 
             elif "advance" in result.keys():
                 self.get_pitcher().game_stats["outs_pitched"] += 1
                 self.outs += 1
-                if self.bases[3] is not None:
-                    self.get_batter().game_stats["sacrifices"] += 1
-                scores_to_add += self.baserunner_check(defender, result)
+                if self.outs < 3:
+                    if self.bases[3] is not None:
+                        self.get_batter().game_stats["sacrifices"] += 1
+                    scores_to_add += self.baserunner_check(defender, result)
 
             elif result["text"] == appearance_outcomes.strikeoutlooking or result["text"] == appearance_outcomes.strikeoutswinging:
                 self.get_pitcher().game_stats["outs_pitched"] += 1
@@ -479,11 +521,11 @@ def get_team(name):
     except:
         return None
 
-def save_team(this_team):
+def save_team(this_team, user_id):
     try:
         this_team.prepare_for_save()
         team_json_string = jsonpickle.encode(this_team, keys=True)
-        db.save_team(this_team.name, team_json_string)
+        db.save_team(this_team.name, team_json_string, user_id)
         return True
     except:
         return None
@@ -501,3 +543,13 @@ def search_team(search_term):
         this_team = jsonpickle.decode(team_pickle[0], keys=True, classes=team)
         teams.append(this_team)
     return teams
+
+def base_string(base):
+    if base == 1:
+        return "first"
+    elif base == 2:
+        return "second"
+    elif base == 3:
+        return "third"
+    elif base == 4:
+        return "fourth"

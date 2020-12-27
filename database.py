@@ -62,7 +62,8 @@ def initialcheck():
                                             counter integer PRIMARY KEY,
                                             name text NOT NULL,
                                             team_json_string text NOT NULL,
-                                            timestamp text NOT NULL
+                                            timestamp text NOT NULL,
+                                            owner_id integer
                                         ); """
 
     if conn is not None:
@@ -190,14 +191,14 @@ def get_user_player(user):
     conn.close()
     return player
 
-def save_team(name, team_json_string):
+def save_team(name, team_json_string, user_id):
     conn = create_connection()
     try:
         if conn is not None:
             c = conn.cursor()
-            store_string = """ INSERT INTO teams(name, team_json_string, timestamp)
-                            VALUES (?,?, ?) """
-            c.execute(store_string, (re.sub('[^A-Za-z0-9 ]+', '', name), team_json_string, datetime.datetime.now(datetime.timezone.utc))) #this regex removes all non-standard characters
+            store_string = """ INSERT INTO teams(name, team_json_string, timestamp, owner_id)
+                            VALUES (?,?, ?, ?) """
+            c.execute(store_string, (re.sub('[^A-Za-z0-9 ]+', '', name), team_json_string, datetime.datetime.now(datetime.timezone.utc), user_id)) #this regex removes all non-standard characters
             conn.commit() 
             conn.close()
             return True
