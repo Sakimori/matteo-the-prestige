@@ -239,8 +239,8 @@ class game(object):
                 self.bases[3] = None
                 runs = 1
             if self.bases[2] is not None:
-                run_roll = random.gauss(math.erf(random_star_gen("baserunning_stars", self.bases[2])-def_stat)-.5,1.5)
-                if run_roll > 0:
+                run_roll = random.gauss(2*math.erf((random_star_gen("baserunning_stars", self.bases[2])-def_stat)/4)-1,3)
+                if run_roll > 2:
                     self.bases[3] = self.bases[2]
                     self.bases[2] = None
             return runs
@@ -263,13 +263,13 @@ class game(object):
                 runs += 1
                 self.bases[3] = None
             if self.bases[2] is not None:
-                run_roll = random.gauss(math.erf(random_star_gen("baserunning_stars", self.bases[2])-def_stat)-.5,1.5)
-                if run_roll > 0:
+                run_roll = random.gauss(2*math.erf((random_star_gen("baserunning_stars", self.bases[2])-def_stat)/4)-1,3)
+                if run_roll > 1.5:
                     self.bases[3] = self.bases[2]
                     self.bases[2] = None
             if self.bases[1] is not None: #double plays set this to None before this call
-                run_roll = random.gauss(math.erf(random_star_gen("baserunning_stars", self.bases[1])-def_stat)-.5,1.5)
-                if run_roll < 1 or self.bases[2] is not None: #if runner can't make it or if baserunner blocking on second, convert to fielder's choice
+                run_roll = random.gauss(2*math.erf((random_star_gen("baserunning_stars", self.bases[1])-def_stat)/4)-1,3)
+                if run_roll < 2 or self.bases[2] is not None: #if runner can't make it or if baserunner blocking on second, convert to fielder's choice
                     outcome["text"] == appearance_outcomes.fielderschoice
                     runners = [(0,self.get_batter())]
                     for base in range(1,4):
