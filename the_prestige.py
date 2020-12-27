@@ -132,7 +132,7 @@ async def on_message(msg):
 
         if innings < 2:
             await msg.channel.send("Anything less than 2 innings isn't even an outing. Try again.")
-            return 
+            return
 
         if team1 is not None and team2 is not None:
             game = games.game(msg.author.name, team1, team2, length=innings)
@@ -142,7 +142,7 @@ async def on_message(msg):
     elif command.startswith("setupgame"):
         if len(gamesarray) > 45:
             await msg.channel.send("We're running 45 games and we doubt Discord will be happy with any more. These edit requests don't come cheap.")
-            return 
+            return
 
         for game in gamesarray:
             if game[0].name == msg.author.name:
@@ -156,7 +156,7 @@ async def on_message(msg):
         await game_task
 
     elif command.startswith("saveteam\n"):
-        if db.get_team(command.split("\n",1)[1].split("\n")[0]) == None: 
+        if db.get_team(command.split("\n",1)[1].split("\n")[0]) == None:
             save_task = asyncio.create_task(save_team_batch(msg, command))
             await save_task
         else:
@@ -164,7 +164,7 @@ async def on_message(msg):
             await msg.channel.send(f"{name} already exists. Try a new name, maybe?")
 
     elif command.startswith("showteam "):
-        team = games.get_team(command.split(" ",1)[1]) 
+        team = games.get_team(command.split(" ",1)[1])
         if team is not None:
             await msg.channel.send(embed=build_team_embed(team))
         else:
@@ -194,9 +194,9 @@ async def on_message(msg):
             "saveteam":("m;saveteam", """To save an entire team, send this command at the top of a list, with lines seperated by newlines (shift+enter in discord, or copy+paste from notepad)
   - the first line of the list is your team's name (cannot contain emoji)
   - the second is your team's slogan
-  - the rest of the lines are your players' names   
+  - the rest of the lines are your players' names
   - the last player is designated your pitcher
-if you did it correctly, you'll get a team embed with a prompt to confirm. Hit the 👍 and it'll be saved."""),  
+if you did it correctly, you'll get a team embed with a prompt to confirm. Hit the 👍 and it'll be saved."""),
             "showteam":("m;showteam [name]", "You can view any saved team with this command"),
             "showallteams":("m;showallteams", "This displays a paginated list of all teams available for `startgame`"),
             "searchteams":("m;searchteams [searchterm]", "Displays paginated list of all teams whose names contain `searchterm`"),
@@ -262,7 +262,7 @@ async def setup_game(channel, owner, newgame):
         def nameinput(msg):
             return msg.content.startswith(newgame.name) and msg.channel == channel #if author or willing participant and in correct channel
 
-        
+
 
         while newgame.teams["away"].pitcher == None:
             try:
@@ -371,7 +371,7 @@ async def watch_game(channel, game):
     occupied_base = discord.utils.get(client.emojis, id = 790899850320543745)
     out_emoji = discord.utils.get(client.emojis, id = 791578957241778226)
     in_emoji = discord.utils.get(client.emojis, id = 791578957244792832)
-    
+
     newgame = game
     embed = await channel.send("Starting...")
     await asyncio.sleep(1)
@@ -402,7 +402,7 @@ async def watch_game(channel, game):
 
         if state == "Game not started.":
             new_embed.add_field(name="🍿", value="Play blall!", inline=False)
-        
+
         elif newgame.top_of_inning != top_of_inning:
             pause = 2
             new_embed.set_field_at(4, name="Pitcher:", value="-", inline=False)
@@ -415,11 +415,11 @@ async def watch_game(channel, game):
                 new_embed.add_field(name="🍿", value=f"Top of {newgame.inning}. {newgame.teams['away'].name} batting!", inline=False)
             else:
                 new_embed.add_field(name="🍿", value=f"Bottom of {newgame.inning}. {newgame.teams['home'].name} batting!", inline=False)
-        
+
         if pause != 1 and state != "Game not started.":
             punc = ""
             if newgame.last_update[0]["defender"] != "":
-                punc = ". "          
+                punc = ". "
 
             updatestring = f"{newgame.last_update[0]['batter']} {newgame.last_update[0]['text'].value} {newgame.last_update[0]['defender']}{punc}"
             if newgame.last_update[1] > 0:
@@ -432,7 +432,7 @@ async def watch_game(channel, game):
             basemessage += str(occupied_base) + "\n"
         else:
             basemessage += str(empty_base) + "\n"
-        
+
         basemessage_b = ""
         if newgame.bases[3] is not None:
             basemessage += str(occupied_base)
@@ -447,16 +447,16 @@ async def watch_game(channel, game):
 
         new_embed.add_field(name="Bases:", value=basemessage, inline = False)
 
-        await embed.edit(content=None, embed=new_embed)  
+        await embed.edit(content=None, embed=new_embed)
         top_of_inning = newgame.top_of_inning
         if pause <= 1:
             newgame.gamestate_update_full()
-        
+
         pause -= 1
         await asyncio.sleep(6)
-        
+
     final_embed = discord.Embed(color=discord.Color.dark_purple(), title=f"{newgame.teams['away'].name} at {newgame.teams['home'].name}")
-    
+
     scorestring = f"{newgame.teams['away'].score} to {newgame.teams['home'].score}\n"
     if newgame.teams['away'].score > newgame.teams['home'].score:
         scorestring += f"{newgame.teams['away'].name} wins!"
@@ -465,12 +465,12 @@ async def watch_game(channel, game):
 
     final_embed.add_field(name="Final score:", value=scorestring)
     await embed.edit(content=None, embed=final_embed)
-    
+
     await embed.unpin()
     gamesarray.pop(gamesarray.index((newgame,use_emoji_names))) #cleanup is important!
     newgame.add_stats()
     del newgame
-        
+
 def build_team_embed(team):
     embed = discord.Embed(color=discord.Color.purple(), title=team.name)
     lineup_string = ""
