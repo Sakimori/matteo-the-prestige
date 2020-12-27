@@ -118,7 +118,12 @@ class StartGameCommand(Command):
             team2 = games.get_team(command.split("\n")[2])
             innings = int(command.split("\n")[3])
         except IndexError:
-            await msg.channel.send("We need four lines: startgame, away team, home team, and the number of innings.")
+            try:
+                team1 = games.get_team(command.split("\n")[1])
+                team2 = games.get_team(command.split("\n")[2])
+                innings = None
+            except IndexError:
+                await msg.channel.send("We need at least three lines: startgame, away team, and home team are required. Optionally, the number of innings can go at the end, if you want a change of pace.")
             return
         except:
             await msg.channel.send("Something about that command tripped us up. Either we couldn't find a team, or you gave us a bad number of innings.")
@@ -487,7 +492,6 @@ async def watch_game(channel, game, user = None):
 
     if user is not None:
         await channel.send(f"Game for {user.display_name}:")
-    await channel.send()
     embed = await channel.send("Starting...")
     await asyncio.sleep(1)
     await embed.pin()
