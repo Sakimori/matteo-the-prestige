@@ -1,4 +1,4 @@
-import discord, json, math, os, roman, games, asyncio
+import discord, json, math, os, roman, games, asyncio, random
 import database as db
 import onomancer as ono
 
@@ -501,6 +501,9 @@ async def watch_game(channel, newgame, user = None):
     top_of_inning = True
     victory_lap = False
 
+    weathers = [games.weather("Supernova", "🌟"), games.weather("Midnight", "🕶")]
+    newgame.weather = random.choice(weathers)
+
     while not newgame.over or newgame.top_of_inning != top_of_inning:
         state = newgame.gamestate_display_full()
 
@@ -540,19 +543,28 @@ async def watch_game(channel, newgame, user = None):
                 new_embed.add_field(name="🍿", value=f"Bottom of {newgame.inning}. {newgame.teams['home'].name} batting!", inline=False)
 
         if pause != 1 and state != "Game not started.":
-            punc = ""
-            if newgame.last_update[0]["defender"] != "":
-                punc = ". "
+            if "steals" in newgame.last_update[0].keys():
+                updatestring = ""
+                for attempt in newgame.last_update[0]["steals"]:
+                    updatestring += attempt + "\n"
 
-            if "fc_out" in newgame.last_update[0].keys():
-                name, base_string = newgame.last_update[0]['fc_out']
-                updatestring = f"{newgame.last_update[0]['batter']} {newgame.last_update[0]['text'].value.format(name, base_string)} {newgame.last_update[0]['defender']}{punc}"
+                new_embed.add_field(name="💎", value=updatestring, inline=False)
+
             else:
-                updatestring = f"{newgame.last_update[0]['batter']} {newgame.last_update[0]['text'].value} {newgame.last_update[0]['defender']}{punc}"
-            if newgame.last_update[1] > 0:
-                    updatestring += f"{newgame.last_update[1]} runs scored!"
+                updatestring = ""
+                punc = ""
+                if newgame.last_update[0]["defender"] != "":
+                    punc = ". "
 
-            new_embed.add_field(name="🏏", value=updatestring, inline=False)
+                if "fc_out" in newgame.last_update[0].keys():
+                    name, base_string = newgame.last_update[0]['fc_out']
+                    updatestring = f"{newgame.last_update[0]['batter']} {newgame.last_update[0]['text'].value.format(name, base_string)} {newgame.last_update[0]['defender']}{punc}"
+                else:
+                    updatestring = f"{newgame.last_update[0]['batter']} {newgame.last_update[0]['text'].value} {newgame.last_update[0]['defender']}{punc}"
+                if newgame.last_update[1] > 0:
+                        updatestring += f"{newgame.last_update[1]} runs scored!"
+
+                new_embed.add_field(name="🏏", value=updatestring, inline=False)
 
         basemessage = str(blank_emoji)
         if newgame.bases[2] is not None:
@@ -573,7 +585,7 @@ async def watch_game(channel, newgame, user = None):
             basemessage += str(empty_base)
 
         new_embed.add_field(name="Bases:", value=basemessage, inline = False)
-        new_embed.add_field(name="Weather:", value="🌟 Supernova", inline = False)
+        new_embed.add_field(name="Weather:", value=str(newgame.weather), inline = False)
 
         await embed.edit(content=None, embed=new_embed)
         top_of_inning = newgame.top_of_inning

@@ -12,7 +12,9 @@ def config():
                         "pitching_stars" : 1, #pitching
                         "baserunning_stars" : 1, #baserunning
                         "defense_stars" : 1 #defense
-                    }
+                    },
+                "stolen_base_chance_mod" : 1,
+                "stolen_base_success_mod" : 1
             }
         with open("games_config.json", "w") as config_file:
             json.dump(config_dic, config_file, indent=4)
@@ -125,7 +127,7 @@ class game(object):
         self.inning = 1
         self.outs = 0
         self.top_of_inning = True
-        self.last_update = None
+        self.last_update = ({},0) #this is a ({outcome}, runs) tuple
         self.owner = None
         self.ready = False
         if length is not None:
@@ -133,7 +135,7 @@ class game(object):
         else:
             self.max_innings = config()["default_length"]
         self.bases = {1 : None, 2 : None, 3 : None}
-
+        self.weather = weather("Sunny","🌞")
 
     def get_batter(self):
         if self.top_of_inning:
@@ -163,6 +165,9 @@ class game(object):
 
         bat_stat = random_star_gen("batting_stars", batter)
         pitch_stat = random_star_gen("pitching_stars", pitcher)
+        if weather.name == "Supernova":
+            pitch_stat = pitch_stat * 0.9
+
         pb_system_stat = (random.gauss(1*math.erf((bat_stat - pitch_stat)*1.5)-1.8,2.2))
         hitnum = random.gauss(2*math.erf(bat_stat/4)-1,3)
 
@@ -219,6 +224,57 @@ class game(object):
                     outcome["text"] = appearance_outcomes.grandslam
                 else:
                     outcome["text"] = appearance_outcomes.homerun
+        return outcome
+
+    def thievery_attempts(self): #returns either false or "at-bat" outcome
+        thieves = []
+        attempts = []
+        for base in self.bases.keys():
+            if self.bases[base] is not None and base != 3: #no stealing home in simsim, sorry stu
+                if self.bases[base+1] is None: #if there's somewhere to go
+                    thieves.append((self.bases[base], base))
+        for baserunner, start_base in thieves:
+            run_stars = random_star_gen("baserunning_stars", baserunner)*config()["stolen_base_chance_mod"]
+            if self.weather.name == "Midnight":
+                run_stars = run_stars*2
+            def_stars = random_star_gen("defense_stars", self.get_pitcher())
+            if run_stars >= (def_stars - 1.5): #if baserunner isn't worse than pitcher
+                roll = random.random()
+                if roll >= (-(((run_stars+1)/14)**2)+1): #plug it into desmos or something, you'll see
+                    attempts.append((baserunner, start_base))
+
+        if len(attempts) == 0:
+            return False
+        else:     
+            return (self.steals_check(attempts), 0) #effectively an at-bat outcome with no score
+
+    def steals_check(self, attempts):
+        if self.top_of_inning:
+            defense_team = self.teams["home"]
+        else:
+            defense_team = self.teams["away"]
+
+        outcome = {}
+        outcome["steals"] = []
+
+        for baserunner, start_base in attempts:
+            defender = random.choice(defense_team.lineup) #excludes pitcher
+            run_stat = random_star_gen("baserunning_stars", baserunner)
+            def_stat = random_star_gen("defense_stars", defender)
+            run_roll = random.gauss(2*math.erf((run_stat-def_stat)/4)-1,3)
+            if start_base == 2:
+                run_roll = run_roll * .9 #stealing third is harder
+            if run_roll < 1:
+                outcome["steals"].append(f"{baserunner} was caught stealing {base_string(start_base+1)} base by {defender}!")
+                self.outs += 1
+            else:
+                outcome["steals"].append(f"{baserunner} steals {base_string(start_base+1)} base!")
+                self.bases[start_base+1] = baserunner
+            self.bases[start_base] = None
+
+        if self.outs >= 3:
+            self.flip_inning()
+
         return outcome
 
     def baserunner_check(self, defender, outcome):
@@ -347,11 +403,13 @@ class game(object):
         if self.top_of_inning:
             offense_team = self.teams["away"]
             defense_team = self.teams["home"]
-            defender = random.choice(self.teams["home"].lineup)
         else:
             offense_team = self.teams["home"]
             defense_team = self.teams["away"]
-            defender = random.choice(self.teams["away"].lineup)
+
+        defenders = defense_team.lineup.copy()
+        defenders.append(defense_team.pitcher)
+        defender = random.choice(defenders) #pitcher can field outs now :3
 
         if result["ishit"]: #if batter gets a hit:
             self.get_batter().game_stats["hits"] += 1
@@ -454,39 +512,48 @@ class game(object):
             }
 
 
-    def gamestate_update_full(self):   
-        self.last_update = self.batterup()
+    def gamestate_update_full(self):
+        attempts = self.thievery_attempts()
+        if attempts == False:
+            self.last_update = self.batterup()
+        else:
+            self.last_update = attempts
         return self.gamestate_display_full()
 
     def gamestate_display_full(self):
-        try:
-            punc = ""
-            if self.last_update[0]["defender"] != "":
-                punc = "."
-            if not self.over:
-                if self.top_of_inning:
-                    inningtext = "top"
+        if "steals" in self.last_update[0].keys():
+            return "Still in progress."
+        else:
+            try:
+                punc = ""
+                if self.last_update[0]["defender"] != "":
+                    punc = "."
+                if not self.over:
+                    if self.top_of_inning:
+                        inningtext = "top"
+                    else:
+                        inningtext = "bottom"
+
+                    updatestring = f"{self.last_update[0]['batter']} {self.last_update[0]['text'].value} {self.last_update[0]['defender']}{punc}\n"
+
+                    if self.last_update[1] > 0:
+                        updatestring += f"{self.last_update[1]} runs scored!"
+
+                    return f"""Last update: {updatestring}
+
+        Score: {self.teams['away'].score} - {self.teams['home'].score}.
+        Current inning: {inningtext} of {self.inning}. {self.outs} outs.
+        Pitcher: {self.get_pitcher().name}
+        Batter: {self.get_batter().name}
+        Bases: 3: {str(self.bases[3])} 2: {str(self.bases[2])} 1: {str(self.bases[1])}
+        """
                 else:
-                    inningtext = "bottom"
-
-                updatestring = f"{self.last_update[0]['batter']} {self.last_update[0]['text'].value} {self.last_update[0]['defender']}{punc}\n"
-
-                if self.last_update[1] > 0:
-                    updatestring += f"{self.last_update[1]} runs scored!"
-
-                return f"""Last update: {updatestring}
-
-    Score: {self.teams['away'].score} - {self.teams['home'].score}.
-    Current inning: {inningtext} of {self.inning}. {self.outs} outs.
-    Pitcher: {self.get_pitcher().name}
-    Batter: {self.get_batter().name}
-    Bases: 3: {str(self.bases[3])} 2: {str(self.bases[2])} 1: {str(self.bases[1])}
-    """
-            else:
-                return f"""Game over! Final score: **{self.teams['away'].score} - {self.teams['home'].score}**
-    Last update: {self.last_update[0]['batter']} {self.last_update[0]['text'].value} {self.last_update[0]['defender']}{punc}"""
-        except TypeError:
-            return "Game not started."
+                    return f"""Game over! Final score: **{self.teams['away'].score} - {self.teams['home'].score}**
+        Last update: {self.last_update[0]['batter']} {self.last_update[0]['text'].value} {self.last_update[0]['defender']}{punc}"""
+            except TypeError:
+                return "Game not started."
+            except KeyError:
+                return "Game not started."
 
     def add_stats(self):
         players = []
@@ -556,3 +623,14 @@ def base_string(base):
         return "third"
     elif base == 4:
         return "fourth"
+
+class weather(object):
+    name = "Sunny"
+    emoji = "🌞"
+
+    def __init__(self, new_name, new_emoji):
+        self.name = new_name
+        self.emoji = new_emoji
+
+    def __str__(self):
+        return f"{self.emoji} {self.name}"
