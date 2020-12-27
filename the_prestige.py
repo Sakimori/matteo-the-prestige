@@ -15,7 +15,8 @@ def config():
                     0000
                     ],
                 "prefix" : ["m;", "m!"],
-                "soulscream channel id" : 0
+                "soulscream channel id" : 0,
+                "game_freeze" : 0
             }
         with open("config.json", "w") as config_file:
             json.dump(config_dic, config_file, indent=4)
@@ -118,6 +119,9 @@ async def on_message(msg):
         if len(gamesarray) > 45:
             await msg.channel.send("We're running 45 games and we doubt Discord will be happy with any more. These edit requests don't come cheap.")
             return
+        elif config()["game_freeze"]:
+            await msg.channel.send("Patch incoming. We're not allowing new games right now.")
+            return
 
         try:
             team1 = games.get_team(command.split("\n")[1])
@@ -127,12 +131,15 @@ async def on_message(msg):
             await msg.channel.send("We need four lines: startgame, away team, home team, and the number of innings.")
             return
         except:
-            await msg.channel.send("Something about that command tripped us up. Probably the number of innings at the end?")
+            await msg.channel.send("Something about that command tripped us up. Either we couldn't find a team, or you gave us a bad number of innings.")
             return
 
         if innings < 2:
             await msg.channel.send("Anything less than 2 innings isn't even an outing. Try again.")
-            return
+            return 
+                                                    
+        elif innings > 30 and msg.author.id not in config()["owners"]:
+            await msg.channel.send("Y'all can't behave, so we've limited games to 30 innings. Ask xvi to start it with more if you really want to.")
 
         if team1 is not None and team2 is not None:
             game = games.game(msg.author.name, team1, team2, length=innings)
@@ -141,7 +148,10 @@ async def on_message(msg):
 
     elif command.startswith("setupgame"):
         if len(gamesarray) > 45:
-            await msg.channel.send("We're running 45 games and we doubt Discord will be happy with any more. These edit requests don't come cheap.")
+            await msg.channel.send("We're running 45 games and we doubt Discord will be happy with any more. These edit requests don't come cheap."
+            return 
+        elif config()["game_freeze"]:
+            await msg.channel.send("Patch incoming. We're not allowing new games right now.")
             return
 
         for game in gamesarray:
@@ -311,7 +321,12 @@ Creator, type `{newgame.name} done` to finalize lineups.""")
         return (msg.content.startswith(newgame.name)) and msg.channel == channel and msg.author != client.user
 
     while not newgame.ready:
-        msg = await client.wait_for('message', check=messagecheck)
+        try:
+            msg = await client.wait_for('message', timeout=120.0, check=messagecheck)
+        except asyncio.TimeoutError:
+            await channel.send("Game timed out. 120 seconds between players is a bit much, see?")
+            return
+
         new_player = None
         if msg.author == newgame.owner and msg.content == f"{newgame.name} done":
             if newgame.teams['home'].finalize() and newgame.teams['away'].finalize():
@@ -384,6 +399,7 @@ async def watch_game(channel, game):
     gamesarray.append((newgame,use_emoji_names))
     pause = 0
     top_of_inning = True
+    victory_lap = False
 
     while not newgame.over or newgame.top_of_inning != top_of_inning:
         state = newgame.gamestate_display_full()
@@ -414,6 +430,9 @@ async def watch_game(channel, game):
             if newgame.top_of_inning:
                 new_embed.add_field(name="🍿", value=f"Top of {newgame.inning}. {newgame.teams['away'].name} batting!", inline=False)
             else:
+                if newgame.inning >= newgame.max_innings:
+                    if newgame.teams["home"].score > newgame.teams["away"].score: #if home team is winning at the bottom of the last inning
+                        victory_lap = True
                 new_embed.add_field(name="🍿", value=f"Bottom of {newgame.inning}. {newgame.teams['home'].name} batting!", inline=False)
 
         if pause != 1 and state != "Game not started.":
@@ -454,15 +473,27 @@ async def watch_game(channel, game):
 
         pause -= 1
         await asyncio.sleep(6)
+        
+    title_string = f"{newgame.teams['away'].name} at {newgame.teams['home'].name} ended after {newgame.inning} innings"
+    if newgame.inning > newgame.max_innings: #if extra innings
+        title_string += f" with {newgame.inning - newgame.max_innings} extra innings."
+    else:
+        title_string += "."
 
-    final_embed = discord.Embed(color=discord.Color.dark_purple(), title=f"{newgame.teams['away'].name} at {newgame.teams['home'].name}")
-
+    final_embed = discord.Embed(color=discord.Color.dark_purple(), title=title_string)
+    
     scorestring = f"{newgame.teams['away'].score} to {newgame.teams['home'].score}\n"
     if newgame.teams['away'].score > newgame.teams['home'].score:
         scorestring += f"{newgame.teams['away'].name} wins!"
     else:
-        scorestring += f"{newgame.teams['home'].name} wins!"
+        scorestring += f"{newgame.teams['home'].name} wins"
+        if victory_lap:
+            scorestring += " with a victory lap!"
+        else:
+            scorestring += f", shaming {newgame.teams['away'].name}!"
 
+
+    
     final_embed.add_field(name="Final score:", value=scorestring)
     await embed.edit(content=None, embed=final_embed)
 
@@ -578,14 +609,13 @@ async def team_pages(msg, all_teams, search_term=None):
 
         while True:
             try:
-                react, user = await client.wait_for('reaction_add', timeout=20.0, check=react_check)
+                react, user = await client.wait_for('reaction_add', timeout=60.0, check=react_check)
                 if react.emoji == "◀" and current_page > 0:
                     current_page -= 1
-                elif react.emoji == "▶" and current_page < page_max:
+                elif react.emoji == "▶" and current_page < (page_max-1):
                     current_page += 1
                 await teams_list.edit(embed=pages[current_page])
             except asyncio.TimeoutError:
-                await msg.channel.send("We hope you found what you were looking for. If not, you can always look again.")
                 return
 
 
