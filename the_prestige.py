@@ -142,7 +142,7 @@ class StartGameCommand(Command):
                 gamesqueue.append((channel, game, user_mention))
                 return
             
-            game_task = asyncio.create_task(watch_game(channel, game))
+            game_task = asyncio.create_task(watch_game(channel, game, user=msg.author))
             await game_task
 
 class SetupGameCommand(Command):
@@ -332,12 +332,7 @@ async def on_message(msg):
         return
 
     if msg.channel.id == config()["soulscream channel id"]:
-        try:
-            await msg.channel.send(ono.get_scream(msg.author.nick))
-        except TypeError or AttributeError:
-            await msg.channel.send(ono.get_scream(msg.author.name))
-        except AttributeError:
-            await msg.channel.send(ono.get_scream(msg.author.name))
+        await msg.channel.send(ono.get_scream(msg.author.display_name))
     else:
         try:
             comm = next(c for c in commands if command.startswith(c.name))
@@ -483,14 +478,16 @@ Creator, type `{newgame.name} done` to finalize lineups.""")
     game_task = asyncio.create_task(watch_game(channel, newgame))
     await game_task
 
-async def watch_game(channel, game):
+async def watch_game(channel, game, user = None):
     blank_emoji = discord.utils.get(client.emojis, id = 790899850295509053)
     empty_base = discord.utils.get(client.emojis, id = 790899850395779074)
     occupied_base = discord.utils.get(client.emojis, id = 790899850320543745)
     out_emoji = discord.utils.get(client.emojis, id = 791578957241778226)
     in_emoji = discord.utils.get(client.emojis, id = 791578957244792832)
 
-    newgame = game
+    if user is not None:
+        await channel.send(f"Game for {user.display_name}:")
+    await channel.send()
     embed = await channel.send("Starting...")
     await asyncio.sleep(1)
     await embed.pin()
