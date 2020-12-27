@@ -398,6 +398,7 @@ async def watch_game(channel, game):
     gamesarray.append((newgame,use_emoji_names))
     pause = 0
     top_of_inning = True
+    victory_lap = False
 
     while not newgame.over or newgame.top_of_inning != top_of_inning:
         state = newgame.gamestate_display_full()
@@ -428,6 +429,9 @@ async def watch_game(channel, game):
             if newgame.top_of_inning:
                 new_embed.add_field(name="🍿", value=f"Top of {newgame.inning}. {newgame.teams['away'].name} batting!", inline=False)
             else:
+                if newgame.inning >= newgame.max_innings:
+                    if newgame.teams["home"].score > newgame.teams["away"].score: #if home team is winning at the bottom of the last inning
+                        victory_lap = True
                 new_embed.add_field(name="🍿", value=f"Bottom of {newgame.inning}. {newgame.teams['home'].name} batting!", inline=False)
         
         if pause != 1 and state != "Game not started.":
@@ -469,14 +473,26 @@ async def watch_game(channel, game):
         pause -= 1
         await asyncio.sleep(6)
         
-    final_embed = discord.Embed(color=discord.Color.dark_purple(), title=f"{newgame.teams['away'].name} at {newgame.teams['home'].name}")
+    title_string = f"{newgame.teams['away'].name} at {newgame.teams['home'].name} ended after {newgame.inning} innings"
+    if newgame.inning > newgame.max_innings: #if extra innings
+        title_string += f" with {newgame.inning - newgame.max_innings} extra innings."
+    else:
+        title_string += "."
+
+    final_embed = discord.Embed(color=discord.Color.dark_purple(), title=title_string)
     
     scorestring = f"{newgame.teams['away'].score} to {newgame.teams['home'].score}\n"
     if newgame.teams['away'].score > newgame.teams['home'].score:
         scorestring += f"{newgame.teams['away'].name} wins!"
     else:
-        scorestring += f"{newgame.teams['home'].name} wins!"
+        scorestring += f"{newgame.teams['home'].name} wins"
+        if victory_lap:
+            scorestring += " with a victory lap!"
+        else:
+            scorestring += f", shaming {newgame.teams['away'].name}!"
 
+
+    
     final_embed.add_field(name="Final score:", value=scorestring)
     await embed.edit(content=None, embed=final_embed)
     
