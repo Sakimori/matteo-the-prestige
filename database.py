@@ -238,7 +238,7 @@ def search_teams(search_string):
     conn = create_connection()
     if conn is not None:
         c = conn.cursor()
-        c.execute("SELECT team_json_string FROM teams WHERE name LIKE ?",(f"%{search_string}%",))
+        c.execute("SELECT team_json_string FROM teams WHERE name LIKE ?",(re.sub('[^A-Za-z0-9 %]+', '', f"%{search_string}%"),))
         team_json_strings = c.fetchall()
         conn.close()
         return team_json_strings
