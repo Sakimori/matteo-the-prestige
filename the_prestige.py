@@ -361,7 +361,7 @@ async def start_game(channel):
 
 async def setup_game(channel, owner, newgame):
     newgame.owner = owner
-    await channel.send(f"Game sucessfully created!\nStart any commands for this game with `{newgame.name}` so I know who's talking about what.")
+    await channel.send(f"Game sucessfully created!\nStart any commands for this game with `{newgame.name}` so we know who's talking about what.")
     await asyncio.sleep(1)
     await channel.send("Who's pitching for the away team?")
 
@@ -401,7 +401,7 @@ async def setup_game(channel, owner, newgame):
             await channel.send("Uh.")
 
     #pitchers assigned!
-    team_join_message = await channel.send(f"""Now, the lineups! I need somewhere between 1 and 12 batters. Cloning helps a lot with this sort of thing.
+    team_join_message = await channel.send(f"""Now, the lineups! We need somewhere between 1 and 12 batters. Cloning helps a lot with this sort of thing.
 React to this message with 🔼 to have your idol join the away team, or 🔽 to have them join the home team.
 You can also enter names like you did for the pitchers, with a slight difference: `away [name]` or `home [name]` instead of just the name.
 
@@ -693,7 +693,7 @@ async def save_team_batch(message, command):
             await message.channel.send("Message received. Pumping brakes, turning this car around. Try again, chief.")
             return
     except asyncio.TimeoutError:
-        await message.channel.send("Look, I don't have all day. 20 seconds is long enough, right? Try again.")
+        await message.channel.send("Look, we don't have all day. 20 seconds is long enough, right? Try again.")
         return
     #except:
         #await message.channel.send("uh.")
