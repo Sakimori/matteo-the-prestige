@@ -320,7 +320,12 @@ Creator, type `{newgame.name} done` to finalize lineups.""")
         return (msg.content.startswith(newgame.name)) and msg.channel == channel and msg.author != client.user
 
     while not newgame.ready:
-        msg = await client.wait_for('message', check=messagecheck)
+        try:
+            msg = await client.wait_for('message', timeout=120.0, check=messagecheck)
+        except asyncio.TimeoutError:
+            await channel.send("Game timed out. 120 seconds between players is a bit much, see?")
+            return
+
         new_player = None
         if msg.author == newgame.owner and msg.content == f"{newgame.name} done":
             if newgame.teams['home'].finalize() and newgame.teams['away'].finalize():
@@ -589,14 +594,13 @@ async def team_pages(msg, all_teams, search_term=None):
 
         while True:
             try:
-                react, user = await client.wait_for('reaction_add', timeout=20.0, check=react_check)
+                react, user = await client.wait_for('reaction_add', timeout=60.0, check=react_check)
                 if react.emoji == "◀" and current_page > 0:
                     current_page -= 1
                 elif react.emoji == "▶" and current_page < page_max:
                     current_page += 1
                 await teams_list.edit(embed=pages[current_page])
             except asyncio.TimeoutError:
-                await msg.channel.send("We hope you found what you were looking for. If not, you can always look again.")
                 return
 
 
