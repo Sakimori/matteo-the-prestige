@@ -490,7 +490,7 @@ async def watch_game(channel, game):
             newgame.gamestate_update_full()
 
         pause -= 1
-        await asyncio.sleep(2)
+        await asyncio.sleep(6)
         
     title_string = f"{newgame.teams['away'].name} at {newgame.teams['home'].name} ended after {newgame.inning-1} innings"
     if (newgame.inning - 1) > newgame.max_innings: #if extra innings
