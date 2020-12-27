@@ -453,7 +453,11 @@ async def watch_game(channel, game):
             if newgame.last_update[0]["defender"] != "":
                 punc = ". "
 
-            updatestring = f"{newgame.last_update[0]['batter']} {newgame.last_update[0]['text'].value} {newgame.last_update[0]['defender']}{punc}"
+            if "fc_out" in newgame.last_update[0].keys():
+                name, base_string = newgame.last_update[0]['fc_out']
+                updatestring = f"{newgame.last_update[0]['batter']} {newgame.last_update[0]['text'].value.format(name, base_string)} {newgame.last_update[0]['defender']}{punc}"
+            else:
+                updatestring = f"{newgame.last_update[0]['batter']} {newgame.last_update[0]['text'].value} {newgame.last_update[0]['defender']}{punc}"
             if newgame.last_update[1] > 0:
                     updatestring += f"{newgame.last_update[1]} runs scored!"
 
@@ -486,7 +490,7 @@ async def watch_game(channel, game):
             newgame.gamestate_update_full()
 
         pause -= 1
-        await asyncio.sleep(6)
+        await asyncio.sleep(2)
         
     title_string = f"{newgame.teams['away'].name} at {newgame.teams['home'].name} ended after {newgame.inning-1} innings"
     if (newgame.inning - 1) > newgame.max_innings: #if extra innings
