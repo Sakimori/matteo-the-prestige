@@ -259,6 +259,44 @@ class HelpCommand(Command):
                 text = "Can't find that command, boss; try checking the list with `m;help`."
         await msg.channel.send(text)
 
+class DeleteTeamCommand(Command):
+    name = "deleteteam"
+    template = "m;deleteteam [name]"
+    description = "Deletes a team. Only works if you're the one who made it in the first place, and yes, we do check."
+
+    async def execute(self, msg, command):
+        team_name = command.strip()
+        team, owner_id = games.get_team_and_owner(team_name)
+        if owner_id != msg.author.id and msg.author.id not in config()["owners"]: #returns if person is not owner and not bot mod
+            await msg.channel.send("That team ain't yours, chief. If you think that's not right, bug xvi about deleting it for you.")
+            return
+        elif team is not None:
+            delete_task = asyncio.create_task(team_delete_confirm(msg.channel, team, msg.author))
+            await delete_task
+
+class AssignOwnerCommand(Command):
+    name = "assignowner"
+    template = "m;assignowner [mention] [team]"
+    description = "assigns a discord user as the owner for a team."
+
+    def isauthorized(self, user):
+        return user.id in config()["owners"]
+
+    async def execute(self, msg, command):
+        #try:
+        new_owner = msg.mentions[0]
+        team_name = command.strip().split(new_owner.mention+" ")[1]
+        print(team_name)
+        if db.assign_owner(team_name, new_owner.id):
+            await msg.channel.send(f"{team_name} is now owned by {new_owner.display_name}. Don't break it.")
+        else:
+            await msg.channel.send("We couldn't find that team. Typo?")
+        #except:
+            #await msg.channel.send("We hit a snag. Tell xvi.")
+
+
+
+
 commands = [
     IntroduceCommand(),
     CountActiveGamesCommand(),
@@ -273,7 +311,9 @@ commands = [
     StartGameCommand(),
     CreditCommand(),
     RomanCommand(),
-    HelpCommand()
+    HelpCommand(),
+    DeleteTeamCommand(),
+    AssignOwnerCommand()
 ]
 
 client = discord.Client()
@@ -632,6 +672,32 @@ async def play_from_queue(channel, game, user_mention):
     game_task = asyncio.create_task(watch_game(channel, game))
     await game_task
 
+async def team_delete_confirm(channel, team, owner):
+    team_msg = await channel.send(embed=build_team_embed(team))
+    checkmsg = await channel.send("Is this the team you want to axe, boss?")
+    await checkmsg.add_reaction("👍")
+    await checkmsg.add_reaction("👎")
+
+    def react_check(react, user):
+        return user == owner and react.message == checkmsg
+
+    try:
+        react, user = await client.wait_for('reaction_add', timeout=20.0, check=react_check)
+        if react.emoji == "👍":
+            await channel.send("Step back, this could get messy.")
+            if db.delete_team(team):
+                await asyncio.sleep(2)
+                await channel.send("Job's done. We'll clean up on our way out, don't worry.")
+            else:
+                await asyncio.sleep(2)
+                await channel.send("Huh. Didn't quite work. Tell xvi next time you see xer.")
+            return
+        elif react.emoji == "👎":
+            await channel.send("Message received. Pumping brakes, turning this car around.")
+            return
+    except asyncio.TimeoutError:
+        await channel.send("Guessing you got cold feet, so we're putting the axe away. Let us know if we need to fetch it again, aye?")
+        return
 
 
 def build_team_embed(team):
@@ -664,7 +730,6 @@ def build_star_embed(player_json):
 
 async def save_team_batch(message, command):
     newteam = games.team()
-    #try:
     roster = command.split("\n",1)[1].split("\n")
     newteam.name = roster[0] #first line is team name
     newteam.slogan = roster[1] #second line is slogan
@@ -707,8 +772,6 @@ async def save_team_batch(message, command):
     except asyncio.TimeoutError:
         await message.channel.send("Look, we don't have all day. 20 seconds is long enough, right? Try again.")
         return
-    #except:
-        #await message.channel.send("uh.")
 
 
 async def team_pages(msg, all_teams, search_term=None):

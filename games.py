@@ -610,6 +610,16 @@ def get_team(name):
     except:
         return None
 
+def get_team_and_owner(name):
+    #try:
+    counter, name, team_json_string, timestamp, owner_id = db.get_team(name, owner=True)
+    team_json = jsonpickle.decode(team_json_string, keys=True, classes=team)
+    if team_json is not None:
+        return (team_json, owner_id)
+    return None
+    #except:
+        #return None
+
 def save_team(this_team, user_id):
     try:
         this_team.prepare_for_save()

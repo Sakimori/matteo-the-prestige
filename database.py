@@ -207,20 +207,50 @@ def save_team(name, team_json_string, user_id):
     except:
         return False
 
-def get_team(name):
+def get_team(name, owner=False):
     conn = create_connection()
     if conn is not None:
         c = conn.cursor()
-        c.execute("SELECT team_json_string FROM teams WHERE name=?", (re.sub('[^A-Za-z0-9 ]+', '', name),)) #see above note re: regex
+        if not owner:
+            c.execute("SELECT team_json_string FROM teams WHERE name=?", (re.sub('[^A-Za-z0-9 ]+', '', name),)) #see above note re: regex
+        else:
+            c.execute("SELECT * FROM teams WHERE name=?", (re.sub('[^A-Za-z0-9 ]+', '', name),)) #see above note re: regex
         team = c.fetchone()
         
         conn.close()
 
-        return team #returns a json string
+        return team #returns a json string if owner is false, otherwise returns (counter, name, team_json_string, timestamp, owner_id)
+
 
 
     conn.close()
     return None
+
+def delete_team(team):
+    conn = create_connection()
+    if conn is not None:
+        try:
+            c = conn.cursor()
+            c.execute("DELETE FROM teams WHERE name=?", (re.sub('[^A-Za-z0-9 ]+', '', team.name),))
+            conn.commit()
+            conn.close()
+            return True
+        except:
+            conn.close()
+            return False
+
+def assign_owner(team_name, owner_id):
+    conn = create_connection()
+    if conn is not None:
+        try:
+            c = conn.cursor()
+            c.execute("UPDATE teams SET owner_id = ? WHERE name = ?",(owner_id, re.sub('[^A-Za-z0-9 ]+', '', team_name)))
+            conn.commit()
+            conn.close()
+            return True
+        except:
+            conn.close()
+            return False
 
 def get_all_teams():
     conn = create_connection()
