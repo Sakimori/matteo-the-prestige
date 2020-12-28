@@ -9,6 +9,9 @@ class Command:
     async def execute(self, msg, command):
         return
 
+class CommandError(Exception):
+    pass
+
 class IntroduceCommand(Command):
     name = "introduce"
     template = ""
@@ -185,12 +188,30 @@ class SaveTeamCommand(Command):
 if you did it correctly, you'll get a team embed with a prompt to confirm. hit the 👍 and it'll be saved."""
 
     async def execute(self, msg, command):
-        if db.get_team(command.split("\n")[0]) == None:
-            save_task = asyncio.create_task(save_team_batch(msg, command))
+        if db.get_team(command.split('\n',1)[1].split("\n")[0]) == None:
+            team = team_from_message(command)
+            save_task = asyncio.create_task(save_team_confirm(msg, team))
             await save_task
         else:
             name = command.split('\n',1)[1].split('\n')[0]
             await msg.channel.send(f"{name} already exists. Try a new name, maybe?")
+
+class ImportCommand(Command):
+    name = "import"
+    template = "m;import [onomancer collection URL]"
+    description = "Imports an onomancer collection as a new team. You can use the new onomancer simsim setting to ensure compatibility."
+
+    async def execute(self, msg, command):
+        team_raw = ono.get_collection(command.strip())
+        if not team_raw == None:
+            team_json = json.loads(team_raw)
+            if db.get_team(team_json["fullName"]) == None:
+                team = team_from_collection(team_json)
+                await asyncio.create_task(save_team_confirm(msg, team))
+            else:
+                await msg.channel.send(f"{team_json['fullName']} already exists. Try a new name, maybe?")
+        else:
+            await msg.channel.send("Something went pear-shaped while we were looking for that collection. You certain it's a valid onomancer URL?")
 
 class ShowTeamCommand(Command):
     name = "showteam"
@@ -295,16 +316,17 @@ class AssignOwnerCommand(Command):
             #await msg.channel.send("We hit a snag. Tell xvi.")
 
 
-
-
 commands = [
     IntroduceCommand(),
     CountActiveGamesCommand(),
+    AssignOwnerCommand(),
     IdolizeCommand(),
     ShowIdolCommand(),
     ShowPlayerCommand(),
     #SetupGameCommand(),
     SaveTeamCommand(),
+    ImportCommand(),
+    DeleteTeamCommand(),
     ShowTeamCommand(),
     ShowAllTeamsCommand(),
     SearchTeamsCommand(),
@@ -312,8 +334,6 @@ commands = [
     CreditCommand(),
     RomanCommand(),
     HelpCommand(),
-    DeleteTeamCommand(),
-    AssignOwnerCommand()
 ]
 
 client = discord.Client()
@@ -383,7 +403,9 @@ async def on_message(msg):
             comm = next(c for c in commands if command.startswith(c.name))
             await comm.execute(msg, command[len(comm.name):])
         except StopIteration:
-            return
+            await msg.channel.send("Can't find that command, boss; try checking the list with `m;help`.")
+        except CommandError as ce:
+            await msg.channel.send(str(ce))
 
 async def start_game(channel):
     msg = await channel.send("Play ball!")
@@ -727,8 +749,31 @@ def build_star_embed(player_json):
         embed.add_field(name=starkeys[key], value=embedstring, inline=False)
     return embed
 
+def team_from_collection(newteam_json):
+    # verify collection against our own restrictions
+    if len(newteam_json["fullName"]) > 30:
+        raise CommandError("Team names have to be less than 30 characters! Try again.")
+    if len(newteam_json["slogan"]) > 100:
+        raise CommandError("We've given you 100 characters for the slogan. Discord puts limits on us and thus, we put limits on you. C'est la vie.")
+    if len(newteam_json["lineup"]) > 20:
+        raise CommandError("20 players in the lineup, maximum. We're being really generous here.")
+    if not len(newteam_json["rotation"]) == 1:
+        raise CommandError("One and only one pitcher per team, thanks.")
+    for player in newteam_json["lineup"] + newteam_json["rotation"]:
+        if len(player["name"]) > 70:
+            raise CommandError(f"{player['name']} is too long, chief. 70 or less.")
 
-async def save_team_batch(message, command):
+    #actually build the team
+    newteam = games.team()
+    newteam.name = newteam_json["fullName"]
+    newteam.slogan = newteam_json["slogan"]
+    for player in newteam_json["lineup"]:
+        newteam.add_lineup(games.player(json.dumps(player)))
+    newteam.set_pitcher(games.player(json.dumps(newteam_json["rotation"][0])))
+
+    return newteam
+
+def team_from_message(command):
     newteam = games.team()
     roster = command.split("\n",1)[1].split("\n")
     newteam.name = roster[0] #first line is team name
@@ -736,21 +781,20 @@ async def save_team_batch(message, command):
     for rosternum in range(2,len(roster)-1):
         if roster[rosternum] != "":
             if len(roster[rosternum]) > 70:
-                await message.channel.send(f"{roster[rosternum]} is too long, chief. 70 or less.")
-                return
+                raise CommandError(f"{roster[rosternum]} is too long, chief. 70 or less.")
             newteam.add_lineup(games.player(ono.get_stats(roster[rosternum].rstrip())))
     if len(roster[len(roster)-1]) > 70:
-        await message.channel.send(f"{roster[len(roster)-1]} is too long, chief. 70 or less.")
-        return
+        raise CommandError(f"{roster[len(roster)-1]} is too long, chief. 70 or less.")
     newteam.set_pitcher(games.player(ono.get_stats(roster[len(roster)-1].rstrip()))) #last line is pitcher name
 
     if len(newteam.name) > 30:
-        await message.channel.send("Team names have to be less than 30 characters! Try again.")
-        return
+        raise CommandError("Team names have to be less than 30 characters! Try again.")
     elif len(newteam.slogan) > 100:
-        await message.channel.send("We've given you 100 characters for the slogan. Discord puts limits on us and thus, we put limits on you. C'est la vie.")
-        return
+        raise CommandError("We've given you 100 characters for the slogan. Discord puts limits on us and thus, we put limits on you. C'est la vie.")
 
+    return newteam
+
+async def save_team_confirm(message, newteam):
     await message.channel.send(embed=build_team_embed(newteam))
     checkmsg = await message.channel.send("Does this look good to you, boss?")
     await checkmsg.add_reaction("👍")
@@ -772,7 +816,6 @@ async def save_team_batch(message, command):
     except asyncio.TimeoutError:
         await message.channel.send("Look, we don't have all day. 20 seconds is long enough, right? Try again.")
         return
-
 
 async def team_pages(msg, all_teams, search_term=None):
     pages = []
