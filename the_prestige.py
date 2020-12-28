@@ -749,8 +749,7 @@ def build_star_embed(player_json):
         embed.add_field(name=starkeys[key], value=embedstring, inline=False)
     return embed
 
-def team_from_collection(collection_raw):
-    newteam_json = json.loads(collection_raw)
+def team_from_collection(newteam_json):
     # verify collection against our own restrictions
     if len(newteam_json["fullName"]) > 30:
         raise CommandError("Team names have to be less than 30 characters! Try again.")

@@ -30,7 +30,9 @@ def get_scream(username):
         return scream
 
 def get_collection(collection_url):
-    # TODO: should probably add collection cache
     response = requests.get(onomancer_url + collection_hook + urllib.parse.quote(collection_url))
     if response.status_code == 200:
+        for player in response.json()['lineup'] + response.json()['rotation']:
+            db.cache_stats(player['name'], json.dumps(player))
+
         return json.dumps(response.json())
