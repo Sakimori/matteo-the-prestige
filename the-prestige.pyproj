@@ -12,6 +12,7 @@
     <Name>the-prestige</Name>
     <RootNamespace>the-prestige</RootNamespace>
     <InterpreterId>MSBuild|matteo_env|$(MSBuildProjectFullPath)</InterpreterId>
+    <IsWindowsApplication>False</IsWindowsApplication>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -26,6 +27,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="debug storage.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="main_controller.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="onomancer.py">
