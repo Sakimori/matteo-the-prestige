@@ -26,6 +26,8 @@ accepting pull requests, check the issues for to-dos.
   - shows a paginated list of all teams available for games which can be scrolled through.	  
 - m;searchteams [searchterm]
   - shows a paginated list of all teams whose names contain the given search term.
+- m;deleteteam [teamname]
+  - allows you to delete the team with the provided name if you are the owner of it, gives a conformation first to prevent accidental deletions. if it isn't letting you delete your team, you probably created it before teams having owners was a thing, contact xvi and xie can assign you as the owner.
 
 ### player commands:	 
 - m;showplayer [name]
