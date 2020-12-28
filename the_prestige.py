@@ -142,8 +142,8 @@ class StartGameCommand(Command):
             channel = msg.channel
             user_mention = msg.author.mention
             await msg.delete()
-            if len(gamesarray) >= 45:
-                await channel.send(f"We're running 45 games right now, and Discord probably isn't very pleased about it. You're at #{len(gamesqueue)+1} in the list.\nWe'll ping you when it's ready, chief.")
+            if len(gamesarray) >= 10:
+                await channel.send(f"We're running 10 games right now, and Discord probably isn't very pleased about it. You're at #{len(gamesqueue)+1} in the list.\nWe'll ping you when it's ready, chief.")
                 gamesqueue.append((channel, game, user_mention))
                 return
             
@@ -303,7 +303,7 @@ commands = [
     IdolizeCommand(),
     ShowIdolCommand(),
     ShowPlayerCommand(),
-    SetupGameCommand(),
+    #SetupGameCommand(),
     SaveTeamCommand(),
     ShowTeamCommand(),
     ShowAllTeamsCommand(),
