@@ -553,7 +553,7 @@ async def watch_game(channel, newgame, user = None):
     in_emoji = discord.utils.get(client.emojis, id = 791578957244792832)
 
     if user is not None:
-        await channel.send(f"Game for {user.display_name}:")
+        await channel.send(f"Game for {user.mention}:")
     embed = await channel.send("Starting...")
     await asyncio.sleep(1)
     await embed.pin()
