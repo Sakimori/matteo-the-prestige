@@ -550,10 +550,10 @@ async def watch_game(channel, newgame, user = None):
         "victory_lap" : False,
         "weather_emoji" : newgame.weather.emoji,
         "weather_text" : newgame.weather.name,
-        "delay" : 3
+        "delay" : -1
         } 
 
-    main_controller.master_games_dic[time.time()] = (newgame, state_init)
+    main_controller.master_games_dic[str(time.time())] = (newgame, state_init)
 
     #while not newgame.over or newgame.top_of_inning != top_of_inning:
     #    state = newgame.gamestate_display_full()

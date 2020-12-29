@@ -1,24 +1,32 @@
 import asyncio, time, datetime, games, json, threading
-from flask import Flask, url_for, Response
+from flask import Flask, url_for, Response, render_template, request, jsonify
+from flask_socketio import SocketIO, emit
 
 app = Flask("the-prestige")
+app.config['SECRET KEY'] = 'dev'
+socketio = SocketIO(app)
 
 @app.route('/')
-def hello():
-    return url_for("boop")
+def index():
+    return render_template("index.html")
 
 @app.route("/gotoboop")
-def boop():
+def get_game_states():
     return states_to_send
 
-thread2 = threading.Thread(target=app.run)
+@socketio.on("recieved")
+def do_another_thing(data):
+    print(data)
+
+thread2 = threading.Thread(target=socketio.run,args=(app,))
 thread2.start()
 
 master_games_dic = {} #key timestamp : (game game, {} state)
-states_to_send = {}
+
 
 def update_loop():
     while True:
+        states_to_send = {}
         game_times = iter(master_games_dic.copy().keys())
         for game_time in game_times:
             this_game, state = master_games_dic[game_time]
@@ -41,7 +49,7 @@ def update_loop():
                     state["update_pause"] = 2
                     state["pitcher"] = "-"
                     state["batter"] = "-"
-                    if state["top_of_inning"]:
+                    if not state["top_of_inning"]:
                         state["display_inning"] -= 1
 
                 if state["update_pause"] == 1:
@@ -91,4 +99,5 @@ def update_loop():
 
             state["update_pause"] -= 1
 
-        time.sleep(6)
+        socketio.emit("states_update", states_to_send)
+        time.sleep(1)
