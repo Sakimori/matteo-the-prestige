@@ -5,7 +5,7 @@ import database as db
 
 
 onomancer_url = "https://onomancer.sibr.dev/api/"
-name_stats_hook = "generateStats2?name="
+name_stats_hook = "getOrGenerateStats?name="
 collection_hook = "getCollection?token="
 
 def get_stats(name):
