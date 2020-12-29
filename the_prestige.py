@@ -315,27 +315,35 @@ class AssignOwnerCommand(Command):
         #except:
             #await msg.channel.send("We hit a snag. Tell xvi.")
 
-class ScheduleSeriesManuallyCommand():
+class ScheduleSeriesManuallyCommand(Command):
     name = "scheduleseriesmanually"
     template = "m;scheduleseriesmanually [minutesToWaitBetweenGames] [awayTeam] @[homeTeam]"
-    description = "Runs a series of games between specified teams."
+    description = "Runs multiple games one after another given a list of away-home team name pairs. Specify teams by putting the away team on one line, then the home team on the next line."
     max_games_at_once = 5 # number of simultaneous games this series will attempt to run
     global_game_cap = 7 # do not schedule any games if there are more than this number of games
+
+    def __init__(self):
+        self.currently_running_games = 0
 
     def isauthorized(self, user):
         return user.id in config()["owners"]
 
     async def startgame(self, msg, team1, team2, innings):
+        self.currently_running_games += 1
+
         game = games.game(msg.author.name, team1, team2, length=innings)
         channel = msg.channel
         user_mention = msg.author.mention
         game_task = asyncio.create_task(watch_game(channel, game, user=msg.author))
         await game_task
 
+        self.currently_running_games -= 1
+
     async def execute(self, msg, command):
         command = command.strip().split("\n")
-        if len(command) == 0:
+        if len(command) == 1:
             await channel.send("Not a very exciting series, but sure! \n ...aand it's done! Nobody won, but nobody lost either.")
+            return
         if len(command) % 2 == 1:
             await channel.send(f"I need a number of minutes to wait between games, then an even number of teams. Are you missing a team name somewhere?")
             return
@@ -360,13 +368,19 @@ class ScheduleSeriesManuallyCommand():
         teamPairLines = command[2:]
         teamPairs = []
         for i in range(0,len(teamPairLines), 2):
-            awayTeam = teamPairLines[i]
-            homeTeam = teamPairLines[i+1]
-            if len(homeTeam) > 2 and homeTeam[0:2] == "@ ":
-                homeTeam = homeTeam[2:].strip()
-            teamPairs.append((awayTeam, homeTeam))
+            awayTeamName = teamPairLines[i]
+            homeTeamName = teamPairLines[i+1]
+            if len(homeTeamName) > 2 and homeTeamName[0:2] == "@ ":
+                homeTeamName = homeTeamName[2:].strip()
+            
+            try:
+                awayTeam = games.get_team(awayTeamName.strip())
+                homeTeam = games.get_team(homeTeamName.strip())
+            except IndexError:
+                await msg.channel.send(f"I couldn't find the teams for game {str(i+1)}, {awayTeamName} vs {homeTeamName}. Typo?")
+                return
 
-        # to do: validate each team name
+            teamPairs.append((awayTeam, homeTeam))
         
         gametasks = []
         num_games_started = 0
@@ -378,10 +392,10 @@ class ScheduleSeriesManuallyCommand():
             if len(gamesarray) > self.global_game_cap:
                 # There's too many simultaneous games going on right now!
                 if not notified_about_delay:
-                    await channel.send("We're limiting the number of simultaneous games to avoid hitting Discord limits, and there's too many games right now. Hang tight and we'll let you know when there's a spot in the queue open.")
+                    await channel.send("The next game in the series can't start now; we're limiting the number of simultaneous games to avoid hitting Discord limits, and there's too many games right now. Hang tight and we'll let you know when there's a spot in the queue open.")
                     notified_about_delay = True
             else:
-                num_possible_game_slots = min(self.global_game_cap - len(gamesarray), self.max_games_at_once)
+                num_possible_game_slots = min(self.global_game_cap - len(gamesarray), self.max_games_at_once - self.currently_running_games)
                 for i in range(num_possible_game_slots):
                     # attempt to start another game
                     awayTeam, homeTeam = teamPairs[num_games_started]
@@ -392,6 +406,7 @@ class ScheduleSeriesManuallyCommand():
                     num_games_started += 1
                     if num_games_started >= num_games_in_series:
                         break
+            # wait a few minutes before attempting to start more games again
             await asyncio.sleep(delay_between_match_start_attempts)
         #every game has been started, wait for them to end
         await asyncio.gather(*gametasks)
