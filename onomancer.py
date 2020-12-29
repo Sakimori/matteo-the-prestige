@@ -6,6 +6,7 @@ import database as db
 
 onomancer_url = "https://onomancer.sibr.dev/api/"
 name_stats_hook = "generateStats2?name="
+collection_hook = "getCollection?token="
 
 def get_stats(name):
     player = db.get_stats(name)
@@ -27,3 +28,11 @@ def get_scream(username):
         scream = json.loads(get_stats(username))["soulscream"]
         db.cache_soulscream(username, scream)
         return scream
+
+def get_collection(collection_url):
+    response = requests.get(onomancer_url + collection_hook + urllib.parse.quote(collection_url))
+    if response.status_code == 200:
+        for player in response.json()['lineup'] + response.json()['rotation']:
+            db.cache_stats(player['name'], json.dumps(player))
+
+        return json.dumps(response.json())
