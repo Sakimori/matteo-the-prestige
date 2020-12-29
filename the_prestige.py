@@ -315,6 +315,94 @@ class AssignOwnerCommand(Command):
         #except:
             #await msg.channel.send("We hit a snag. Tell xvi.")
 
+class ScheduleSeriesManuallyCommand():
+    name = "scheduleseriesmanually"
+    template = "m;scheduleseriesmanually [minutesToWaitBetweenGames] [awayTeam] @[homeTeam]"
+    description = "Runs a series of games between specified teams."
+    max_games_at_once = 5 # number of simultaneous games this series will attempt to run
+    global_game_cap = 7 # do not schedule any games if there are more than this number of games
+
+    def isauthorized(self, user):
+        return user.id in config()["owners"]
+
+#    async def startgamedebug(self, msg, team1, team2, innings):
+#        print("{},{} s".format(team1,team2))
+#        gamesarray.append("{},{} s".format(team1,team2))
+#        await asyncio.sleep(6)
+#        gamesarray.pop(gamesarray.index("{},{} s".format(team1,team2)))
+#        print("{},{} end".format(team1,team2))
+
+    async def startgame(self, msg, team1, team2, innings):
+        game = games.game(msg.author.name, team1, team2, length=innings)
+        channel = msg.channel
+        user_mention = msg.author.mention
+        game_task = asyncio.create_task(watch_game(channel, game, user=msg.author))
+        await game_task
+
+    async def execute(self, msg, command):
+        command = command.strip().split("\n")
+        if len(command) == 0:
+            await channel.send("Not a very exciting series, but sure! \n ...aand it's done! Nobody won, but nobody lost either.")
+        if len(command) % 2 == 1:
+            await channel.send(f"I need a number of minutes to wait between games, then an even number of teams. Are you missing a team name somewhere?")
+            return
+
+        delay_between_match_start_attempts = 60
+        configLine = command[1].strip().split(" ")
+        if configLine[0].isnumeric() and int(configLine[0]) > 2:
+            delay_between_match_start_attempts = int(configLine[0])*60
+        else:
+            await channel.send("The second line should be the interval each game should start at! Maybe 5 minutes?")
+
+        # optional: number of innings
+        innings = 9
+        if len(configLine) > 2:
+            if configLine[1].isnumeric():
+                innings = int(configLine[1])
+                innings = max(3,min(innings, 30))
+            else:
+                await channel.send(f"{configLine[1]} doesn't sound like a valid number of innings?")
+        
+        # parse team pairs of team1\n@team2
+        teamPairLines = command[2:]
+        teamPairs = []
+        for i in range(0,len(teamPairLines), 2):
+            awayTeam = teamPairLines[i]
+            homeTeam = teamPairLines[i+1]
+            if homeTeam[0] == "@":
+                homeTeam = homeTeam[1:].strip()
+            teamPairs.append((awayTeam, homeTeam))
+
+        # to do: validate each team name
+        
+        gametasks = []
+        num_games_started = 0
+        num_games_in_series = len(teamPairs)
+
+        notified_about_delay = False
+        
+        while num_games_started < num_games_in_series:
+            if len(gamesarray) > self.global_game_cap:
+                # There's too many simultaneous games going on right now!
+                if not notified_about_delay:
+                    await channel.send("We're limiting the number of simultaneous games to avoid hitting Discord limits, and there's too many games right now. Hang tight and we'll let you know when there's a spot in the queue open.")
+                    notified_about_delay = True
+            else:
+                num_possible_game_slots = min(self.global_game_cap - len(gamesarray), self.max_games_at_once)
+                for i in range(num_possible_game_slots):
+                    # attempt to start another game
+                    awayTeam, homeTeam = teamPairs[num_games_started]
+                    game = asyncio.ensure_future(self.startgame(msg, awayTeam, homeTeam, innings))
+                    gametasks.append(game)
+                    notified_about_delay = False # if another delay happens, let the users know about it
+
+                    num_games_started += 1
+                    if num_games_started >= num_games_in_series:
+                        break
+            await asyncio.sleep(delay_between_match_start_attempts)
+        #every game has been started, wait for them to end
+        await asyncio.gather(*gametasks)
+
 
 commands = [
     IntroduceCommand(),
@@ -331,6 +419,7 @@ commands = [
     ShowAllTeamsCommand(),
     SearchTeamsCommand(),
     StartGameCommand(),
+    ScheduleSeriesManuallyCommand(),
     CreditCommand(),
     RomanCommand(),
     HelpCommand(),
