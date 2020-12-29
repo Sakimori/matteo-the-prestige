@@ -107,11 +107,11 @@ class team(object):
         self.slogan = None
 
     def add_lineup(self, new_player):
-        if len(self.lineup) <= 12:
+        if len(self.lineup) < 20:
             self.lineup.append(new_player)
             return (True,)
         else:
-            return (False, "12 players in the lineup, maximum. We're being generous here.")
+            return (False, "20 players in the lineup, maximum. We're being really generous here.")
     
     def set_pitcher(self, new_player):
         self.pitcher = new_player
@@ -529,6 +529,16 @@ class game(object):
                 "home_team" : self.teams["home"],
                 "home_pitcher" : self.teams["home"].pitcher
             }
+
+    def named_bases(self):
+        name_bases = {}
+        for base in range(1,4):
+            if self.bases[base] is not None:
+                name_bases[base] = self.bases[base].name
+            else:
+                name_bases[base] = None
+
+        return name_bases
 
 
     def gamestate_update_full(self):

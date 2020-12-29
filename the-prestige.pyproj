@@ -12,6 +12,7 @@
     <Name>the-prestige</Name>
     <RootNamespace>the-prestige</RootNamespace>
     <InterpreterId>MSBuild|matteo_env|$(MSBuildProjectFullPath)</InterpreterId>
+    <IsWindowsApplication>False</IsWindowsApplication>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -26,6 +27,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="debug storage.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="main_controller.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="onomancer.py">
@@ -53,6 +57,14 @@
     <Content Include="games_config.json" />
     <Content Include="ids" />
     <Content Include="matteo.db" />
+    <Content Include="static\games_page.css" />
+    <Content Include="static\loader.js" />
+    <Content Include="static\prism.png" />
+    <Content Include="templates\index.html" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="static\" />
+    <Folder Include="templates\" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
