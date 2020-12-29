@@ -369,8 +369,8 @@ class ScheduleSeriesManuallyCommand():
         for i in range(0,len(teamPairLines), 2):
             awayTeam = teamPairLines[i]
             homeTeam = teamPairLines[i+1]
-            if homeTeam[0] == "@":
-                homeTeam = homeTeam[1:].strip()
+            if len(homeTeam) > 2 and homeTeam[0:2] == "@":
+                homeTeam = homeTeam[2:].strip()
             teamPairs.append((awayTeam, homeTeam))
 
         # to do: validate each team name
