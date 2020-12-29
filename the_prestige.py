@@ -325,13 +325,6 @@ class ScheduleSeriesManuallyCommand():
     def isauthorized(self, user):
         return user.id in config()["owners"]
 
-#    async def startgamedebug(self, msg, team1, team2, innings):
-#        print("{},{} s".format(team1,team2))
-#        gamesarray.append("{},{} s".format(team1,team2))
-#        await asyncio.sleep(6)
-#        gamesarray.pop(gamesarray.index("{},{} s".format(team1,team2)))
-#        print("{},{} end".format(team1,team2))
-
     async def startgame(self, msg, team1, team2, innings):
         game = games.game(msg.author.name, team1, team2, length=innings)
         channel = msg.channel
@@ -369,7 +362,7 @@ class ScheduleSeriesManuallyCommand():
         for i in range(0,len(teamPairLines), 2):
             awayTeam = teamPairLines[i]
             homeTeam = teamPairLines[i+1]
-            if len(homeTeam) > 2 and homeTeam[0:2] == "@":
+            if len(homeTeam) > 2 and homeTeam[0:2] == "@ ":
                 homeTeam = homeTeam[2:].strip()
             teamPairs.append((awayTeam, homeTeam))
 
