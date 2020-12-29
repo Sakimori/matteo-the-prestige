@@ -57,3 +57,4 @@ accepting pull requests, check the issues for to-dos.
 these folks are helping me a *ton* via patreon, and i cannot possibly thank them enough:
 - Ale Humano
 - Chris Denmark
+- Astrid Bek
