@@ -26,7 +26,6 @@ $(document).ready(function (){
 
             for (var slotnum = 3; slotnum <= Math.min(maxslot, totalslots-1); slotnum++) {
                 if (grid.children[slotnum].timestamp == timestamp) {
-                    console.log(json[timestamp].update_text);
                     updateGame(grid.children[slotnum], json[timestamp]);
                 };
             };
@@ -35,12 +34,14 @@ $(document).ready(function (){
 
     const insertGame = (gridboxnum, gamestate, timestamp) => {
         var thisBox = grid.children[gridboxnum];
-        thisBox.className = "game";
-        thisBox.timestamp = timestamp;
-        thisBox.id = "loadTarget";
-        $('#loadTarget').load("static/game.html");
-        thisBox.id = "";
-        updateGame(thisBox, gamestate);
+        fetch("/static/game.html").then(x=>x.text()).then(gamehtml => {
+            console.log(gamehtml)
+            console.log(thisBox)
+            thisBox.className = "game";
+            thisBox.timestamp = timestamp;
+            thisBox.innerHTML = gamehtml;
+            updateGame(thisBox, gamestate);
+        });
     };
 
     const BASE_EMPTY = "/static/img/base_empty.png"
@@ -59,7 +60,6 @@ $(document).ready(function (){
         $('#updateTarget .home_score').html("" + gamestate.home_score);
 
         for (var i = 1; i <= 3; i++) {
-
             $('#updateTarget .base_' + i).attr('src', (gamestate.bases[i] == null ? BASE_EMPTY : BASE_FILLED));
         }
 
@@ -70,7 +70,6 @@ $(document).ready(function (){
         $('#updateTarget .pitcher_name').html(gamestate.pitcher);
         $('#updateTarget .batter_name').html(gamestate.batter);
 
-        console.log(gamestate.update_emoji);
         $('#updateTarget .update_emoji').html(gamestate.update_emoji);
         $('#updateTarget .update_text').html(gamestate.update_text);
 
