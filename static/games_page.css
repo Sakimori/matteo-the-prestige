@@ -203,7 +203,7 @@ h2 {
     justify-content: space-around;
     align-items: center;
     height: 100%;
-    width: 100%;
+    padding-right: 50px;
 }
 
 .player {
