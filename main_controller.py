@@ -15,13 +15,14 @@ def get_game_states():
     return states_to_send
 
 @socketio.on("recieved")
-def do_another_thing(data):
-    print(data)
+def handle_new_conn(data):
+    socketio.emit("states_update", last_update, room=request.sid)
 
 thread2 = threading.Thread(target=socketio.run,args=(app,))
 thread2.start()
 
 master_games_dic = {} #key timestamp : (game game, {} state)
+last_update = {}
 
 
 def update_loop():
@@ -101,6 +102,7 @@ def update_loop():
                 this_game.gamestate_update_full()
 
             state["update_pause"] -= 1
-
+        global last_update
+        last_update = states_to_send
         socketio.emit("states_update", states_to_send)
         time.sleep(3)
