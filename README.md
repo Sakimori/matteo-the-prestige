@@ -28,7 +28,9 @@ accepting pull requests, check the issues for to-dos.
   - shows a paginated list of all teams whose names contain the given search term.
 - m;deleteteam [teamname]
   - allows you to delete the team with the provided name if you are the owner of it, gives a confirmation first to prevent accidental deletions. if it isn't letting you delete your team, you probably created it before teams having owners was a thing, contact xvi and xie can assign you as the owner.
-
+- m;import
+  - imports an onomancer collection as a new team. you can use the new onomancer simsim setting to ensure compatibility.
+  
 ### player commands:	 
 - m;showplayer [name]
   - displays any name's stars, there's a limit of 70 characters. that should be *plenty*. note: if you want to lookup a lot of different players you can do it on onomancer instead of spamming this command a bunch and clogging up discord: https://onomancer.sibr.dev/reflect
