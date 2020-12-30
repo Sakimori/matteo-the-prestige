@@ -1,0 +1,12 @@
+fog
+	hit by pitch, pickoffs
+	hbp can either hit leg (reduces baserunning) or arm (reduces defense)
+	
+heat wave
+	forces relief pitchers
+	
+blizzard
+	makes pitchers bat
+	
+light drizzle
+	runners start on second base at the start of each inning

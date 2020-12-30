@@ -57,6 +57,7 @@
     <Content Include="games_config.json" />
     <Content Include="ids" />
     <Content Include="matteo.db" />
+    <Content Include="static\discord.png" />
     <Content Include="static\games_page.css" />
     <Content Include="static\loader.js" />
     <Content Include="static\prism.png" />

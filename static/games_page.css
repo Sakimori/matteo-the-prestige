@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Alegreya&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Goldman:wght@700&display=swap');
 body {
     background-image: url("prism.png");
 }
@@ -21,11 +22,16 @@ body {
     grid-row: 1;
 }
 
-.h1 {
-    margin: auto;
-    width: 45%;
-    font-family: 'Alegreya', serif;
+.link{
+    position: relative;
+    top: 10px; 
 }
+
+.page_header {
+    color: white;
+    font-family: 'Goldman', cursive;
+}
+
 
 .emptyslot {
     border: 2px dashed white;

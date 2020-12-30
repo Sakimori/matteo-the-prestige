@@ -50,7 +50,7 @@ $(document).ready(function (){
 
     const updateGame = (gamediv, gamestate) => {
         gamediv.id = "updateTarget";
-        $('#updateTarget .inning').html("Inning: " + (gamestate.top_of_inning ? "🔼" : "🔽") + " " + gamestate.display_inning + "/" + gamestate.max_innings);
+        $('#updateTarget .inning').html("Inning: " + (gamestate.display_top_of_inning ? "🔼" : "🔽") + " " + gamestate.display_inning + "/" + gamestate.max_innings);
         $('#updateTarget .weather').html(gamestate.weather_emoji + " " + gamestate.weather_text);
 
         $('#updateTarget .away_name').html(gamestate.away_name);
