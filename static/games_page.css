@@ -18,8 +18,12 @@ body {
 }
 
 #title {
-    grid-column: 2;
+    grid-column: 1 / 4;
     grid-row: 1;
+}
+
+#title > .page_header {
+    margin: auto
 }
 
 .link{
@@ -84,11 +88,13 @@ h2 {
 .inning {
     float: left;
     margin: 5px;
+    margin-left: 8px;
 }
 
 .weather {
     float: right;
     margin: 5px;
+    margin-right: 8px;
 }
 
 .body {

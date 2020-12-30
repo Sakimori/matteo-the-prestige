@@ -1,8 +1,7 @@
 $(document).ready(function (){
     var socket = io.connect();
     var gameslist = [];
-    var maxslot = 3;
-    var totalslots = 15;
+    var maxSlot = 1;
     var grid = document.getElementById("container");
     
 
@@ -14,17 +13,23 @@ $(document).ready(function (){
         for (const timestamp in json) {
             if (!gameslist.includes(timestamp)) { //adds game to list if not there already
                 gameslist.push(timestamp)
-                var gridBoxes = grid.children;
-                for (var slotnum = 3; slotnum <= Math.min(maxslot, totalslots-1); slotnum++) {
-                    if (gridBoxes[slotnum].className == "emptyslot") {
+                for (var slotnum = 1; true; slotnum++) { //this is really a while loop but don't tell anyone
+                    if (slotnum >= grid.children.length) {
+                        for (var i = 0; i < 3; i ++) {
+                            newBox = document.createElement("DIV");
+                            newBox.className = "emptyslot";
+                            grid.appendChild(newBox);
+                        }
+                    }
+                    if (grid.children[slotnum].className == "emptyslot") {
                         insertGame(slotnum, json[timestamp], timestamp);
-                        maxslot += 1;
+                        maxSlot = Math.max(maxSlot, slotnum);
                         break;
                     };
                 };
             };
 
-            for (var slotnum = 3; slotnum <= Math.min(maxslot, totalslots-1); slotnum++) {
+            for (var slotnum = 1; slotnum <= maxSlot; slotnum++) {
                 if (grid.children[slotnum].timestamp == timestamp) {
                     updateGame(grid.children[slotnum], json[timestamp]);
                 };
