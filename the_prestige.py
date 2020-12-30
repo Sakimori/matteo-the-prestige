@@ -189,6 +189,7 @@ if you did it correctly, you'll get a team embed with a prompt to confirm. hit t
 
     async def execute(self, msg, command):
         if db.get_team(command.split('\n',1)[1].split("\n")[0]) == None:
+            await msg.channel.send(f"Fetching players...")
             team = team_from_message(command)
             save_task = asyncio.create_task(save_team_confirm(msg, team))
             await save_task
