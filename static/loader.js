@@ -34,11 +34,9 @@ $(document).ready(function (){
 
     const insertGame = (gridboxnum, gamestate, timestamp) => {
         var thisBox = grid.children[gridboxnum];
+        thisBox.className = "game";
+        thisBox.timestamp = timestamp;
         fetch("/static/game.html").then(x=>x.text()).then(gamehtml => {
-            console.log(gamehtml)
-            console.log(thisBox)
-            thisBox.className = "game";
-            thisBox.timestamp = timestamp;
             thisBox.innerHTML = gamehtml;
             updateGame(thisBox, gamestate);
         });
