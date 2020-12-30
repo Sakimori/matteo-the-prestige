@@ -175,9 +175,12 @@ class game(object):
         batter = self.get_batter()
 
         if self.top_of_inning:
-            defender = random.choice(self.teams["home"].lineup)
+            defender_list = self.teams["home"].lineup.copy()
         else:
-            defender = random.choice(self.teams["away"].lineup)
+            defender_list = self.teams["away"].lineup.copy()
+
+        defender_list.append(pitcher)
+        defender = random.choice(defender_list) #make pitchers field
 
         outcome["batter"] = batter
         outcome["defender"] = ""
