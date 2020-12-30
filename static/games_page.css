@@ -7,7 +7,7 @@ body {
 .container {
     font-family: 'Alegreya', serif;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
+    grid-template-columns: repeat(3, minmax(500px, 1fr));
     grid-template-rows: 100px 330px;
     grid-gap: 50px 30px; /*space between rows, then columns*/
     align-items: center;
@@ -84,7 +84,7 @@ h2 {
     display: grid;
     grid-template-columns: 60% 40%;
     grid-template-areas:
-      "scores info"
+      "teams info"
       "players players"
       "update update";
     grid-template-rows: 130px;
@@ -93,7 +93,8 @@ h2 {
     flex: 1;
 }
 
-.scores {
+.teams {
+    grid-area: teams;
     display: flex;
     flex-direction: column;
     justify-content: space-around;
@@ -111,6 +112,7 @@ h2 {
 }
 
 .info {
+    grid-area: info;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -124,7 +126,6 @@ h2 {
 }
 
 .batting {
-    grid-area: batting;
     font-size: 10pt;
     text-align: left;
     height: max-content;
@@ -164,11 +165,11 @@ h2 {
 }
 
 .players {
+    grid-area: players;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     align-items: center;
-    grid-area: players;
     height: max-content;
     width: 100%;
 }
@@ -177,7 +178,7 @@ h2 {
     display: flex;
     justify-content: space-between;
     width: 100%;
-    max-width: 330px;
+    max-width: 250px;
 }
 
 .player_name {
@@ -200,10 +201,10 @@ h2 {
     flex-direction: column;
 }
 
-.base1, .base2, .base3 {
+.base {
     height: 60px;
 }
 
-.base2 {
+.base_2 {
     margin-bottom: -25%
 }
