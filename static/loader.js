@@ -1,7 +1,7 @@
 $(document).ready(function (){
     var socket = io.connect();
     var gameslist = [];
-    var maxSlot = 3;
+    var maxSlot = 1;
     var grid = document.getElementById("container");
     
 
@@ -13,7 +13,7 @@ $(document).ready(function (){
         for (const timestamp in json) {
             if (!gameslist.includes(timestamp)) { //adds game to list if not there already
                 gameslist.push(timestamp)
-                for (var slotnum = 3; true; slotnum++) { //this is really a while loop but don't tell anyone
+                for (var slotnum = 1; true; slotnum++) { //this is really a while loop but don't tell anyone
                     if (slotnum >= grid.children.length) {
                         for (var i = 0; i < 3; i ++) {
                             newBox = document.createElement("DIV");
@@ -29,7 +29,7 @@ $(document).ready(function (){
                 };
             };
 
-            for (var slotnum = 3; slotnum <= maxSlot; slotnum++) {
+            for (var slotnum = 1; slotnum <= maxSlot; slotnum++) {
                 if (grid.children[slotnum].timestamp == timestamp) {
                     updateGame(grid.children[slotnum], json[timestamp]);
                 };
