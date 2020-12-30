@@ -575,7 +575,7 @@ async def watch_game(channel, newgame, user = None):
         "delay" : -1
         } 
 
-    main_controller.master_games_dic[str(time.time())] = (newgame, state_init)
+    main_controller.master_games_dic[str(time.time() * 1000.0)] = (newgame, state_init)
 
     #while not newgame.over or newgame.top_of_inning != top_of_inning:
     #    state = newgame.gamestate_display_full()
