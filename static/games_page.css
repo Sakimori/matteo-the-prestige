@@ -27,11 +27,17 @@ body {
     top: 10px; 
 }
 
+.h1 {
+    margin: auto;
+    width: 45%;
+    color: white;
+    font-family: 'Alegreya', serif;
+}
+
 .page_header {
     color: white;
     font-family: 'Goldman', cursive;
 }
-
 
 .emptyslot {
     border: 2px dashed white;
