@@ -7,7 +7,7 @@ body {
 .container {
     font-family: 'Alegreya', serif;
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
     grid-template-rows: 100px 330px;
     grid-gap: 50px 30px; /*space between rows, then columns*/
     align-items: center;
@@ -34,6 +34,7 @@ body {
     justify-self: stretch;
     text-align: center;
     color: white;
+    flex: 1;
 }
 
 .game {
@@ -51,6 +52,7 @@ body {
     border-top: none;
     border-right: none;
     border-bottom: none;
+    flex: 1;
 }
 
 h2 {
@@ -95,6 +97,7 @@ h2 {
     display: flex;
     flex-direction: column;
     justify-content: space-around;
+    flex: 1;
 }
 
 .team {
