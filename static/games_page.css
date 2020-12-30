@@ -82,7 +82,7 @@ h2 {
 .body {
     margin: 10px;
     display: grid;
-    grid-template-columns: 3fr 2fr;
+    grid-template-columns: 60% 40%;
     grid-template-areas:
       "scores info"
       "players players"
@@ -119,6 +119,7 @@ h2 {
     padding-top: 8px;
     padding-bottom: 4px;
     margin-left: 15%;
+    margin-right: 10px;
     border-radius: 4px;
 }
 
@@ -156,8 +157,10 @@ h2 {
 .score {
     background: #4f545c; /*discord's background-accent*/
     width: 40px;
+    min-width: 40px;
     height: 40px;
     border-radius: 20px;
+    margin-left: 10px;
 }
 
 .players {
