@@ -44,6 +44,8 @@ def update_loop():
                 state["update_text"] = "Play blall!"            #they also need a timestamp
                 state["delay"] -= 1
             
+            state["display_top_of_inning"] = state["top_of_inning"]
+
             if state["delay"] <= 0:
                 if this_game.top_of_inning != state["top_of_inning"]:
                     state["update_pause"] = 2
@@ -51,6 +53,7 @@ def update_loop():
                     state["batter"] = "-"
                     if not state["top_of_inning"]:
                         state["display_inning"] -= 1
+                        state["display_top_of_inning"] = False
 
                 if state["update_pause"] == 1:
                     state["update_emoji"] = "🍿"
@@ -90,7 +93,7 @@ def update_loop():
 
             state["bases"] = this_game.named_bases()
 
-            state["top_of_inning"] = this_game.top_of_inning
+            state["top_of_inning"] = this_game.top_of_inning 
 
             states_to_send[game_time] = state
 
@@ -100,4 +103,4 @@ def update_loop():
             state["update_pause"] -= 1
 
         socketio.emit("states_update", states_to_send)
-        time.sleep(1)
+        time.sleep(3)
