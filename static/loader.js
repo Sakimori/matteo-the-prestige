@@ -10,10 +10,17 @@ $(document).ready(function (){
     });
 
     socket.on("states_update", function (json) { //json is an object containing all game updates
+
+        if (Object.keys(json) == 0) {
+            $('#footer div').html("No games right now. Why not head over to Discord and start one?");
+        } else {
+            $('#footer div').html("");
+        }
+
         for (const timestamp in json) {
             if (!gameslist.includes(timestamp)) { //adds game to list if not there already
                 gameslist.push(timestamp)
-                for (var slotnum = 1; true; slotnum++) { //this is really a while loop but don't tell anyone
+                for (var slotnum = 1; true; slotnum++) { //this is really a while loop but shh don't tell anyone
                     if (slotnum >= grid.children.length) {
                         for (var i = 0; i < 3; i ++) {
                             newBox = document.createElement("DIV");

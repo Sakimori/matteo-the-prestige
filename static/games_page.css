@@ -26,6 +26,23 @@ body {
     margin: auto
 }
 
+#footer {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 100%;
+    height: 75px;
+}
+
+#footer > div {
+    text-align: center;
+    color: white;
+    font-family: 'Alegreya', serif;
+    font-size: 20px;
+    position: relative;
+    top: 5px;
+}
+
 .link{
     position: relative;
     top: 10px; 
