@@ -68,7 +68,7 @@ def update_loop():
                         for attempt in this_game.last_update[0]["steals"]:
                             updatestring += attempt + "\n"
 
-                        state["emoji"] = "💎" 
+                        state["update_emoji"] = "💎" 
                         state["update_text"] = updatestring
 
                     else:
@@ -85,7 +85,7 @@ def update_loop():
                         if this_game.last_update[1] > 0:
                                 updatestring += f"{this_game.last_update[1]} runs scored!"
 
-                        state["emoji"] = "🏏"
+                        state["update_emoji"] = "🏏"
                         state["update_text"] = updatestring
 
             state["bases"] = this_game.named_bases()
