@@ -8,12 +8,17 @@ body {
     font-family: 'Alegreya', serif;
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
-    grid-template-rows: 100px 300px;
+    grid-template-rows: 100px 330px;
     grid-gap: 50px 30px; /*space between rows, then columns*/
     align-items: center;
     justify-items: center;
     grid-auto-rows: 300px;
     grid-auto-flow: row;
+}
+
+#title {
+    grid-column: 2;
+    grid-row: 1;
 }
 
 .h1 {
@@ -34,10 +39,165 @@ body {
 .game {
     font-family: 'Alegreya', serif;
     color: white;
+    align-self: stretch;
+    justify-self: stretch;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    background: #2f3136; /*discord dark theme background-secondary - the same color as the embeds*/
+    border: 4px solid;
+    border-radius: 4px;
+    border-color: rgb(113, 54, 138); /*matteo purple™*/
+    border-top: none;
+    border-right: none;
+    border-bottom: none;
 }
 
 h2 {
     font-family: 'Alegreya', serif;
     color: white;
     text-align: center;
+}
+
+.header {
+    width: 100%;
+    background-color: #4f545c; /*discord's background-tertiary*/
+    border-top-right-radius: 4px;
+    height: max-content;
+    
+}
+
+.inning {
+    float: left;
+    margin: 5px;
+}
+
+.weather {
+    float: right;
+    margin: 5px;
+}
+
+.body {
+    margin: 10px;
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    grid-template-areas:
+      "scores info"
+      "players players"
+      "update update";
+    grid-template-rows: 130px;
+    grid-row-gap: 10px;
+    grid-column-gap: 10px;
+    flex: 1;
+}
+
+.scores {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+}
+
+.team {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.team_name {
+    overflow: hidden;
+}
+
+.info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    background: #4f545c;
+    padding-top: 8px;
+    padding-bottom: 4px;
+    margin-left: 15%;
+    border-radius: 4px;
+}
+
+.batting {
+    grid-area: batting;
+    font-size: 10pt;
+    text-align: left;
+    height: max-content;
+    padding: 5px;
+}
+
+.outs {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 60%;
+}
+
+.outs_title {
+    font-weight: bolder;
+}
+
+.outs_count {
+    display: flex;
+}
+
+.out {
+    height: 20px;
+}
+
+.team_name, .score {
+    font-size: 25px
+}
+
+.score {
+    background: #4f545c; /*discord's background-accent*/
+    width: 40px;
+    height: 40px;
+    border-radius: 20px;
+}
+
+.players {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    grid-area: players;
+    height: max-content;
+    width: 100%;
+}
+
+.player {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 330px;
+}
+
+.player_name {
+    overflow: hidden;
+    margin-left: 15px;
+}
+
+.update {
+    grid-area: update;
+}
+
+.update_emoji, .update_text {
+    display: inline
+}
+
+.field {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    flex-direction: column;
+}
+
+.base1, .base2, .base3 {
+    height: 60px;
+}
+
+.base2 {
+    margin-bottom: -25%
 }
