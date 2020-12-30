@@ -1,7 +1,6 @@
 $(document).ready(function (){
     var socket = io.connect();
     var gameslist = [];
-    var maxSlot = 1;
     var grid = document.getElementById("container");
     
 
@@ -11,7 +10,7 @@ $(document).ready(function (){
 
     socket.on("states_update", function (json) { //json is an object containing all game updates
 
-        if (Object.keys(json) == 0) {
+        if (Object.keys(json).length == 0) {
             $('#footer div').html("No games right now. Why not head over to Discord and start one?");
         } else {
             $('#footer div').html("");
@@ -23,26 +22,38 @@ $(document).ready(function (){
                 for (var slotnum = 1; true; slotnum++) { //this is really a while loop but shh don't tell anyone
                     if (slotnum >= grid.children.length) {
                         for (var i = 0; i < 3; i ++) {
-                            newBox = document.createElement("DIV");
-                            newBox.className = "emptyslot";
-                            grid.appendChild(newBox);
+                            insertEmpty(grid);
                         }
                     }
                     if (grid.children[slotnum].className == "emptyslot") {
                         insertGame(slotnum, json[timestamp], timestamp);
-                        maxSlot = Math.max(maxSlot, slotnum);
                         break;
                     };
                 };
             };
 
-            for (var slotnum = 1; slotnum <= maxSlot; slotnum++) {
+            for (var slotnum = 1; slotnum < grid.children.length; slotnum++) {
                 if (grid.children[slotnum].timestamp == timestamp) {
                     updateGame(grid.children[slotnum], json[timestamp]);
                 };
             };
         };
+
+        for (var slotnum = 1; slotnum < grid.children.length; slotnum++) {
+            if (grid.children[slotnum].className == "game" && !(Object.keys(json).includes(grid.children[slotnum].timestamp))) {
+                grid.removeChild(grid.children[slotnum]);
+            }
+        }
+
+        while((grid.children.length - 1) % 3 != 0 || grid.children.length == 0) {
+            insertEmpty(grid);
+        }
     });
+    const insertEmpty = (grid) => {
+        newBox = document.createElement("DIV");
+        newBox.className = "emptyslot";
+        grid.appendChild(newBox);
+    }
 
     const insertGame = (gridboxnum, gamestate, timestamp) => {
         var thisBox = grid.children[gridboxnum];

@@ -119,11 +119,9 @@ h2 {
     display: grid;
     grid-template-columns: 60% 40%;
     grid-template-areas:
-      "teams info"
-      "players players"
-      "update update";
-    grid-template-rows: 130px;
-    grid-row-gap: 10px;
+      "teams info" "players info" "update update";
+    grid-template-rows: 100px;
+    grid-row-gap: 14px;
     grid-column-gap: 10px;
     flex: 1;
 }
@@ -133,7 +131,6 @@ h2 {
     display: flex;
     flex-direction: column;
     justify-content: space-around;
-    flex: 1;
 }
 
 .team {
@@ -151,7 +148,7 @@ h2 {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: space-between;
+    justify-content: space-around;
     background: #4f545c;
     padding-top: 8px;
     padding-bottom: 4px;
@@ -203,9 +200,9 @@ h2 {
     grid-area: players;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: space-around;
     align-items: center;
-    height: max-content;
+    height: 100%;
     width: 100%;
 }
 
@@ -223,6 +220,8 @@ h2 {
 
 .update {
     grid-area: update;
+    margin-right: 10px;
+    margin-top: 10px;
 }
 
 .update_emoji, .update_text {
