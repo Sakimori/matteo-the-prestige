@@ -30,9 +30,10 @@ def update_loop():
         states_to_send = {}
         game_times = iter(master_games_dic.copy().keys())
         for game_time in game_times:
-            this_game, state = master_games_dic[game_time]
+            this_game, state, discrim_string = master_games_dic[game_time]
             test_string = this_game.gamestate_display_full()
-            
+            print(discrim_string)
+            state["leagueoruser"] = discrim_string
             state["display_inning"] = this_game.inning          #games need to be initialized with the following keys in state:
             state["outs"] = this_game.outs                      #away_name
             state["pitcher"] = this_game.get_pitcher().name     #home_name
@@ -123,5 +124,6 @@ def update_loop():
 
         global last_update
         last_update = states_to_send
+        
         socketio.emit("states_update", states_to_send)
         time.sleep(6)

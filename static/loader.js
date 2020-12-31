@@ -103,6 +103,8 @@ $(document).ready(function (){
         $('#updateTarget .update_text').html(gamestate.update_text);
 
         $('#updateTarget .batting').html((gamestate.display_top_of_inning ? gamestate.away_name : gamestate.home_name) + " batting.");
+        console.log(gamestate.leagueoruser)
+        $('#updateTarget .leagueoruser').html(gamestate.leagueoruser);
 
         gamediv.id = "";
     };

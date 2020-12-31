@@ -190,6 +190,18 @@ h2 {
     padding: 5px;
 }
 
+.leagueoruser {
+    font-size: 10pt;
+    text-align: right;
+    height: max-content;
+    padding: 5px;
+}
+
+.footer {
+    display: flex;
+    justify-content: space-between;
+}
+
 .outs {
     display: flex;
     justify-content: space-between;
@@ -249,6 +261,8 @@ h2 {
     margin-right: 10px;
     margin-top: 10px;
 }
+
+
 
 .update_emoji, .update_text {
     display: inline

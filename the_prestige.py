@@ -549,7 +549,7 @@ Creator, type `{newgame.name} done` to finalize lineups.""")
     game_task = asyncio.create_task(watch_game(channel, newgame))
     await game_task
 
-async def watch_game(channel, newgame, user = None):
+async def watch_game(channel, newgame, user = None, league = None):
     blank_emoji = discord.utils.get(client.emojis, id = 790899850295509053)
     empty_base = discord.utils.get(client.emojis, id = 790899850395779074)
     occupied_base = discord.utils.get(client.emojis, id = 790899850320543745)
@@ -574,10 +574,17 @@ async def watch_game(channel, newgame, user = None):
         "end_delay" : 3
         } 
 
+    if league is not None:
+        discrim_string = league
+    elif user is not None:
+        discrim_string = f"Started by {user.name}"
+    else:
+        discrim_string = "Unclaimed game."
+
     await channel.send(f"{newgame.teams['away'].name} vs. {newgame.teams['home'].name}, starting at {config()['simmadome_url']}")
     gamesarray.append((newgame, channel, user))
 
-    main_controller.master_games_dic[str(time.time() * 1000.0)] = (newgame, state_init)
+    main_controller.master_games_dic[str(time.time() * 1000.0)] = (newgame, state_init, discrim_string)
 
 async def play_from_queue(channel, game, user_mention):
     await channel.send(f"{user_mention}, your game's ready.")
