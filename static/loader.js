@@ -39,18 +39,13 @@ $(document).ready(function (){
             };
         };
 
-        var requiredcells = Math.max(4, (3 * Math.ceil(Object.keys(json).length/3))+1);
-
         for (var slotnum = 1; slotnum < grid.children.length; slotnum++) {
             if (grid.children[slotnum].className == "game" && !(Object.keys(json).includes(grid.children[slotnum].timestamp))) {
                 grid.removeChild(grid.children[slotnum]);
             }
         }
 
-
-        console.log(Object.keys(json).length)
-        console.log(requiredcells)
-        console.log(grid.children.length)
+        var requiredcells = Math.max(4, (3 * Math.ceil(Object.keys(json).length/3))+1);
 
         while (grid.children.length > requiredcells) {
             grid.removeChild(grid.children[requiredcells]);
