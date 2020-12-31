@@ -107,11 +107,11 @@ class team(object):
         self.slogan = None
 
     def add_lineup(self, new_player):
-        if len(self.lineup) <= 12:
+        if len(self.lineup) < 20:
             self.lineup.append(new_player)
             return (True,)
         else:
-            return (False, "12 players in the lineup, maximum. We're being generous here.")
+            return (False, "20 players in the lineup, maximum. We're being really generous here.")
     
     def set_pitcher(self, new_player):
         self.pitcher = new_player
@@ -149,6 +149,7 @@ class game(object):
         self.last_update = ({},0) #this is a ({outcome}, runs) tuple
         self.owner = None
         self.ready = False
+        self.victory_lap = False
         if length is not None:
             self.max_innings = length
         else:
@@ -175,9 +176,12 @@ class game(object):
         batter = self.get_batter()
 
         if self.top_of_inning:
-            defender = random.choice(self.teams["home"].lineup)
+            defender_list = self.teams["home"].lineup.copy()
         else:
-            defender = random.choice(self.teams["away"].lineup)
+            defender_list = self.teams["away"].lineup.copy()
+
+        defender_list.append(pitcher)
+        defender = random.choice(defender_list) #make pitchers field
 
         outcome["batter"] = batter
         outcome["defender"] = ""
@@ -529,6 +533,16 @@ class game(object):
                 "home_team" : self.teams["home"],
                 "home_pitcher" : self.teams["home"].pitcher
             }
+
+    def named_bases(self):
+        name_bases = {}
+        for base in range(1,4):
+            if self.bases[base] is not None:
+                name_bases[base] = self.bases[base].name
+            else:
+                name_bases[base] = None
+
+        return name_bases
 
 
     def gamestate_update_full(self):

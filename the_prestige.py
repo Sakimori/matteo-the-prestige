@@ -1,6 +1,8 @@
-import discord, json, math, os, roman, games, asyncio, random
+import discord, json, math, os, roman, games, asyncio, random, main_controller, threading, time
 import database as db
 import onomancer as ono
+from flask import Flask
+
 
 class Command:
     def isauthorized(self, user):
@@ -112,19 +114,45 @@ class StartGameCommand(Command):
   - and finally, optionally, the number of innings, which must be greater than 2 and less than 31. if not included it will default to 9."""
 
     async def execute(self, msg, command):
+        league = None
         if config()["game_freeze"]:
             await msg.channel.send("Patch incoming. We're not allowing new games right now.")
             return
 
+        if "-l " in command.split("\n")[0]:          
+            league = command.split("\n")[0].split("-l ")[1]
+        elif "--league " in command.split("\n")[0]:
+            league = command.split("\n")[0].split("--league ")[1]
+
         try:
-            team1 = games.get_team(command.split("\n")[1])
-            team2 = games.get_team(command.split("\n")[2])
+            team_name1 = command.split("\n")[1].strip()
+            team1 = games.get_team(team_name1)
+            if team1 is None:
+                teams = games.search_team(team_name1.lower())
+                if len(teams) == 1:
+                    team1 = teams[0]
+            team_name2 = command.split("\n")[2].strip()
+            team2 = games.get_team(team_name2)
+            if team2 is None:
+                teams = games.search_team(team_name2.lower())
+                if len(teams) == 1:
+                    team2 = teams[0]
             innings = int(command.split("\n")[3])
         except IndexError:
             try:
-                team1 = games.get_team(command.split("\n")[1])
-                team2 = games.get_team(command.split("\n")[2])
-                innings = None
+                team_name1 = command.split("\n")[1].strip()
+                team1 = games.get_team(team_name1)
+                if team1 is None:
+                    teams = games.search_team(team_name1.lower())
+                    if len(teams) == 1:
+                        team1 = teams[0]
+                team_name2 = command.split("\n")[2].strip()
+                team2 = games.get_team(team_name2)
+                if team2 is None:
+                    teams = games.search_team(team_name2.lower())
+                    if len(teams) == 1:
+                        team2 = teams[0]
+                    innings = None
             except IndexError:
                 await msg.channel.send("We need at least three lines: startgame, away team, and home team are required. Optionally, the number of innings can go at the end, if you want a change of pace.")
                 return
@@ -143,15 +171,13 @@ class StartGameCommand(Command):
         if team1 is not None and team2 is not None:
             game = games.game(msg.author.name, team1, team2, length=innings)
             channel = msg.channel
-            user_mention = msg.author.mention
             await msg.delete()
-            if len(gamesarray) >= 10:
-                await channel.send(f"We're running 10 games right now, and Discord probably isn't very pleased about it. You're at #{len(gamesqueue)+1} in the list.\nWe'll ping you when it's ready, chief.")
-                gamesqueue.append((channel, game, user_mention))
-                return
             
-            game_task = asyncio.create_task(watch_game(channel, game, user=msg.author))
+            game_task = asyncio.create_task(watch_game(channel, game, user=msg.author, league=league))
             await game_task
+        else:
+            await msg.channel.send("We can't find one or both of those teams. Check your staging, chief.")
+            return
 
 class SetupGameCommand(Command):
     name = "setupgame"
@@ -342,6 +368,9 @@ gamesarray = []
 gamesqueue = []
 setupmessages = {}
 
+thread1 = threading.Thread(target=main_controller.update_loop)
+thread1.start()
+
 def config():
     if not os.path.exists("config.json"):
         #generate default config
@@ -351,6 +380,7 @@ def config():
                     0000
                     ],
                 "prefix" : ["m;", "m!"],
+                "simmadome_url" : "",
                 "soulscream channel id" : 0,
                 "game_freeze" : 0
             }
@@ -366,6 +396,8 @@ def config():
 async def on_ready():
     db.initialcheck()
     print(f"logged in as {client.user} with token {config()['token']}")
+    watch_task = asyncio.create_task(game_watcher())
+    await watch_task
 
 @client.event
 async def on_reaction_add(reaction, user):
@@ -546,149 +578,42 @@ Creator, type `{newgame.name} done` to finalize lineups.""")
     game_task = asyncio.create_task(watch_game(channel, newgame))
     await game_task
 
-async def watch_game(channel, newgame, user = None):
+async def watch_game(channel, newgame, user = None, league = None):
     blank_emoji = discord.utils.get(client.emojis, id = 790899850295509053)
     empty_base = discord.utils.get(client.emojis, id = 790899850395779074)
     occupied_base = discord.utils.get(client.emojis, id = 790899850320543745)
     out_emoji = discord.utils.get(client.emojis, id = 791578957241778226)
     in_emoji = discord.utils.get(client.emojis, id = 791578957244792832)
 
-    if user is not None:
-        await channel.send(f"Game for {user.mention}:")
-    embed = await channel.send("Starting...")
-    await asyncio.sleep(1)
-    await embed.pin()
-    await asyncio.sleep(1)
-    gamesarray.append(newgame)
-    pause = 0
-    top_of_inning = True
-    victory_lap = False
+    
 
+    await asyncio.sleep(1)
     weathers = games.all_weathers()
     newgame.weather = weathers[random.choice(list(weathers.keys()))]
+    state_init = {
+        "away_name" : newgame.teams['away'].name,
+        "home_name" : newgame.teams['home'].name,
+        "max_innings" : newgame.max_innings,
+        "update_pause" : 0,
+        "top_of_inning" : True,
+        "victory_lap" : False,
+        "weather_emoji" : newgame.weather.emoji,
+        "weather_text" : newgame.weather.name,
+        "start_delay" : 3,
+        "end_delay" : 3
+        } 
 
-    while not newgame.over or newgame.top_of_inning != top_of_inning:
-        state = newgame.gamestate_display_full()
-
-        new_embed = discord.Embed(color=discord.Color.purple(), title=f"{newgame.teams['away'].name} at {newgame.teams['home'].name}")
-        
-        new_embed.add_field(name=newgame.teams['away'].name, value=newgame.teams['away'].score, inline=True)
-        new_embed.add_field(name=newgame.teams['home'].name, value=newgame.teams['home'].score, inline=True)
-
-        if top_of_inning:
-            new_embed.add_field(name="Inning:", value=f"🔼 {newgame.inning} / {newgame.max_innings}", inline=True)
-            new_embed.set_footer(text=f"{newgame.teams['away'].name} batting.")
-        else:
-            new_embed.add_field(name="Inning:", value=f"🔽 {newgame.inning} / {newgame.max_innings}", inline=True)
-            new_embed.set_footer(text=f"{newgame.teams['home'].name} batting.")
-
-        new_embed.add_field(name="Outs:", value=f"{str(out_emoji)*newgame.outs+str(in_emoji)*(2-newgame.outs)}", inline=False)
-        new_embed.add_field(name="Pitcher:", value=newgame.get_pitcher(), inline=False)
-        new_embed.add_field(name="Batter:", value=newgame.get_batter(), inline=False)
-
-        if state == "Game not started.":
-            new_embed.add_field(name="🍿", value="Play blall!", inline=False)
-
-        elif newgame.top_of_inning != top_of_inning:
-            pause = 2
-            new_embed.set_field_at(4, name="Pitcher:", value="-", inline=False)
-            new_embed.set_field_at(5, name="Batter:", value="-", inline=False)
-            if newgame.top_of_inning:
-                new_embed.set_field_at(2,name="Inning:",value=f"🔽 {newgame.inning-1} / {newgame.max_innings}")
-
-        if pause == 1:
-            if newgame.top_of_inning:
-                new_embed.add_field(name="🍿", value=f"Top of {newgame.inning}. {newgame.teams['away'].name} batting!", inline=False)
-            else:
-                if newgame.inning >= newgame.max_innings:
-                    if newgame.teams["home"].score > newgame.teams["away"].score: #if home team is winning at the bottom of the last inning
-                        victory_lap = True
-                new_embed.add_field(name="🍿", value=f"Bottom of {newgame.inning}. {newgame.teams['home'].name} batting!", inline=False)
-
-        if pause != 1 and state != "Game not started.":
-            if "steals" in newgame.last_update[0].keys():
-                updatestring = ""
-                for attempt in newgame.last_update[0]["steals"]:
-                    updatestring += attempt + "\n"
-
-                new_embed.add_field(name="💎", value=updatestring, inline=False)
-
-            else:
-                updatestring = ""
-                punc = ""
-                if newgame.last_update[0]["defender"] != "":
-                    punc = ". "
-
-                if "fc_out" in newgame.last_update[0].keys():
-                    name, base_string = newgame.last_update[0]['fc_out']
-                    updatestring = f"{newgame.last_update[0]['batter']} {newgame.last_update[0]['text'].value.format(name, base_string)} {newgame.last_update[0]['defender']}{punc}"
-                else:
-                    updatestring = f"{newgame.last_update[0]['batter']} {newgame.last_update[0]['text'].value} {newgame.last_update[0]['defender']}{punc}"
-                if newgame.last_update[1] > 0:
-                        updatestring += f"{newgame.last_update[1]} runs scored!"
-
-                new_embed.add_field(name="🏏", value=updatestring, inline=False)
-
-        basemessage = str(blank_emoji)
-        if newgame.bases[2] is not None:
-            basemessage += str(occupied_base) + "\n"
-        else:
-            basemessage += str(empty_base) + "\n"
-
-        basemessage_b = ""
-        if newgame.bases[3] is not None:
-            basemessage += str(occupied_base)
-        else:
-            basemessage += str(empty_base)
-        basemessage += str(blank_emoji)
-
-        if newgame.bases[1] is not None:
-            basemessage += str(occupied_base)
-        else:
-            basemessage += str(empty_base)
-
-        new_embed.add_field(name="Bases:", value=basemessage, inline = False)
-        new_embed.add_field(name="Weather:", value=str(newgame.weather), inline = False)
-
-        await embed.edit(content=None, embed=new_embed)
-        top_of_inning = newgame.top_of_inning
-        if pause <= 1:
-            newgame.gamestate_update_full()
-
-        pause -= 1
-        await asyncio.sleep(6)
-        
-    title_string = f"{newgame.teams['away'].name} at {newgame.teams['home'].name} ended after {newgame.inning-1} innings"
-    if (newgame.inning - 1) > newgame.max_innings: #if extra innings
-        title_string += f" with {newgame.inning - (newgame.max_innings+1)} extra innings."
+    if league is not None:
+        discrim_string = league
+    elif user is not None:
+        discrim_string = f"Started by {user.name}"
     else:
-        title_string += "."
+        discrim_string = "Unclaimed game."
 
-    final_embed = discord.Embed(color=discord.Color.dark_purple(), title=title_string)
-    
-    scorestring = f"{newgame.teams['away'].score} to {newgame.teams['home'].score}\n"
-    if newgame.teams['away'].score > newgame.teams['home'].score:
-        scorestring += f"{newgame.teams['away'].name} wins!"
-    else:
-        scorestring += f"{newgame.teams['home'].name} wins"
-        if victory_lap:
-            scorestring += " with a victory lap!"
-        else:
-            scorestring += f", shaming {newgame.teams['away'].name}!"
+    await channel.send(f"{newgame.teams['away'].name} vs. {newgame.teams['home'].name}, starting at {config()['simmadome_url']}")
+    gamesarray.append((newgame, channel, user))
 
-
-    
-    final_embed.add_field(name="Final score:", value=scorestring)
-    await embed.edit(content=None, embed=final_embed)
-
-    await embed.unpin()
-    gamesarray.pop(gamesarray.index(newgame)) #cleanup is important!
-    newgame.add_stats()
-    del newgame
-    if len(gamesqueue) > 0:
-        channel, game, user_mention = gamesqueue.pop(0)
-        queue_task = asyncio.create_task(play_from_queue(channel, game, user_mention))
-        await queue_task
+    main_controller.master_games_dic[str(time.time() * 1000.0)] = (newgame, state_init, discrim_string)
 
 async def play_from_queue(channel, game, user_mention):
     await channel.send(f"{user_mention}, your game's ready.")
@@ -859,6 +784,40 @@ async def team_pages(msg, all_teams, search_term=None):
             except asyncio.TimeoutError:
                 return
 
+async def game_watcher():
+    while True:
+        this_array = gamesarray.copy()
+        for i in range(0,len(this_array)):
+            game, channel, user = this_array[i]
+            if game.over:
+                title_string = f"{game.teams['away'].name} at {game.teams['home'].name} ended after {game.inning-1} innings"
+                if (game.inning - 1) > game.max_innings: #if extra innings
+                    title_string += f" with {game.inning - (game.max_innings+1)} extra innings."
+                else:
+                    title_string += "."
+
+                winning_team = game.teams['home'].name if game.teams['home'].score > game.teams['away'].score else game.teams['away'].name
+                winstring = f"{game.teams['away'].score} to {game.teams['home'].score}\n"
+                if game.victory_lap and winning_team == game.teams['home'].name:
+                    winstring += f"{winning_team} wins with a victory lap!"
+                elif winning_team == game.teams['home'].name:
+                    winstring += f"{winning_team} wins, shaming {game.teams['away'].name}!"
+                else:
+                   winstring += f"{winning_team} wins!"
+
+                if user is not None:
+                    await channel.send(f"{user.mention}'s game just ended.")
+                else:
+                    await channel.send("A game started from this channel just ended.")
+
+                final_embed = discord.Embed(color=discord.Color.dark_purple(), title=title_string)
+                final_embed.add_field(name="Final score:", value=winstring)
+                await channel.send(embed=final_embed)
+                gamesarray.pop(i)
+                break
+
+        await asyncio.sleep(6)
 
 
+        
 client.run(config()["token"])

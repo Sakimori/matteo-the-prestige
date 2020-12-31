@@ -1,7 +1,7 @@
 # matteo-the-prestige
 # simsim discord bot
 
-blaseball, blaseball, is back! in an unofficial capacity.
+blaseball, blaseball, is back! in an unofficial capacity. this is completely unaffiliated with the game band 
 
 custom players, custom teams, custom leagues (that last one is coming soon™) all in discord! 
 
