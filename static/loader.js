@@ -39,16 +39,30 @@ $(document).ready(function (){
             };
         };
 
+        var requiredcells = Math.max(4, (3 * Math.ceil(Object.keys(json).length/3))+1);
+
         for (var slotnum = 1; slotnum < grid.children.length; slotnum++) {
             if (grid.children[slotnum].className == "game" && !(Object.keys(json).includes(grid.children[slotnum].timestamp))) {
                 grid.removeChild(grid.children[slotnum]);
             }
         }
 
-        while((grid.children.length - 1) % 3 != 0 || grid.children.length == 0) {
+
+        console.log(Object.keys(json).length)
+        console.log(requiredcells)
+        console.log(grid.children.length)
+
+        while (grid.children.length > requiredcells) {
+            grid.removeChild(grid.children[requiredcells]);
+        }
+
+        while (grid.children.length < requiredcells) {
             insertEmpty(grid);
         }
+
+        console.log(grid.children.length)
     });
+
     const insertEmpty = (grid) => {
         newBox = document.createElement("DIV");
         newBox.className = "emptyslot";
