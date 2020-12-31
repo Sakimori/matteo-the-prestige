@@ -145,7 +145,6 @@ class StartGameCommand(Command):
         if team1 is not None and team2 is not None:
             game = games.game(msg.author.name, team1, team2, length=innings)
             channel = msg.channel
-            user_mention = msg.author.mention
             await msg.delete()
             
             game_task = asyncio.create_task(watch_game(channel, game, user=msg.author))
