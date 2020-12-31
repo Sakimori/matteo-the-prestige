@@ -599,8 +599,8 @@ async def watch_game(channel, newgame, user = None, league = None):
         "victory_lap" : False,
         "weather_emoji" : newgame.weather.emoji,
         "weather_text" : newgame.weather.name,
-        "start_delay" : 3,
-        "end_delay" : 3
+        "start_delay" : 5,
+        "end_delay" : 10
         } 
 
     if league is not None:
