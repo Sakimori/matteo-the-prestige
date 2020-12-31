@@ -147,10 +147,6 @@ class StartGameCommand(Command):
             channel = msg.channel
             user_mention = msg.author.mention
             await msg.delete()
-            if len(gamesarray) >= 10:
-                await channel.send(f"We're running 10 games right now, and Discord probably isn't very pleased about it. You're at #{len(gamesqueue)+1} in the list.\nWe'll ping you when it's ready, chief.")
-                gamesqueue.append((channel, game, user_mention))
-                return
             
             game_task = asyncio.create_task(watch_game(channel, game, user=msg.author))
             await game_task
