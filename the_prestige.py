@@ -114,9 +114,15 @@ class StartGameCommand(Command):
   - and finally, optionally, the number of innings, which must be greater than 2 and less than 31. if not included it will default to 9."""
 
     async def execute(self, msg, command):
+        league = None
         if config()["game_freeze"]:
             await msg.channel.send("Patch incoming. We're not allowing new games right now.")
             return
+
+        if "-l " in command.split("\n")[0]:          
+            league = command.split("\n")[0].split("-l ")[1]
+        elif "--league " in command.split("\n")[0]:
+            league = command.split("\n")[0].split("--league ")[1]
 
         try:
             team_name1 = command.split("\n")[1].strip()
@@ -167,7 +173,7 @@ class StartGameCommand(Command):
             channel = msg.channel
             await msg.delete()
             
-            game_task = asyncio.create_task(watch_game(channel, game, user=msg.author))
+            game_task = asyncio.create_task(watch_game(channel, game, user=msg.author, league=league))
             await game_task
 
 class SetupGameCommand(Command):
