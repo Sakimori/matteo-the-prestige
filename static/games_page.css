@@ -7,9 +7,10 @@ body {
 
 #link_div {
     font-family: 'Alegreya', serif;
+    text-align: right;
     position: absolute;
     top: 0px;
-    right: 10px;
+    right: 30px;
 }
 
 #link_div > a:link {
