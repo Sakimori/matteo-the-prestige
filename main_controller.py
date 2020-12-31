@@ -124,4 +124,4 @@ def update_loop():
         global last_update
         last_update = states_to_send
         socketio.emit("states_update", states_to_send)
-        time.sleep(3)
+        time.sleep(6)
