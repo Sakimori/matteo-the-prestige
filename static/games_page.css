@@ -5,6 +5,31 @@ body {
 }
 /* Background pattern from Toptal Subtle Patterns */
 
+#link_div {
+    font-family: 'Alegreya', serif;
+    position: absolute;
+    top: 0px;
+    right: 10px;
+}
+
+#link_div > a:link {
+    color: lightblue;
+    background-color: transparent;
+    text-decoration: underline;
+}
+
+#link_div > a:visited {
+    color: lightblue;
+    background-color: transparent;
+    text-decoration: underline;
+}
+
+#link_div > a:hover {
+    color: white;
+    background-color: transparent;
+    text-decoration: underline;
+}
+
 .container {
     font-family: 'Alegreya', serif;
     display: grid;
