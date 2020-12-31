@@ -35,6 +35,7 @@ def update_loop():
             print(discrim_string)
             state["leagueoruser"] = discrim_string
             state["display_inning"] = this_game.inning          #games need to be initialized with the following keys in state:
+                                                                #is_league, bool
             state["outs"] = this_game.outs                      #away_name
             state["pitcher"] = this_game.get_pitcher().name     #home_name
             state["batter"] = this_game.get_batter().name       #max_innings

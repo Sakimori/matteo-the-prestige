@@ -605,10 +605,13 @@ async def watch_game(channel, newgame, user = None, league = None):
 
     if league is not None:
         discrim_string = league
+        state_init["is_league"] = True
     elif user is not None:
         discrim_string = f"Started by {user.name}"
+        state_init["is_league"] = False
     else:
         discrim_string = "Unclaimed game."
+        state_init["is_league"] = False
 
     await channel.send(f"{newgame.teams['away'].name} vs. {newgame.teams['home'].name}, starting at {config()['simmadome_url']}")
     gamesarray.append((newgame, channel, user))
