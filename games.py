@@ -149,6 +149,7 @@ class game(object):
         self.last_update = ({},0) #this is a ({outcome}, runs) tuple
         self.owner = None
         self.ready = False
+        self.victory_lap = False
         if length is not None:
             self.max_innings = length
         else:

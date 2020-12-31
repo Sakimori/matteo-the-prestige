@@ -103,7 +103,7 @@ $(document).ready(function (){
         $('#updateTarget .update_emoji').html(gamestate.update_emoji);
         $('#updateTarget .update_text').html(gamestate.update_text);
 
-        $('#updateTarget .batting').html((gamestate.top_of_inning ? gamestate.away_name : gamestate.home_name) + " batting.");
+        $('#updateTarget .batting').html((gamestate.display_top_of_inning ? gamestate.away_name : gamestate.home_name) + " batting.");
 
         gamediv.id = "";
     };

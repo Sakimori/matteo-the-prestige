@@ -43,11 +43,11 @@ def update_loop():
             if test_string == "Game not started.":              #weather_emoji
                 state["update_emoji"] = "🍿"                    #weather_text
                 state["update_text"] = "Play blall!"            #they also need a timestamp
-                state["delay"] -= 1
+                state["start_delay"] -= 1
             
             state["display_top_of_inning"] = state["top_of_inning"]
 
-            if state["delay"] <= 0:
+            if state["start_delay"] <= 0:
                 if this_game.top_of_inning != state["top_of_inning"]:
                     state["update_pause"] = 2
                     state["pitcher"] = "-"
@@ -59,8 +59,15 @@ def update_loop():
                 if state["update_pause"] == 1:
                     state["update_emoji"] = "🍿"
                     if this_game.over:
+                        state["display_inning"] -= 1
+                        state["display_top_of_inning"] = False
                         winning_team = this_game.teams['home'].name if this_game.teams['home'].score > this_game.teams['away'].score else this_game.teams['away'].name
-                        state["update_text"] = f"{winning_team} wins{' with a victory lap' if state['victory_lap'] else ''}!"
+                        if this_game.victory_lap and winning_team == this_game.teams['home'].name:
+                            state["update_text"] = f"{winning_team} wins with a victory lap!"
+                        elif winning_team == this_game.teams['home'].name:
+                            state["update_text"] = f"{winning_team} wins, shaming {this_game.teams['away'].name}!"
+                        else:
+                            state["update_text"] = f"{winning_team} wins!"
                         state["pitcher"] = "-"
                         state["batter"] = "-"
                     elif this_game.top_of_inning:
@@ -68,7 +75,7 @@ def update_loop():
                     else:
                         if this_game.inning >= this_game.max_innings:
                             if this_game.teams["home"].score > this_game.teams["away"].score:
-                                state["victory_lap"] = True
+                                this_game.victory_lap = True
                         state["update_text"] = f"Bottom of {this_game.inning}. {this_game.teams['home'].name} batting!"
 
                 elif state["update_pause"] != 1 and test_string != "Game not started.":
@@ -103,9 +110,12 @@ def update_loop():
 
             states_to_send[game_time] = state
 
-            if state["update_pause"] <= 1 and state["delay"] < 0:
+            if state["update_pause"] <= 1 and state["start_delay"] < 0:
                 if this_game.over:
-                    master_games_dic.pop(game_time)
+                    state["update_pause"] = 2
+                    if state["end_delay"] < 0:
+                        master_games_dic.pop(game_time)
+                    state["end_delay"] -= 1
                 else:
                     this_game.gamestate_update_full()
 

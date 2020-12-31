@@ -355,6 +355,7 @@ def config():
                     0000
                     ],
                 "prefix" : ["m;", "m!"],
+                "simmadome_url" : "",
                 "soulscream channel id" : 0,
                 "game_freeze" : 0
             }
@@ -370,6 +371,8 @@ def config():
 async def on_ready():
     db.initialcheck()
     print(f"logged in as {client.user} with token {config()['token']}")
+    watch_task = asyncio.create_task(game_watcher())
+    await watch_task
 
 @client.event
 async def on_reaction_add(reaction, user):
@@ -557,9 +560,8 @@ async def watch_game(channel, newgame, user = None):
     out_emoji = discord.utils.get(client.emojis, id = 791578957241778226)
     in_emoji = discord.utils.get(client.emojis, id = 791578957244792832)
 
-    if user is not None:
-        await channel.send(f"Game for {user.mention}:")
-    embed = await channel.send("Starting...")
+    
+
     await asyncio.sleep(1)
     weathers = games.all_weathers()
     newgame.weather = weathers[random.choice(list(weathers.keys()))]
@@ -572,8 +574,12 @@ async def watch_game(channel, newgame, user = None):
         "victory_lap" : False,
         "weather_emoji" : newgame.weather.emoji,
         "weather_text" : newgame.weather.name,
-        "delay" : -1
+        "start_delay" : 3,
+        "end_delay" : 3
         } 
+
+    await channel.send(f"{newgame.teams['away'].name} vs. {newgame.teams['home'].name}, starting at {config()['simmadome_url']}")
+    gamesarray.append((newgame, channel, user))
 
     main_controller.master_games_dic[str(time.time() * 1000.0)] = (newgame, state_init)
 
@@ -869,6 +875,40 @@ async def team_pages(msg, all_teams, search_term=None):
             except asyncio.TimeoutError:
                 return
 
+async def game_watcher():
+    while True:
+        this_array = gamesarray.copy()
+        for i in range(0,len(this_array)):
+            game, channel, user = this_array[i]
+            if game.over:
+                title_string = f"{game.teams['away'].name} at {game.teams['home'].name} ended after {game.inning-1} innings"
+                if (game.inning - 1) > game.max_innings: #if extra innings
+                    title_string += f" with {game.inning - (game.max_innings+1)} extra innings."
+                else:
+                    title_string += "."
+
+                winning_team = game.teams['home'].name if game.teams['home'].score > game.teams['away'].score else game.teams['away'].name
+                winstring = f"{game.teams['away'].score} to {game.teams['home'].score}\n"
+                if game.victory_lap and winning_team == game.teams['home'].name:
+                    winstring += f"{winning_team} wins with a victory lap!"
+                elif winning_team == game.teams['home'].name:
+                    winstring += f"{winning_team} wins, shaming {game.teams['away'].name}!"
+                else:
+                   winstring += f"{winning_team} wins!"
+
+                if user is not None:
+                    await channel.send(f"{user.mention}'s game just ended.")
+                else:
+                    await channel.send("A game started from this channel just ended.")
+
+                final_embed = discord.Embed(color=discord.Color.dark_purple(), title=title_string)
+                final_embed.add_field(name="Final score:", value=winstring)
+                await channel.send(embed=final_embed)
+                gamesarray.pop(i)
+                break
+
+        await asyncio.sleep(6)
 
 
+        
 client.run(config()["token"])
