@@ -58,7 +58,12 @@ def update_loop():
 
                 if state["update_pause"] == 1:
                     state["update_emoji"] = "🍿"
-                    if this_game.top_of_inning:
+                    if this_game.over:
+                        winning_team = this_game.teams['home'].name if this_game.teams['home'].score > this_game.teams['away'].score else this_game.teams['away'].name
+                        state["update_text"] = f"{winning_team} wins{' with a victory lap' if state['victory_lap'] else ''}!"
+                        state["pitcher"] = "-"
+                        state["batter"] = "-"
+                    elif this_game.top_of_inning:
                         state["update_text"] = f"Top of {this_game.inning}. {this_game.teams['away'].name} batting!"
                     else:
                         if this_game.inning >= this_game.max_innings:
@@ -99,9 +104,13 @@ def update_loop():
             states_to_send[game_time] = state
 
             if state["update_pause"] <= 1 and state["delay"] < 0:
-                this_game.gamestate_update_full()
+                if this_game.over:
+                    master_games_dic.pop(game_time)
+                else:
+                    this_game.gamestate_update_full()
 
             state["update_pause"] -= 1
+
         global last_update
         last_update = states_to_send
         socketio.emit("states_update", states_to_send)
