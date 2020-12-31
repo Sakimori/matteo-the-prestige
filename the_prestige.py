@@ -175,6 +175,9 @@ class StartGameCommand(Command):
             
             game_task = asyncio.create_task(watch_game(channel, game, user=msg.author, league=league))
             await game_task
+        else:
+            await await msg.channel.send("We can't find one or both of those teams. Check your staging, chief.")
+            return
 
 class SetupGameCommand(Command):
     name = "setupgame"
