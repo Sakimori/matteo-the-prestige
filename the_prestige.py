@@ -119,14 +119,34 @@ class StartGameCommand(Command):
             return
 
         try:
-            team1 = games.get_team(command.split("\n")[1])
-            team2 = games.get_team(command.split("\n")[2])
+            team_name1 = command.split("\n")[1].strip()
+            team1 = games.get_team(team_name1)
+            if team1 is None:
+                teams = games.search_team(team_name1.lower())
+                if len(teams) == 1:
+                    team1 = teams[0]
+            team_name2 = command.split("\n")[2].strip()
+            team2 = games.get_team(team_name2)
+            if team2 is None:
+                teams = games.search_team(team_name2.lower())
+                if len(teams) == 1:
+                    team2 = teams[0]
             innings = int(command.split("\n")[3])
         except IndexError:
             try:
-                team1 = games.get_team(command.split("\n")[1])
-                team2 = games.get_team(command.split("\n")[2])
-                innings = None
+                team_name1 = command.split("\n")[1].strip()
+                team1 = games.get_team(team_name1)
+                if team1 is None:
+                    teams = games.search_team(team_name1.lower())
+                    if len(teams) == 1:
+                        team1 = teams[0]
+                team_name2 = command.split("\n")[2].strip()
+                team2 = games.get_team(team_name2)
+                if team2 is None:
+                    teams = games.search_team(team_name2.lower())
+                    if len(teams) == 1:
+                        team2 = teams[0]
+                    innings = None
             except IndexError:
                 await msg.channel.send("We need at least three lines: startgame, away team, and home team are required. Optionally, the number of innings can go at the end, if you want a change of pace.")
                 return
