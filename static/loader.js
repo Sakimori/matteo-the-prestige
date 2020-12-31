@@ -19,7 +19,7 @@ $(document).ready(function (){
         for (const timestamp in json) {
             if (!gameslist.includes(timestamp)) { //adds game to list if not there already
                 gameslist.push(timestamp)
-                for (var slotnum = 1; true; slotnum++) { //this is really a while loop but shh don't tell anyone
+                for (var slotnum = 0; true; slotnum++) { //this is really a while loop but shh don't tell anyone
                     if (slotnum >= grid.children.length) {
                         for (var i = 0; i < 3; i ++) {
                             insertEmpty(grid);
@@ -32,20 +32,20 @@ $(document).ready(function (){
                 };
             };
 
-            for (var slotnum = 1; slotnum < grid.children.length; slotnum++) {
+            for (var slotnum = 0; slotnum < grid.children.length; slotnum++) {
                 if (grid.children[slotnum].timestamp == timestamp) {
                     updateGame(grid.children[slotnum], json[timestamp]);
                 };
             };
         };
 
-        for (var slotnum = 1; slotnum < grid.children.length; slotnum++) {
+        for (var slotnum = 0; slotnum < grid.children.length; slotnum++) {
             if (grid.children[slotnum].className == "game" && !(Object.keys(json).includes(grid.children[slotnum].timestamp))) {
                 grid.removeChild(grid.children[slotnum]);
             }
         }
 
-        var requiredcells = Math.max(4, (3 * Math.ceil(Object.keys(json).length/3))+1);
+        var requiredcells = Math.max(3, 3 * Math.ceil(Object.keys(json).length/3));
 
         while (grid.children.length > requiredcells) {
             grid.removeChild(grid.children[requiredcells]);

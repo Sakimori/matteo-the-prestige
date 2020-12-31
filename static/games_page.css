@@ -9,7 +9,7 @@ body {
     font-family: 'Alegreya', serif;
     display: grid;
     grid-template-columns: repeat(3, minmax(500px, 1fr));
-    grid-template-rows: 100px 330px;
+    grid-template-rows: 330px;
     grid-gap: 50px 30px; /*space between rows, then columns*/
     align-items: center;
     justify-items: center;
@@ -17,12 +17,13 @@ body {
     grid-auto-flow: row;
 }
 
-#title {
-    grid-column: 1 / 4;
-    grid-row: 1;
+#header {
+    width: 100%;
+    height: 100px;
+    margin-bottom: 50px;
 }
 
-#title > .page_header {
+#header > .page_header {
     margin: auto
 }
 
