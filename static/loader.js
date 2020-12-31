@@ -41,21 +41,20 @@ $(document).ready(function (){
 
         for (var slotnum = 0; slotnum < grid.children.length; slotnum++) {
             if (grid.children[slotnum].className == "game" && !(Object.keys(json).includes(grid.children[slotnum].timestamp))) {
-                grid.removeChild(grid.children[slotnum]);
+                grid.children[slotnum].className = "emptyslot";
+                grid.children[slotnum].innerHTML = "";
             }
         }
 
-        var requiredcells = Math.max(3, 3 * Math.ceil(Object.keys(json).length/3));
+        while (grid.children[grid.children.length-1].className == "emptyslot" &&
+               grid.children[grid.children.length-2].className == "emptyslot" &&
+               grid.children[grid.children.length-3].className == "emptyslot" &&
+               grid.children.length > 3) {
 
-        while (grid.children.length > requiredcells) {
-            grid.removeChild(grid.children[requiredcells]);
+            for (var i = 0; i < 3; i++) {
+                grid.removeChild(grid.children[grid.children.length-1]);
+            }
         }
-
-        while (grid.children.length < requiredcells) {
-            insertEmpty(grid);
-        }
-
-        console.log(grid.children.length)
     });
 
     const insertEmpty = (grid) => {
