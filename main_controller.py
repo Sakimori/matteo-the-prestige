@@ -1,4 +1,4 @@
-import asyncio, time, datetime, games, json, threading
+import asyncio, time, datetime, games, json, threading, jinja2
 from flask import Flask, url_for, Response, render_template, request, jsonify
 from flask_socketio import SocketIO, emit
 
@@ -10,24 +10,36 @@ socketio = SocketIO(app)
 def index():
     return render_template("index.html")
 
-@app.route("/gotoboop")
-def get_game_states():
-    return states_to_send
-
-@socketio.on("recieved")
-def handle_new_conn(data):
-    socketio.emit("states_update", last_update, room=request.sid)
-
 thread2 = threading.Thread(target=socketio.run,args=(app,))
 thread2.start()
 
 master_games_dic = {} #key timestamp : (game game, {} state)
-last_update = {}
+game_states = {}
 
+def data_to_send():
+    template = jinja2.Environment(loader=jinja2.FileSystemLoader('templates')).get_template('game.html')
+    data = []
+    for timestamp in game_states:
+        data.append({
+            'timestamp' : timestamp,
+            'league' : game_states[timestamp]['leagueoruser'] if game_states[timestamp]['is_league'] else '',
+            'html' : template.render( 
+                state=game_states[timestamp], 
+                base_filled="/static/img/base_filled.png", 
+                base_empty="/static/img/base_empty.png", 
+                out_out="/static/img/out_out.png", 
+                out_in="/static/img/out_in.png"
+            )
+        })
+    return data
+
+@socketio.on("recieved")
+def handle_new_conn(data):
+    socketio.emit("states_update", data_to_send(), room=request.sid)
 
 def update_loop():
     while True:
-        states_to_send = {}
+        global game_states
         game_times = iter(master_games_dic.copy().keys())
         for game_time in game_times:
             this_game, state, discrim_string = master_games_dic[game_time]
@@ -109,7 +121,7 @@ def update_loop():
 
             state["top_of_inning"] = this_game.top_of_inning 
 
-            states_to_send[game_time] = state
+            game_states[game_time] = state
 
             if state["update_pause"] <= 1 and state["start_delay"] < 0:
                 if this_game.over:
@@ -122,8 +134,5 @@ def update_loop():
 
             state["update_pause"] -= 1
 
-        global last_update
-        last_update = states_to_send
-        
-        socketio.emit("states_update", states_to_send)
+        socketio.emit("states_update", data_to_send())
         time.sleep(6)
