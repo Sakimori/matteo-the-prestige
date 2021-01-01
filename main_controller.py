@@ -4,14 +4,14 @@ from flask_socketio import SocketIO, emit
 
 app = Flask("the-prestige")
 app.config['SECRET KEY'] = 'dev'
-app.config['SERVER_NAME'] = '0.0.0.0:5000'
+#app.config['SERVER_NAME'] = '0.0.0.0:5000'
 socketio = SocketIO(app)
 
 @app.route('/')
 def index():
     return render_template("index.html")
 
-thread2 = threading.Thread(target=socketio.run,args=(app,))
+thread2 = threading.Thread(target=socketio.run,args=(app,'0.0.0.0'))
 thread2.start()
 
 master_games_dic = {} #key timestamp : (game game, {} state)
