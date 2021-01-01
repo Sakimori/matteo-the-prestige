@@ -32,7 +32,6 @@ def update_loop():
         for game_time in game_times:
             this_game, state, discrim_string = master_games_dic[game_time]
             test_string = this_game.gamestate_display_full()
-            print(discrim_string)
             state["leagueoruser"] = discrim_string
             state["display_inning"] = this_game.inning          #games need to be initialized with the following keys in state:
                                                                 #is_league, bool

@@ -15,7 +15,7 @@ $(document).ready(function (){
         //get all leagues
         leagues = []
         for (var key in json) {
-            if (json[key].is_league) {
+            if (json[key].is_league && !leagues.includes(json[key].leagueoruser)) {
                 leagues.push(json[key].leagueoruser)
             }
         }
