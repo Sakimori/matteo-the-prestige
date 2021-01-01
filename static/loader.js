@@ -12,7 +12,6 @@ $(document).ready(function (){
         lastupdate = json;
         updateGames(json, $('#selected_filter').text());
 
-        console.log(json)
         //get all leagues
         leagues = []
         for (var i in json) {
@@ -57,8 +56,6 @@ $(document).ready(function (){
                 filterjson.push(json[i]);
             }
         }
-
-        console.log(filterjson);
 
         if (filterjson.length == 0) {
             $('#footer div').html("No games right now. Why not head over to Discord and start one?");
