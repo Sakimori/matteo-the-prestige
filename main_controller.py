@@ -127,6 +127,7 @@ def update_loop():
             data_to_send.append({
                 'timestamp' : timestamp,
                 'league' : game_states[timestamp]['leagueoruser'] if game_states[timestamp]['is_league'] else '',
+                'state' : game_states[timestamp],
                 'html' : template.render(state=game_states[timestamp])
             })
 
