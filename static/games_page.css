@@ -308,3 +308,63 @@ h2 {
 .base_2 {
     margin-bottom: -25%
 }
+
+@media only screen and (max-device-width: 800px) {
+    .container {
+        display: grid;
+        grid-template-columns: repeat(1, minmax(700px, 90%));
+        grid-template-rows: 400px;
+        grid-gap: 50px 30px; /*space between rows, then columns*/
+        align-items: center;
+        justify-items: center;
+        grid-auto-rows: 400px;
+        grid-auto-flow: row;
+        position: absolute;
+        left: 50%;
+        transform: translate(-50%, 0);
+    }
+
+    .emptyslot {
+        border: none;
+        border-radius: 15px;
+        align-self: stretch;
+        justify-self: stretch;
+        text-align: center;
+        color: white;
+        flex: 1;
+    }
+
+    .batting {
+        font-size: 15pt;
+        text-align: left;
+        height: max-content;
+        padding: 5px;
+    }
+
+    .leagueoruser {
+        font-size: 15pt;
+        text-align: right;
+        height: max-content;
+        padding: 5px;
+    }
+
+    .team_name, .score {
+        font-size: 23px
+    }
+
+    .players {
+        font-size: 20px;
+        grid-area: players;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        align-items: center;
+        height: 100%;
+        padding-right: 50px;
+    }
+
+    .update_emoji, .update_text {
+        display: inline;
+        font-size: 20px;
+    }
+}
