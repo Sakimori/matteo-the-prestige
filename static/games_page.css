@@ -5,7 +5,7 @@ body {
 }
 /* Background pattern from Toptal Subtle Patterns */
 
-div {
+div, button {
     font-family: 'Alegreya', serif;
     color: white;
 }
@@ -62,16 +62,18 @@ div {
     margin-top: 10px;
 }
 
-#filters > div {
+#filters > * {
     padding: 4px 8px;
     margin: 0px 8px;
     font-size: 16pt;
+    background: rgba(0,0,0,0);
 }
 
 #filters > .filter {
     border-radius: 8px;
-    min-width: 50px;
+    min-width: 100px;
     text-align: center;
+    border: none;
 }
 
 #selected_filter {

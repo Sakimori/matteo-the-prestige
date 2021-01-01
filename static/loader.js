@@ -23,7 +23,7 @@ $(document).ready(function (){
         //remove leagues no longer present
         $('#filters .filter').each(function(index) {
             if (!leagues.includes($(this).text())) {
-                if ($(this).attr('id') != 'selected_filter') {
+                if ($(this).attr('id') != 'selected_filter' && $(this).text() != "All") { //don't remove the currently selected filter or the "all" filter
                     $(this).remove();
                 }
             } else {
@@ -32,9 +32,21 @@ $(document).ready(function (){
         })
 
         // add leagues not already present
-        for (var league in leagues) {
-            $('filters').append("<div class='filter'>"+league+"</div>");
+        for (var league in leagues) { // we removed the entries that are already there in the loop above
+            $('#filters').append("<button class='filter'>"+leagues[league]+"</button>");
         }
+
+        //add click handlers to each filter
+        $('#filters .filter').each(function(index) {
+            $(this).click(function() {
+                if ($('#filters #selected_filter').text() == 'All') {
+                    updateGames(Object(), ""); // clear grid when switching off of All, to make games collapse to top
+                }
+                $('#filters #selected_filter').attr('id', '');
+                $(this).attr('id', 'selected_filter');
+                updateGames(lastupdate, $(this).text());
+            })
+        })
     });
 
     const updateGames = (json, filter) => {
@@ -45,15 +57,24 @@ $(document).ready(function (){
             }
         }
 
-        if (Object.keys(json).length == 0) {
+        if (Object.keys(filterjson).length == 0) {
             $('#footer div').html("No games right now. Why not head over to Discord and start one?");
         } else {
             $('#footer div').html("");
         }
 
-        for (const timestamp in json) {
+        //replace games that have ended with empty slots
+        for (var slotnum = 0; slotnum < grid.children.length; slotnum++) {
+            if (grid.children[slotnum].className == "game" && !Object.keys(filterjson).includes(grid.children[slotnum].timestamp)) {
+                grid.children[slotnum].className = "emptyslot";
+                grid.children[slotnum].timestamp = null;
+                grid.children[slotnum].innerHTML = "";
+            }
+        }
+
+        for (const timestamp in filterjson) {
             //adds game to list if not there already
-            if (!grid.children.some((x) => x.timestamp == timestamp)) {
+            if (!Array.prototype.slice.call(grid.children).some((x) => x.timestamp == timestamp)) {
                 for (var slotnum = 0; true; slotnum++) { //this is really a while loop but shh don't tell anyone
                     if (slotnum >= grid.children.length) {
                         for (var i = 0; i < 3; i ++) {
@@ -61,27 +82,19 @@ $(document).ready(function (){
                         }
                     }
                     if (grid.children[slotnum].className == "emptyslot") {
-                        insertGame(slotnum, json[timestamp], timestamp);
+                        insertGame(slotnum, filterjson[timestamp], timestamp);
                         break;
                     };
                 };
-            };
+            }
 
             //updates game in list
             for (var slotnum = 0; slotnum < grid.children.length; slotnum++) {
                 if (grid.children[slotnum].timestamp == timestamp) {
-                    updateGame(grid.children[slotnum], json[timestamp]);
+                    updateGame(grid.children[slotnum], filterjson[timestamp]);
                 };
             };
         };
-
-        //replace games that have ended with empty slots
-        for (var slotnum = 0; slotnum < grid.children.length; slotnum++) {
-            if (grid.children[slotnum].className == "game" && !Object.keys(json).includes(grid.children[slotnum].timestamp)) {
-                grid.children[slotnum].className = "emptyslot";
-                grid.children[slotnum].innerHTML = "";
-            }
-        }
 
         //remove last rows if not needed
         while (grid.children[grid.children.length-1].className == "emptyslot" &&
