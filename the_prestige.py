@@ -792,35 +792,38 @@ async def team_pages(msg, all_teams, search_term=None):
 
 async def game_watcher():
     while True:
-        this_array = gamesarray.copy()
-        for i in range(0,len(this_array)):
-            game, channel, user, key = this_array[i]
-            if game.over and main_controller.master_games_dic[key][1]["end_delay"] <= 2:
-                title_string = f"{game.teams['away'].name} at {game.teams['home'].name} ended after {game.inning-1} innings"
-                if (game.inning - 1) > game.max_innings: #if extra innings
-                    title_string += f" with {game.inning - (game.max_innings+1)} extra innings."
-                else:
-                    title_string += "."
+        try:
+            this_array = gamesarray.copy()
+            for i in range(0,len(this_array)):
+                game, channel, user, key = this_array[i]
+                if game.over and main_controller.master_games_dic[key][1]["end_delay"] <= 9:
+                    title_string = f"{game.teams['away'].name} at {game.teams['home'].name} ended after {game.inning-1} innings"
+                    if (game.inning - 1) > game.max_innings: #if extra innings
+                        title_string += f" with {game.inning - (game.max_innings+1)} extra innings."
+                    else:
+                        title_string += "."
 
-                winning_team = game.teams['home'].name if game.teams['home'].score > game.teams['away'].score else game.teams['away'].name
-                winstring = f"{game.teams['away'].score} to {game.teams['home'].score}\n"
-                if game.victory_lap and winning_team == game.teams['home'].name:
-                    winstring += f"{winning_team} wins with a victory lap!"
-                elif winning_team == game.teams['home'].name:
-                    winstring += f"{winning_team} wins, shaming {game.teams['away'].name}!"
-                else:
-                   winstring += f"{winning_team} wins!"
+                    winning_team = game.teams['home'].name if game.teams['home'].score > game.teams['away'].score else game.teams['away'].name
+                    winstring = f"{game.teams['away'].score} to {game.teams['home'].score}\n"
+                    if game.victory_lap and winning_team == game.teams['home'].name:
+                        winstring += f"{winning_team} wins with a victory lap!"
+                    elif winning_team == game.teams['home'].name:
+                        winstring += f"{winning_team} wins, shaming {game.teams['away'].name}!"
+                    else:
+                       winstring += f"{winning_team} wins!"
 
-                if user is not None:
-                    await channel.send(f"{user.mention}'s game just ended.")
-                else:
-                    await channel.send("A game started from this channel just ended.")
+                    if user is not None:
+                        await channel.send(f"{user.mention}'s game just ended.")
+                    else:
+                        await channel.send("A game started from this channel just ended.")
 
-                final_embed = discord.Embed(color=discord.Color.dark_purple(), title=title_string)
-                final_embed.add_field(name="Final score:", value=winstring)
-                await channel.send(embed=final_embed)
-                gamesarray.pop(i)
-                break
+                    final_embed = discord.Embed(color=discord.Color.dark_purple(), title=title_string)
+                    final_embed.add_field(name="Final score:", value=winstring)
+                    await channel.send(embed=final_embed)
+                    gamesarray.pop(i)
+                    break
+        except:
+            print("something broke in game_watcher")
 
         await asyncio.sleep(6)
 
