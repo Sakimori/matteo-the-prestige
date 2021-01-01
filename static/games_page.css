@@ -5,6 +5,13 @@ body {
 }
 /* Background pattern from Toptal Subtle Patterns */
 
+:root {
+    --background-main: #2f3136; /*discord dark theme background-secondary - the same color as the embeds*/
+    --background-secondary: #4f545c; /*discord's background-tertiary*/
+    --background-accent: #4f545c; /*discord's background-accent*/
+    --highlight: rgb(113, 54, 138); /*matteo purple™*/
+}
+
 div, button {
     font-family: 'Alegreya', serif;
     color: white;
@@ -36,7 +43,7 @@ div, button {
     grid-gap: 50px 30px; /*space between rows, then columns*/
     align-items: center;
     justify-items: center;
-    grid-auto-rows: 335px;
+    grid-auto-rows: 360px;
     grid-auto-flow: row;
 }
 
@@ -129,10 +136,10 @@ div, button {
     text-align: center;
     display: flex;
     flex-direction: column;
-    background: #2f3136; /*discord dark theme background-secondary - the same color as the embeds*/
+    background:var(--background-main);
     border: 4px solid;
     border-radius: 4px;
-    border-color: rgb(113, 54, 138); /*matteo purple™*/
+    border-color: var(--highlight);
     border-top: none;
     border-right: none;
     border-bottom: none;
@@ -147,7 +154,7 @@ h2 {
 
 .header {
     width: 100%;
-    background-color: #4f545c; /*discord's background-tertiary*/
+    background-color: var(--background-secondary);
     border-top-right-radius: 4px;
     height: max-content;
     
@@ -188,6 +195,7 @@ h2 {
     display: flex;
     justify-content: space-between;
     width: 100%;
+    margin: 5px 0px;
 }
 
 .team_name {
@@ -252,7 +260,7 @@ h2 {
 }
 
 .score {
-    background: #4f545c; /*discord's background-accent*/
+    background: var(--background-accent);
     width: 40px;
     min-width: 40px;
     height: 40px;
@@ -274,6 +282,7 @@ h2 {
     align-items: end;
     width: 100%;
     flex-direction: column;
+    margin: 5px 0px;
 }
 
 .player_name {
@@ -286,13 +295,20 @@ h2 {
 .update {
     grid-area: update;
     margin-right: 10px;
-    margin-top: 10px;
+    margin-top: 5px;
     min-height: 50px;
+    height: 100%;
+    background: var(--background-secondary);
+    border-radius: 4px;
+    align-items: center;
+    display: flex;
+    justify-content: center;
 }
 
 .player_type {
     width: 100%;
     text-align: start;
+    font-weight: bolder;
 }
 
 .update_emoji, .update_text {
