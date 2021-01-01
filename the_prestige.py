@@ -124,6 +124,7 @@ class StartGameCommand(Command):
         elif "--league " in command.split("\n")[0]:
             league = command.split("\n")[0].split("--league ")[1]
 
+        innings = None
         try:
             team_name1 = command.split("\n")[1].strip()
             team1 = games.get_team(team_name1)
@@ -152,7 +153,6 @@ class StartGameCommand(Command):
                     teams = games.search_team(team_name2.lower())
                     if len(teams) == 1:
                         team2 = teams[0]
-                    innings = None
             except IndexError:
                 await msg.channel.send("We need at least three lines: startgame, away team, and home team are required. Optionally, the number of innings can go at the end, if you want a change of pace.")
                 return
