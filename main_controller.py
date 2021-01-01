@@ -111,7 +111,9 @@ def update_loop():
                     state["update_pause"] = 2
                     if state["end_delay"] < 0:
                         master_games_dic.pop(game_time)
-                    state["end_delay"] -= 1
+                    else:
+                        state["end_delay"] -= 1
+                        master_games_dic[game_time][1]["end_delay"] -= 1
                 else:
                     this_game.gamestate_update_full()
 

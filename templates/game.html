@@ -2,7 +2,7 @@
 {% if state.bases[number] %}{{base_filled}}{% else %}{{base_empty}}{% endif %}
 {%- endmacro %}
 {% macro out(number) -%}
-{% if number <= state.outs %}{{out_filled}}{% else %}{{out_empty}}{% endif %}
+{% if number <= state.outs %}{{out_out}}{% else %}{{out_in}}{% endif %}
 {%- endmacro %}
 
 <div class="header">

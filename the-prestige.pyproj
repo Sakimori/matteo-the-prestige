@@ -62,6 +62,7 @@
     <Content Include="static\games_page.css" />
     <Content Include="static\loader.js" />
     <Content Include="static\prism.png" />
+    <Content Include="templates\game.html" />
     <Content Include="templates\index.html" />
   </ItemGroup>
   <ItemGroup>

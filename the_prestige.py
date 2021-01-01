@@ -614,9 +614,12 @@ async def watch_game(channel, newgame, user = None, league = None):
         state_init["is_league"] = False
 
     await channel.send(f"{newgame.teams['away'].name} vs. {newgame.teams['home'].name}, starting at {config()['simmadome_url']}")
-    gamesarray.append((newgame, channel, user))
+    timestamp = str(time.time() * 1000.0)
+    gamesarray.append((newgame, channel, user, timestamp))
+    
 
-    main_controller.master_games_dic[str(time.time() * 1000.0)] = (newgame, state_init, discrim_string)
+
+    main_controller.master_games_dic[timestamp] = (newgame, state_init, discrim_string)
 
 async def play_from_queue(channel, game, user_mention):
     await channel.send(f"{user_mention}, your game's ready.")
@@ -791,8 +794,8 @@ async def game_watcher():
     while True:
         this_array = gamesarray.copy()
         for i in range(0,len(this_array)):
-            game, channel, user = this_array[i]
-            if game.over:
+            game, channel, user, key = this_array[i]
+            if game.over and main_controller.master_games_dic[key][1]["end_delay"] <= 2:
                 title_string = f"{game.teams['away'].name} at {game.teams['home'].name} ended after {game.inning-1} innings"
                 if (game.inning - 1) > game.max_innings: #if extra innings
                     title_string += f" with {game.inning - (game.max_innings+1)} extra innings."
