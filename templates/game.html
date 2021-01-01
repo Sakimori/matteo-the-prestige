@@ -1,8 +1,8 @@
 {% macro base(number) -%}
-{% if state.bases[number] %}{{base_filled}}{% else %}{{base_empty}}{% endif %}
+{% if state.bases[number] %}/static/img/base_filled.png{% else %}/static/img/base_empty.png{% endif %}
 {%- endmacro %}
 {% macro out(number) -%}
-{% if number <= state.outs %}{{out_out}}{% else %}{{out_in}}{% endif %}
+{% if number <= state.outs %}/static/img/out_out.png{% else %}/static/img/out_in.png{% endif %}
 {%- endmacro %}
 
 <div class="header">
@@ -52,6 +52,6 @@
     </div>
 </div>
 <div class="footer">
-    <div class="batting">{% if state.display_top_of_inning == true %}{{ state.away_name }}{% else %}{{ state.home_name }}{% endif %}</div>
+    <div class="batting">{% if state.display_top_of_inning == true %}{{ state.away_name }}{% else %}{{ state.home_name }}{% endif %} batting.</div>
     <div class="leagueoruser">{{ state.leagueoruser }}</div>
 </div>

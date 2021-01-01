@@ -33,11 +33,10 @@ div, button {
 .container {
     display: grid;
     grid-template-columns: repeat(3, minmax(500px, 1fr));
-    grid-template-rows: 330px;
     grid-gap: 50px 30px; /*space between rows, then columns*/
     align-items: center;
     justify-items: center;
-    grid-auto-rows: 300px;
+    grid-auto-rows: 335px;
     grid-auto-flow: row;
 }
 
@@ -172,8 +171,8 @@ h2 {
     grid-template-columns: 60% 40%;
     grid-template-areas:
       "teams info" "players info" "update update";
-    grid-template-rows: 100px;
-    grid-row-gap: 14px;
+    grid-template-rows: 90px;
+    grid-row-gap: 8px;
     grid-column-gap: 10px;
     flex: 1;
 }
@@ -193,6 +192,7 @@ h2 {
 
 .team_name {
     overflow: hidden;
+    white-space: nowrap;
 }
 
 .info {
@@ -265,30 +265,35 @@ h2 {
     display: flex;
     flex-direction: column;
     justify-content: space-around;
-    align-items: center;
-    height: 100%;
-    padding-right: 50px;
+    align-items: start;
+    height: max-content;
 }
 
 .player {
     display: flex;
-    justify-content: space-between;
+    align-items: end;
     width: 100%;
-    max-width: 250px;
+    flex-direction: column;
 }
 
 .player_name {
     overflow: hidden;
-    margin-left: 15px;
+    text-align: start;
+    white-space: nowrap;
+    width: 95%;
 }
 
 .update {
     grid-area: update;
     margin-right: 10px;
     margin-top: 10px;
+    min-height: 50px;
 }
 
-
+.player_type {
+    width: 100%;
+    text-align: start;
+}
 
 .update_emoji, .update_text {
     display: inline
