@@ -14,9 +14,9 @@ $(document).ready(function (){
 
         //get all leagues
         leagues = []
-        for (var i in json) {
-            if (json[i].league != "" && !leagues.includes(json[i].league)) {
-                leagues.push(json[i].league)
+        for (var game of json) {
+            if (game.league != "" && !leagues.includes(game.league)) {
+                leagues.push(game.league)
             }
         }
 
@@ -32,15 +32,15 @@ $(document).ready(function (){
         })
 
         // add leagues not already present
-        for (var i in leagues) { // we removed the entries that are already there in the loop above
-            $('#filters').append("<button class='filter'>"+leagues[i]+"</button>");
+        for (var league of leagues) { // we removed the entries that are already there in the loop above
+            $('#filters').append("<button class='filter'>"+league+"</button>");
         }
 
         //add click handlers to each filter
         $('#filters .filter').each(function(index) {
             $(this).click(function() {
                 if ($('#filters #selected_filter').text() == 'All') {
-                    updateGames(Object(), ""); // clear grid when switching off of All, to make games collapse to top
+                    updateGames([], ""); // clear grid when switching off of All, to make games collapse to top
                 }
                 $('#filters #selected_filter').attr('id', '');
                 $(this).attr('id', 'selected_filter');
@@ -50,10 +50,11 @@ $(document).ready(function (){
     });
 
     const updateGames = (json, filter) => {
+
         filterjson = [];
-        for (var i in json) {
-            if (json[i].league == filter || filter == "All") {
-                filterjson.push(json[i]);
+        for (var game of json) {
+            if (game.league == filter || filter == "All") {
+                filterjson.push(game);
             }
         }
 
@@ -72,9 +73,16 @@ $(document).ready(function (){
             }
         }
 
-        for (var i in filterjson) {
+        for (var game of filterjson) {
+            //updates game in list
+            for (var slotnum = 0; slotnum < grid.children.length; slotnum++) {
+                if (grid.children[slotnum].timestamp == game.timestamp) {
+                    insertGame(slotnum, game);
+                };
+            };
+
             //adds game to list if not there already
-            if (!Array.prototype.slice.call(grid.children).some((x) => x.timestamp == filterjson[i].timestamp)) {
+            if (!Array.prototype.slice.call(grid.children).some((x) => x.timestamp == game.timestamp)) {
                 for (var slotnum = 0; true; slotnum++) { //this is really a while loop but shh don't tell anyone
                     if (slotnum >= grid.children.length) {
                         for (var i = 0; i < 3; i ++) {
@@ -82,18 +90,11 @@ $(document).ready(function (){
                         }
                     }
                     if (grid.children[slotnum].className == "emptyslot") {
-                        insertGame(slotnum, filterjson[i]);
+                        insertGame(slotnum, game);
                         break;
                     };
                 };
             }
-
-            //updates game in list
-            for (var slotnum = 0; slotnum < grid.children.length; slotnum++) {
-                if (grid.children[slotnum].timestamp == filterjson[i].timestamp) {
-                    insertGame(slotnum, filterjson[i]);
-                };
-            };
         };
 
         //remove last rows if not needed
