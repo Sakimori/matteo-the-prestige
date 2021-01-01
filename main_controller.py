@@ -14,32 +14,15 @@ thread2 = threading.Thread(target=socketio.run,args=(app,))
 thread2.start()
 
 master_games_dic = {} #key timestamp : (game game, {} state)
-game_states = {}
-
-def data_to_send():
-    template = jinja2.Environment(loader=jinja2.FileSystemLoader('templates')).get_template('game.html')
-    data = []
-    for timestamp in game_states:
-        data.append({
-            'timestamp' : timestamp,
-            'league' : game_states[timestamp]['leagueoruser'] if game_states[timestamp]['is_league'] else '',
-            'html' : template.render( 
-                state=game_states[timestamp], 
-                base_filled="/static/img/base_filled.png", 
-                base_empty="/static/img/base_empty.png", 
-                out_out="/static/img/out_out.png", 
-                out_in="/static/img/out_in.png"
-            )
-        })
-    return data
+data_to_send = []
 
 @socketio.on("recieved")
 def handle_new_conn(data):
-    socketio.emit("states_update", data_to_send(), room=request.sid)
+    socketio.emit("states_update", data_to_send, room=request.sid)
 
 def update_loop():
     while True:
-        global game_states
+        game_states = {}
         game_times = iter(master_games_dic.copy().keys())
         for game_time in game_times:
             this_game, state, discrim_string = master_games_dic[game_time]
@@ -134,5 +117,21 @@ def update_loop():
 
             state["update_pause"] -= 1
 
-        socketio.emit("states_update", data_to_send())
+        global data_to_send
+        template = jinja2.Environment(loader=jinja2.FileSystemLoader('templates')).get_template('game.html')
+        data_to_send = []
+        for timestamp in game_states:
+            data_to_send.append({
+                'timestamp' : timestamp,
+                'league' : game_states[timestamp]['leagueoruser'] if game_states[timestamp]['is_league'] else '',
+                'html' : template.render( 
+                    state=game_states[timestamp], 
+                    base_filled="/static/img/base_filled.png", 
+                    base_empty="/static/img/base_empty.png", 
+                    out_out="/static/img/out_out.png", 
+                    out_in="/static/img/out_in.png"
+                )
+            })
+
+        socketio.emit("states_update", data_to_send)
         time.sleep(6)
