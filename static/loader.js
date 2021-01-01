@@ -12,11 +12,12 @@ $(document).ready(function (){
         lastupdate = json;
         updateGames(json, $('#selected_filter').text());
 
+        console.log(json)
         //get all leagues
         leagues = []
-        for (var key in json) {
-            if (json[key].is_league) {
-                leagues.push(json[key].leagueoruser)
+        for (var i in json) {
+            if (json[i].league != "" && !leagues.includes(json[i].league)) {
+                leagues.push(json[i].league)
             }
         }
 
@@ -32,8 +33,8 @@ $(document).ready(function (){
         })
 
         // add leagues not already present
-        for (var league in leagues) { // we removed the entries that are already there in the loop above
-            $('#filters').append("<button class='filter'>"+leagues[league]+"</button>");
+        for (var i in leagues) { // we removed the entries that are already there in the loop above
+            $('#filters').append("<button class='filter'>"+leagues[i]+"</button>");
         }
 
         //add click handlers to each filter
@@ -50,14 +51,16 @@ $(document).ready(function (){
     });
 
     const updateGames = (json, filter) => {
-        filterjson = Object();
-        for (const timestamp in json) {
-            if (json[timestamp].leagueoruser == filter || filter == "All") {
-                filterjson[timestamp] = json[timestamp];
+        filterjson = [];
+        for (var i in json) {
+            if (json[i].league == filter || filter == "All") {
+                filterjson.push(json[i]);
             }
         }
 
-        if (Object.keys(filterjson).length == 0) {
+        console.log(filterjson);
+
+        if (filterjson.length == 0) {
             $('#footer div').html("No games right now. Why not head over to Discord and start one?");
         } else {
             $('#footer div').html("");
@@ -65,16 +68,16 @@ $(document).ready(function (){
 
         //replace games that have ended with empty slots
         for (var slotnum = 0; slotnum < grid.children.length; slotnum++) {
-            if (grid.children[slotnum].className == "game" && !Object.keys(filterjson).includes(grid.children[slotnum].timestamp)) {
+            if (grid.children[slotnum].className == "game" && !filterjson.some((x) => x.timestamp == grid.children[slotnum].timestamp)) {
                 grid.children[slotnum].className = "emptyslot";
                 grid.children[slotnum].timestamp = null;
                 grid.children[slotnum].innerHTML = "";
             }
         }
 
-        for (const timestamp in filterjson) {
+        for (var i in filterjson) {
             //adds game to list if not there already
-            if (!Array.prototype.slice.call(grid.children).some((x) => x.timestamp == timestamp)) {
+            if (!Array.prototype.slice.call(grid.children).some((x) => x.timestamp == filterjson[i].timestamp)) {
                 for (var slotnum = 0; true; slotnum++) { //this is really a while loop but shh don't tell anyone
                     if (slotnum >= grid.children.length) {
                         for (var i = 0; i < 3; i ++) {
@@ -82,7 +85,7 @@ $(document).ready(function (){
                         }
                     }
                     if (grid.children[slotnum].className == "emptyslot") {
-                        insertGame(slotnum, filterjson[timestamp], timestamp);
+                        insertGame(slotnum, filterjson[i]);
                         break;
                     };
                 };
@@ -90,8 +93,8 @@ $(document).ready(function (){
 
             //updates game in list
             for (var slotnum = 0; slotnum < grid.children.length; slotnum++) {
-                if (grid.children[slotnum].timestamp == timestamp) {
-                    updateGame(grid.children[slotnum], filterjson[timestamp]);
+                if (grid.children[slotnum].timestamp == filterjson[i].timestamp) {
+                    insertGame(slotnum, filterjson[i]);
                 };
             };
         };
@@ -113,48 +116,10 @@ $(document).ready(function (){
         grid.appendChild(newBox);
     }
 
-    const insertGame = (gridboxnum, gamestate, timestamp) => {
+    const insertGame = (gridboxnum, game) => {
         var thisBox = grid.children[gridboxnum];
+        thisBox.innerHTML = game.html;
         thisBox.className = "game";
-        thisBox.timestamp = timestamp;
-        fetch("/static/game.html").then(x=>x.text()).then(gamehtml => {
-            thisBox.innerHTML = gamehtml;
-            updateGame(thisBox, gamestate);
-        });
-    };
-
-    const BASE_EMPTY = "/static/img/base_empty.png"
-    const BASE_FILLED = "/static/img/base_filled.png"
-    const OUT_OUT = "/static/img/out_out.png"
-    const OUT_IN = "/static/img/out_in.png"
-
-    const updateGame = (gamediv, gamestate) => {
-        gamediv.id = "updateTarget";
-        $('#updateTarget .inning').html("Inning: " + (gamestate.display_top_of_inning ? "🔼" : "🔽") + " " + gamestate.display_inning + "/" + gamestate.max_innings);
-        $('#updateTarget .weather').html(gamestate.weather_emoji + " " + gamestate.weather_text);
-
-        $('#updateTarget .away_name').html(gamestate.away_name);
-        $('#updateTarget .home_name').html(gamestate.home_name);
-        $('#updateTarget .away_score').html("" + gamestate.away_score);
-        $('#updateTarget .home_score').html("" + gamestate.home_score);
-
-        for (var i = 1; i <= 3; i++) {
-            $('#updateTarget .base_' + i).attr('src', (gamestate.bases[i] == null ? BASE_EMPTY : BASE_FILLED));
-        }
-
-        $('#updateTarget .outs_count').children().each(function(index) {
-            $(this).attr('src', index < gamestate.outs ? OUT_OUT : OUT_IN);
-        });
-
-        $('#updateTarget .pitcher_name').html(gamestate.pitcher);
-        $('#updateTarget .batter_name').html(gamestate.batter);
-
-        $('#updateTarget .update_emoji').html(gamestate.update_emoji);
-        $('#updateTarget .update_text').html(gamestate.update_text);
-
-        $('#updateTarget .batting').html((gamestate.display_top_of_inning ? gamestate.away_name : gamestate.home_name) + " batting.");
-        $('#updateTarget .leagueoruser').html(gamestate.leagueoruser);
-
-        gamediv.id = "";
+        thisBox.timestamp = game.timestamp;
     };
 });
