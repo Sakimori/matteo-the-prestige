@@ -3,7 +3,7 @@
 
 blaseball, blaseball, is back! in an unofficial capacity. this is completely unaffiliated with the game band 
 
-custom players, custom teams, custom leagues (that last one is coming soon™) all in discord! 
+custom players, custom teams, custom leagues (that last one is coming soon™) all set up in discord and watchable at https://simsim.sibr.dev 
 
 we've also got things like custom team creation, easy setup for your teams to play against each other, and player idolization, all powered by this bot and onomancer.
 
