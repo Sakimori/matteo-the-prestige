@@ -4,7 +4,7 @@ from flask_socketio import SocketIO, emit
 
 app = Flask("the-prestige")
 app.config['SECRET KEY'] = 'dev'
-app.config['host'] = '0.0.0.0'
+app.config['SERVER_NAME'] = '0.0.0.0:5000'
 socketio = SocketIO(app)
 
 @app.route('/')
