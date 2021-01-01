@@ -6,4 +6,4 @@ WORKDIR /app
 COPY . ./
 RUN pip install -r requirements.txt
 
-CMD ["python", "the_presige.py"]
+CMD ["python", "the_prestige.py"]
