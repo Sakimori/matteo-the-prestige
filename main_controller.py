@@ -127,13 +127,7 @@ def update_loop():
             data_to_send.append({
                 'timestamp' : timestamp,
                 'league' : game_states[timestamp]['leagueoruser'] if game_states[timestamp]['is_league'] else '',
-                'html' : template.render( 
-                    state=game_states[timestamp], 
-                    base_filled="/static/img/base_filled.png", 
-                    base_empty="/static/img/base_empty.png", 
-                    out_out="/static/img/out_out.png", 
-                    out_in="/static/img/out_in.png"
-                )
+                'html' : template.render(state=game_states[timestamp])
             })
 
         socketio.emit("states_update", data_to_send)
