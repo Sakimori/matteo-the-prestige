@@ -89,9 +89,10 @@ const insertEmpty = (grid) => {
 
 const insertGame = (gridboxnum, game) => {
     var thisBox = grid.children[gridboxnum];
-    thisBox.innerHTML = game.html;
     thisBox.className = "game";
     thisBox.timestamp = game.timestamp;
+    thisBox.innerHTML = game.html;
+    twemoji.parse(thisBox);
 };
 
 const insertLeague = (league) => {
