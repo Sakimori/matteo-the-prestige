@@ -102,10 +102,26 @@ class team(object):
         self.name = None
         self.lineup = []
         self.lineup_position = 0
+        self.rotation = []
         self.pitcher = None
         self.score = 0
         self.slogan = None
 
+    def swap_player(self, name):
+        if len(self.lineup) > 1:
+            for index in range(0,len(self.lineup)):
+                if self.lineup[index].name == name:
+                    if self.add_pitcher(self.lineup[index]):
+                        self.lineup.pop(index)
+                        return True
+        if len(self.rotation) > 1:
+            for index in range(0,len(self.rotation)):
+                if self.rotation[index].name == name:
+                    if self.add_lineup(self.rotation[index])[0]:
+                        self.rotation.pop(index)
+                        return True
+        return False
+                
     def add_lineup(self, new_player):
         if len(self.lineup) < 20:
             self.lineup.append(new_player)
@@ -113,27 +129,48 @@ class team(object):
         else:
             return (False, "20 players in the lineup, maximum. We're being really generous here.")
     
-    def set_pitcher(self, new_player):
-        self.pitcher = new_player
-        return (True,)
+    def add_pitcher(self, new_player):
+        if len(self.rotation) < 8:
+            self.rotation.append(new_player)
+            return True
+        else:
+            return False
+
+    def set_pitcher(self, rotation_slot = None, use_lineup = False):
+        temp_rotation = self.rotation.copy()
+        if use_lineup:         
+            for batter in self.rotation:
+                temp_rotation.append(batter)
+        if rotation_slot is None:
+            self.pitcher = random.choice(temp_rotation)
+        else:
+            self.pitcher = temp_rotation[rotation_slot % len(temp_rotation)]
 
     def is_ready(self):
-        return (len(self.lineup) >= 1 and self.pitcher is not None)
+        return (len(self.lineup) >= 1 and len(self.rotation) > 0)
 
     def prepare_for_save(self):
         self.lineup_position = 0
         self.score = 0
+        if self.pitcher is not None and self.pitcher not in self.rotation:
+            self.rotation.append(self.pitcher)
+        self.pitcher = None
         for this_player in self.lineup:
+            for stat in this_player.game_stats.keys():
+                this_player.game_stats[stat] = 0
+        for this_player in self.rotation:
             for stat in this_player.game_stats.keys():
                 this_player.game_stats[stat] = 0
         return True
 
     def finalize(self):
         if self.is_ready():
+            if self.pitcher is None:
+                self.set_pitcher()
             while len(self.lineup) <= 4:
-                self.lineup.append(random.choice(self.lineup))
-            return True
-        else: 
+                self.lineup.append(random.choice(self.lineup))       
+            return self
+        else:
             return False
 
 
@@ -619,26 +656,55 @@ def get_team(name):
     try:
         team_json = jsonpickle.decode(db.get_team(name)[0], keys=True, classes=team)
         if team_json is not None:
+            if team_json.pitcher is not None: #detects old-format teams, adds pitcher
+                team_json.rotation.append(team_json.pitcher)
+                team_json.pitcher = None
+                update_team(team_json)
             return team_json
         return None
+    except AttributeError:
+        team_json.rotation = []
+        team_json.rotation.append(team_json.pitcher)
+        team_json.pitcher = None
+        update_team(team_json)
+        return team_json
     except:
         return None
 
 def get_team_and_owner(name):
-    #try:
-    counter, name, team_json_string, timestamp, owner_id = db.get_team(name, owner=True)
-    team_json = jsonpickle.decode(team_json_string, keys=True, classes=team)
-    if team_json is not None:
+    try:
+        counter, name, team_json_string, timestamp, owner_id = db.get_team(name, owner=True)
+        team_json = jsonpickle.decode(team_json_string, keys=True, classes=team)
+        if team_json is not None:
+            if team_json.pitcher is not None: #detects old-format teams, adds pitcher
+                team_json.rotation.append(team_json.pitcher)
+                team_json.pitcher = None
+                update_team(team_json)
+            return (team_json, owner_id)
+        return None
+    except AttributeError:
+        team_json.rotation = []
+        team_json.rotation.append(team_json.pitcher)
+        team_json.pitcher = None
+        update_team(team_json)
         return (team_json, owner_id)
-    return None
-    #except:
-        #return None
+    except:
+        return None
 
 def save_team(this_team, user_id):
     try:
         this_team.prepare_for_save()
         team_json_string = jsonpickle.encode(this_team, keys=True)
         db.save_team(this_team.name, team_json_string, user_id)
+        return True
+    except:
+        return None
+
+def update_team(this_team):
+    try:
+        this_team.prepare_for_save()
+        team_json_string = jsonpickle.encode(this_team, keys=True)
+        db.update_team(this_team.name, team_json_string)
         return True
     except:
         return None
@@ -653,9 +719,23 @@ def get_all_teams():
 def search_team(search_term):
     teams = []
     for team_pickle in db.search_teams(search_term):
-        this_team = jsonpickle.decode(team_pickle[0], keys=True, classes=team)
-        teams.append(this_team)
-    return teams
+        team_json = jsonpickle.decode(team_pickle[0], keys=True, classes=team)
+        try:         
+            if team_json.pitcher is not None:
+                if len(team_json.rotation) == 0: #detects old-format teams, adds pitcher
+                    team_json.rotation.append(team_json.pitcher)
+                    team_json.pitcher = None
+                    update_team(team_json)
+        except AttributeError:
+            team_json.rotation = []
+            team_json.rotation.append(team_json.pitcher)
+            team_json.pitcher = None
+            update_team(team_json)
+        except:
+            return None
+
+        teams.append(team_json)
+        return teams
 
 def base_string(base):
     if base == 1:

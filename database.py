@@ -207,6 +207,21 @@ def save_team(name, team_json_string, user_id):
     except:
         return False
 
+def update_team(name, team_json_string):
+    conn = create_connection()
+    try:
+        if conn is not None:
+            c = conn.cursor()
+            store_string = "UPDATE teams SET team_json_string = ? WHERE name=?"
+            c.execute(store_string, (team_json_string, (re.sub('[^A-Za-z0-9 ]+', '', name)))) #this regex removes all non-standard characters
+            conn.commit() 
+            conn.close()
+            return True
+        conn.close()
+        return False
+    except:
+        return False
+
 def get_team(name, owner=False):
     conn = create_connection()
     if conn is not None:

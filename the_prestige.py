@@ -1,4 +1,4 @@
-import discord, json, math, os, roman, games, asyncio, random, main_controller, threading, time
+import discord, json, math, os, roman, games, asyncio, random, main_controller, threading, time, leagues
 import database as db
 import onomancer as ono
 from flask import Flask
@@ -169,7 +169,7 @@ class StartGameCommand(Command):
             return
 
         if team1 is not None and team2 is not None:
-            game = games.game(msg.author.name, team1, team2, length=innings)
+            game = games.game(msg.author.name, team1.finalize(), team2.finalize(), length=innings)
             channel = msg.channel
             await msg.delete()
             
@@ -205,12 +205,19 @@ class SetupGameCommand(Command):
 
 class SaveTeamCommand(Command):
     name = "saveteam"
-    template = "m;saveteam [name] [slogan] [players]"
+    template = """m;saveteam
+   [name] 
+   [slogan] 
+   [lineup]
+   [rotation]"""
+
     description = """Saves a team to the database allowing it to be used for games. Send this command at the top of a list, with entries separated by new lines (shift+enter in discord, or copy+paste from notepad).
   - the first line of the list is your team's name (cannot contain emoji).
   - the second line is your team's icon and slogan, this should begin with an emoji followed by a space, followed by a short slogan.
+  - the third line must be blank.
   - the next lines are your batters' names in the order you want them to appear in your lineup, lineups can contain any number of batters between 1 and 12.
-  - the final line is your pitcher's name.
+  - there must be another blank line between your batters and your pitchers.
+  - the final lines are your pitchers' names.
 if you did it correctly, you'll get a team embed with a prompt to confirm. hit the 👍 and it'll be saved."""
 
     async def execute(self, msg, command):
@@ -287,6 +294,31 @@ class CreditCommand(Command):
     async def execute(self, msg, command):
         await msg.channel.send("Our avatar was graciously provided to us, with permission, by @HetreaSky on Twitter.")
 
+class SwapPlayerCommand(Command):
+    name = "swap"
+    template = """m;swap
+    [team name]
+    [player name]"""
+    description = "Swaps a player from lineup to rotation, or from rotation to lineup. Requires team ownership."
+
+    async def execute(self, msg, command):
+        team_name = command.split("\n")[1].strip()
+        player_name = command.split("\n")[2].strip()
+        team, owner_id = games.get_team_and_owner(team_name)
+        if team is None:
+            await msg.channel.send("Can't find that team, boss. Typo?")
+            return
+        elif owner_id != msg.author.id or msg.author.id not in config()["owners"]:
+            await msg.channel.send("You're not authorized to mess with this team. Sorry, boss.")
+            return
+        elif not team.swap_player(player_name):
+            await msg.channel.send("Either we can't find that player, or they're your last member of that side of the roster. Can't field an empty lineup, chief.")
+            return
+        else:
+            await msg.channel.send(embed=build_team_embed(team))
+            games.update_team(team)
+            await msg.channel.send("Paperwork signed, stamped, and copied.")
+
 class HelpCommand(Command):
     name = "help"
     template = "m;help [command]"
@@ -353,6 +385,7 @@ commands = [
     #SetupGameCommand(),
     SaveTeamCommand(),
     ImportCommand(),
+    SwapPlayerCommand(),
     DeleteTeamCommand(),
     ShowTeamCommand(),
     ShowAllTeamsCommand(),
@@ -660,7 +693,10 @@ def build_team_embed(team):
     for player in team.lineup:
         lineup_string += f"{player.name} {player.star_string('batting_stars')}\n"
 
-    embed.add_field(name="Pitcher:", value=f"{team.pitcher.name} {team.pitcher.star_string('pitching_stars')}", inline = False)
+    rotation_string = ""
+    for player in team.rotation:
+        rotation_string += f"{player.name} {player.star_string('pitching_stars')}\n"
+    embed.add_field(name="Rotation:", value=rotation_string, inline = False)
     embed.add_field(name="Lineup:", value=lineup_string, inline = False)
     embed.set_footer(text=team.slogan)
     return embed
@@ -710,14 +746,22 @@ def team_from_message(command):
     roster = command.split("\n",1)[1].split("\n")
     newteam.name = roster[0] #first line is team name
     newteam.slogan = roster[1] #second line is slogan
-    for rosternum in range(2,len(roster)-1):
+    if not roster[2].strip() == "":
+        raise CommandError("The third line should be blank. It wasn't, so just in case, we've not done anything on our end.")
+    pitchernum = len(roster)-2
+    for rosternum in range(3,len(roster)-1):
         if roster[rosternum] != "":
             if len(roster[rosternum]) > 70:
                 raise CommandError(f"{roster[rosternum]} is too long, chief. 70 or less.")
             newteam.add_lineup(games.player(ono.get_stats(roster[rosternum].rstrip())))
-    if len(roster[len(roster)-1]) > 70:
-        raise CommandError(f"{roster[len(roster)-1]} is too long, chief. 70 or less.")
-    newteam.set_pitcher(games.player(ono.get_stats(roster[len(roster)-1].rstrip()))) #last line is pitcher name
+        else:
+            pitchernum = rosternum + 1 
+            break
+
+    for rosternum in range(pitchernum, len(roster)):
+        if len(roster[rosternum]) > 70:
+            raise CommandError(f"{roster[len(roster)-1]} is too long, chief. 70 or less.")
+        newteam.add_pitcher(games.player(ono.get_stats(roster[rosternum].rstrip()))) 
 
     if len(newteam.name) > 30:
         raise CommandError("Team names have to be less than 30 characters! Try again.")
