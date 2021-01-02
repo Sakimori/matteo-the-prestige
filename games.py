@@ -107,20 +107,45 @@ class team(object):
         self.score = 0
         self.slogan = None
 
+    def find_player(self, name):
+        for index in range(0,len(self.lineup)):
+            if self.lineup[index].name == name:
+                return (self.lineup[index], index, self.lineup)
+        for index in range(0,len(self.rotation)):
+            if self.rotation[index].name == name:
+                return (self.rotation[index], index, self.rotation)
+        else:
+            return (None, None, None)
+
     def swap_player(self, name):
-        if len(self.lineup) > 1:
-            for index in range(0,len(self.lineup)):
-                if self.lineup[index].name == name:
-                    if self.add_pitcher(self.lineup[index]):
-                        self.lineup.pop(index)
-                        return True
-        if len(self.rotation) > 1:
-            for index in range(0,len(self.rotation)):
-                if self.rotation[index].name == name:
-                    if self.add_lineup(self.rotation[index])[0]:
-                        self.rotation.pop(index)
-                        return True
+        this_player, index, roster = self.find_player(name)
+        if this_player is not None and len(roster) > 1:
+            if roster == self.lineup:
+                if self.add_pitcher(this_player):
+                    roster.pop(index)
+                    return True
+            else:
+                if self.add_lineup(this_player)[0]:
+                    self.rotation.pop(index)
+                    return True
         return False
+
+    def delete_player(self, name):
+        this_player, index, roster = self.find_player(name)
+        if this_player is not None and len(roster) > 1:
+            roster.pop(index)
+            return True
+        else:
+            return False
+
+    def slide_player(self, name, new_spot):
+        this_player, index, roster = self.find_player(name)
+        if this_player is not None and new_spot < len(roster):
+            roster.pop(index)
+            roster.insert(new_spot-1, this_player)
+            return True
+        else:
+            return False
                 
     def add_lineup(self, new_player):
         if len(self.lineup) < 20:
@@ -735,7 +760,7 @@ def search_team(search_term):
             return None
 
         teams.append(team_json)
-        return teams
+    return teams
 
 def base_string(base):
     if base == 1:
