@@ -43,8 +43,11 @@ div, button {
     grid-gap: 50px 30px; /*space between rows, then columns*/
     align-items: center;
     justify-items: center;
-    grid-auto-rows: 360px;
     grid-auto-flow: row;
+}
+
+.container > div {
+    min-height: 350px;
 }
 
 #header {
@@ -125,7 +128,6 @@ div, button {
     justify-self: stretch;
     text-align: center;
     color: white;
-    flex: 1;
 }
 
 .game {
@@ -175,12 +177,12 @@ h2 {
 .body {
     margin: 10px;
     display: grid;
-    grid-template-columns: 60% 40%;
+    grid-template-columns: 66% 33%;
     grid-template-areas:
       "teams info" "players info" "update update";
     grid-template-rows: 90px;
     grid-row-gap: 8px;
-    grid-column-gap: 10px;
+    grid-column-gap: 14px;
     flex: 1;
 }
 
@@ -189,6 +191,7 @@ h2 {
     display: flex;
     flex-direction: column;
     justify-content: space-around;
+    margin-right: 12px;
 }
 
 .team {
@@ -200,6 +203,7 @@ h2 {
 
 .team_name {
     overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
 }
 
@@ -210,9 +214,7 @@ h2 {
     align-items: center;
     justify-content: space-around;
     background: #4f545c;
-    padding-top: 8px;
-    padding-bottom: 4px;
-    margin-left: 15%;
+    padding: 25px 0px;
     margin-right: 10px;
     border-radius: 4px;
 }
@@ -287,6 +289,7 @@ h2 {
 
 .player_name {
     overflow: hidden;
+    text-overflow: ellipsis;
     text-align: start;
     white-space: nowrap;
     width: 95%;
@@ -297,12 +300,13 @@ h2 {
     margin-right: 10px;
     margin-top: 5px;
     min-height: 50px;
+    padding: 0px 10px;
     height: 100%;
     background: var(--background-secondary);
     border-radius: 4px;
     align-items: center;
     display: flex;
-    justify-content: center;
+    justify-content: start;
 }
 
 .player_type {
@@ -311,8 +315,13 @@ h2 {
     font-weight: bolder;
 }
 
-.update_emoji, .update_text {
-    display: inline
+.update_emoji {
+    margin-right: 10px;
+    margin-left: 2px;
+}
+
+.update_text {
+    text-align: start;
 }
 
 .field {
