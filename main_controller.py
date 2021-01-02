@@ -22,7 +22,7 @@ thread2.start()
 master_games_dic = {} #key timestamp : (game game, {} state)
 data_to_send = []
 
-@socketio.on("get_states")
+@socketio.on("recieved")
 def handle_new_conn(data):
     socketio.emit("states_update", data_to_send, room=request.sid)
 
