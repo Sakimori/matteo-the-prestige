@@ -9,7 +9,7 @@ $(document).ready(function (){
         socket.emit('recieved', {});
     });
 
-    socket.on("states_update", function (json) { //json is an object containing all game updates\
+    socket.on("states_update", function (json) { //json is an object containing all game updates
         lastupdate = json;
         updateGames(json, $('#selected_filter').text());
         updateLeagues(json);
