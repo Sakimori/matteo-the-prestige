@@ -1,5 +1,5 @@
 {% macro base(number) -%}
-{% if state.bases[number] %}/static/img/base_filled.png{% else %}/static/img/base_empty.png{% endif %}
+src={% if state.bases[number] %}"/static/img/base_filled.png" alt="{{state.bases[number]}}"{% else %}"/static/img/base_empty.png"{% endif %}
 {%- endmacro %}
 {% macro out(number) -%}
 {% if number <= state.outs %}/static/img/out_out.png{% else %}/static/img/out_in.png{% endif %}
@@ -22,10 +22,10 @@
     </div>
     <div class="info">
         <div class="field">
-            <img class="base base_2" src="{{ base(2) }}"/>
+            <img class="base base_2" {{ base(2) }}/>
             <div style="display: flex;">
-                <img class="base base_3" src="{{ base(3) }}"/>
-                <img class="base base_1" src="{{ base(1) }}"/>
+                <img class="base base_3" {{ base(3) }}/>
+                <img class="base base_1" {{ base(1) }}/>
             </div>
         </div>
         <div class="outs">

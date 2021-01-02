@@ -83,6 +83,8 @@ div, button {
     min-width: 100px;
     text-align: center;
     border: none;
+    color: white;
+    text-decoration: none;
 }
 
 #selected_filter {
