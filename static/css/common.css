@@ -62,3 +62,7 @@ h2 {
 #link_div > a:hover {
     color: white;
 }
+
+img.emoji {
+    height: 14px;
+}

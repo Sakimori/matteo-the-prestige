@@ -7,7 +7,6 @@ $(document).ready(function (){
     });
 
     socket.on("states_update", function (json) { //json is an object containing all game updates
-        console.log(json)
         var searchparams = new URLSearchParams(window.location.search);
         var exists = false;
         for (game of json) {
@@ -17,7 +16,10 @@ $(document).ready(function (){
             }
         }
         if (!exists) {
-            // inform the user the game has ended
+            $('game').remove()
+            $('#game_container').text("The game you're looking for either doesn't exist or has already ended.")
         }
+
+        twemoji.parse(document.body);
     });
 });
