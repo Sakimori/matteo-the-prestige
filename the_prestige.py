@@ -734,12 +734,13 @@ async def watch_game(channel, newgame, user = None, league = None):
         discrim_string = "Unclaimed game."
         state_init["is_league"] = False
 
-    if league is not None:
-        league_ext = "league?name=" + urllib.parse.quote_plus(league)
-    else:
-        league_ext = ""
-    await channel.send(f"{newgame.teams['away'].name} vs. {newgame.teams['home'].name}, starting at {config()['simmadome_url']+league_ext}")
+
     timestamp = str(time.time() * 1000.0)
+    ext = "?game="+timestamp
+    if league is not None:
+        ext += "&league=" + urllib.parse.quote_plus(league)
+
+    await channel.send(f"{newgame.teams['away'].name} vs. {newgame.teams['home'].name}, starting at {config()['simmadome_url']+ext}")
     gamesarray.append((newgame, channel, user, timestamp))
     
 
