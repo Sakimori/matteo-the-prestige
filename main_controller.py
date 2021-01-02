@@ -12,8 +12,13 @@ def index():
     return render_template("index.html")
 
 @app.route('/league')
-def league():
+def league_page():
     return render_template("index.html", league=request.args['name'])
+
+@app.route('/game')
+def game_page():
+    return render_template("game.html")
+
 
 thread2 = threading.Thread(target=socketio.run,args=(app,'0.0.0.0'))
 thread2.start()
@@ -138,14 +143,15 @@ def update_loop():
             state["update_pause"] -= 1
 
         global data_to_send
-        template = jinja2.Environment(loader=jinja2.FileSystemLoader('templates')).get_template('game.html')
         data_to_send = []
+        template = jinja2.Environment(loader=jinja2.FileSystemLoader('templates')).get_template('game_box.html')
+        
         for timestamp in game_states:
             data_to_send.append({
                 'timestamp' : timestamp,
                 'league' : game_states[timestamp]['leagueoruser'] if game_states[timestamp]['is_league'] else '',
                 'state' : game_states[timestamp],
-                'html' : template.render(state=game_states[timestamp])
+                'html' : template.render(state=game_states[timestamp], timestamp=timestamp)
             })
 
         socketio.emit("states_update", data_to_send)

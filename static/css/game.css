@@ -1,9 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Alegreya&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Goldman:wght@700&display=swap');
-body {
-    background-image: url("prism.png");
-}
-/* Background pattern from Toptal Subtle Patterns */
 
 :root {
     --background-main: #2f3136; /*discord dark theme background-secondary - the same color as the embeds*/
@@ -12,129 +6,7 @@ body {
     --highlight: rgb(113, 54, 138); /*matteo purple™*/
 }
 
-div, button {
-    font-family: 'Alegreya', serif;
-    color: white;
-}
-
-#link_div {
-    text-align: right;
-    position: absolute;
-    top: 0px;
-    right: 30px;
-}
-
-#link_div > a {
-    background-color: transparent;
-    text-decoration: underline;
-}
-
-#link_div > a:link, #link_div > a:visited {
-    color: lightblue;
-}
-
-#link_div > a:hover {
-    color: white;
-}
-
-.container {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(500px, 1fr));
-    grid-gap: 50px 30px; /*space between rows, then columns*/
-    align-items: center;
-    justify-items: center;
-    grid-auto-flow: row;
-}
-
-.container > div {
-    min-height: 350px;
-}
-
-#header {
-    width: 100%;
-    height: 150px;
-    margin-bottom: 20px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-}
-
-#header > .page_header {
-    margin: auto
-}
-
-#filters {
-    display: flex;
-    justify-content: space-around;
-    width: max-content;
-    margin-top: 10px;
-}
-
-#filters > * {
-    padding: 4px 8px;
-    margin: 0px 8px;
-    font-size: 16pt;
-    background: rgba(0,0,0,0);
-}
-
-#filters > .filter {
-    border-radius: 8px;
-    min-width: 100px;
-    text-align: center;
-    border: none;
-    color: white;
-    text-decoration: none;
-}
-
-#selected_filter {
-    background: rgb(113, 54, 138);
-}
-
-#footer {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    width: 100%;
-    height: 75px;
-}
-
-#footer > div {
-    text-align: center;
-    font-size: 20px;
-    position: relative;
-    top: 5px;
-}
-
-.link{
-    position: relative;
-    top: 10px; 
-}
-
-.h1 {
-    margin: auto;
-    width: 45%;
-    color: white;
-    font-family: 'Alegreya', serif;
-}
-
-.page_header {
-    color: white;
-    font-family: 'Goldman', cursive;
-}
-
-.emptyslot {
-    border: 2px dashed white;
-    border-radius: 15px;
-    align-self: stretch;
-    justify-self: stretch;
-    text-align: center;
-    color: white;
-}
-
 .game {
-    font-family: 'Alegreya', serif;
-    color: white;
     align-self: stretch;
     justify-self: stretch;
     text-align: center;
@@ -147,13 +19,7 @@ div, button {
     border-top: none;
     border-right: none;
     border-bottom: none;
-    flex: 1;
-}
-
-h2 {
-    font-family: 'Alegreya', serif;
-    color: white;
-    text-align: center;
+    height: max-content;
 }
 
 .header {
@@ -181,9 +47,11 @@ h2 {
     display: grid;
     grid-template-columns: 66% 33%;
     grid-template-areas:
-      "teams info" "players info" "update update";
-    grid-template-rows: 90px;
-    grid-row-gap: 8px;
+      "teams info" 
+      "players info" 
+      "update update";
+    grid-template-rows: 90px 85px;
+    grid-row-gap: 4px;
     grid-column-gap: 14px;
     flex: 1;
 }
@@ -278,7 +146,6 @@ h2 {
     flex-direction: column;
     justify-content: space-around;
     align-items: start;
-    height: max-content;
 }
 
 .player {
@@ -286,7 +153,6 @@ h2 {
     align-items: end;
     width: 100%;
     flex-direction: column;
-    margin: 5px 0px;
 }
 
 .player_name {
@@ -295,6 +161,7 @@ h2 {
     text-align: start;
     white-space: nowrap;
     width: 95%;
+    margin-top: -4px;
 }
 
 .update {
@@ -342,30 +209,6 @@ h2 {
 }
 
 @media only screen and (max-device-width: 800px) {
-    .container {
-        display: grid;
-        grid-template-columns: repeat(1, minmax(700px, 90%));
-        grid-template-rows: 400px;
-        grid-gap: 50px 30px; /*space between rows, then columns*/
-        align-items: center;
-        justify-items: center;
-        grid-auto-rows: 400px;
-        grid-auto-flow: row;
-        position: absolute;
-        left: 50%;
-        transform: translate(-50%, 0);
-    }
-
-    .emptyslot {
-        border: none;
-        border-radius: 15px;
-        align-self: stretch;
-        justify-self: stretch;
-        text-align: center;
-        color: white;
-        flex: 1;
-    }
-
     .batting {
         font-size: 15pt;
         text-align: left;
