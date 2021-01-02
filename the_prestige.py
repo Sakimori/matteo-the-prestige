@@ -720,6 +720,9 @@ async def watch_game(channel, newgame, user = None, league = None):
         "start_delay" : 5,
         "end_delay" : 10
         } 
+    if newgame.weather.name == "Heavy Snow":
+        newgame.weather.counter_away = random.randint(0,len(newgame.teams['away'].lineup)-1)
+        newgame.weather.counter_home = random.randint(0,len(newgame.teams['home'].lineup)-1)
 
     if league is not None:
         discrim_string = league

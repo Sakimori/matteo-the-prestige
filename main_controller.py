@@ -88,6 +88,19 @@ def update_loop():
                         state["update_emoji"] = "💎" 
                         state["update_text"] = updatestring
 
+                    elif "mulligan" in this_game.last_update[0].keys():
+                        updatestring = ""
+                        punc = ""
+                        if this_game.last_update[0]["defender"] != "":
+                            punc = ", "
+
+                        state["update_emoji"] = "🏌️‍♀️"
+                        state["update_text"] = f"{this_game.last_update[0]['batter']} would have gone out, but they took a mulligan!"
+
+                    elif "snow_atbat" in this_game.last_update[0].keys():
+                        state["update_emoji"] = "❄"
+                        state["update_text"] = this_game.last_update[0]["text"]
+
                     else:
                         updatestring = ""
                         punc = ""
