@@ -9,11 +9,9 @@ socketio = SocketIO(app)
 
 @app.route('/')
 def index():
+    if ('league' in request.args):
+        return render_template("index.html", league=request.args['league'])
     return render_template("index.html")
-
-@app.route('/league')
-def league_page():
-    return render_template("index.html", league=request.args['name'])
 
 @app.route('/game')
 def game_page():

@@ -31,12 +31,18 @@ const updateGames = (json, filter) => {
         $('#footer div').html("");
     }
 
+    var searchparams = new URLSearchParams(window.location.search);
+    if (searchparams.has('game') && filterjson.some(x => x.timestamp == searchparams.get('game')) && grid.children[0].timestamp != searchparams.get('game')) {
+        var game = filterjson.find(x => x.timestamp == searchparams.get('game'))
+        var oldbox = Array.prototype.slice.call(grid.children).find(x => x.timestamp == game.timestamp)
+        if (oldbox) { clearBox(oldbox) }
+        insertGame(0, game)
+    }
+
     //replace games that have ended with empty slots
     for (var slotnum = 0; slotnum < grid.children.length; slotnum++) {
         if (grid.children[slotnum].className == "game" && !filterjson.some((x) => x.timestamp == grid.children[slotnum].timestamp)) {
-            grid.children[slotnum].className = "emptyslot";
-            grid.children[slotnum].timestamp = null;
-            grid.children[slotnum].innerHTML = "";
+            clearBox(grid.children[slotnum])
         }
     }
 
@@ -49,7 +55,7 @@ const updateGames = (json, filter) => {
         };
 
         //adds game to list if not there already
-        if (!Array.prototype.slice.call(grid.children).some((x) => x.timestamp == game.timestamp)) {
+        if (!Array.prototype.slice.call(grid.children).some(x => x.timestamp == game.timestamp)) {
             for (var slotnum = 0; true; slotnum++) { //this is really a while loop but shh don't tell anyone
                 if (slotnum >= grid.children.length) {
                     for (var i = 0; i < 3; i ++) {
@@ -88,6 +94,20 @@ const insertGame = (gridboxnum, game) => {
     thisBox.timestamp = game.timestamp;
 };
 
+const insertLeague = (league) => {
+    var btn = document.createElement("BUTTON");
+    btn.className = "filter";
+    btn.innerHTML = league;
+    $('#filters').append(btn);
+    return btn;
+}
+
+const clearBox = (box) => {
+    box.className = "emptyslot";
+    box.timestamp = null;
+    box.innerHTML = "";
+}
+
 const updateLeagues = (games) => {
     //get all leagues
     var leagues = []
@@ -110,10 +130,7 @@ const updateLeagues = (games) => {
 
     // add leagues not already present
     for (var league of leagues) { // we removed the entries that are already there in the loop above
-        var btn = document.createElement("BUTTON");
-        btn.className = "filter"
-        btn.innerHTML = league
-        $('#filters').append(btn);
+        insertLeague(league)
     }
 
     //add click handlers to each filter
@@ -126,20 +143,23 @@ const updateLeagues = (games) => {
             this.id = 'selected_filter';
 
             var search = new URLSearchParams();
-            search.append("name", this.textContent);
-            history.pushState({}, "", (this.textContent != 'All' ? "/league?" + search.toString() : "/"));
+            search.append('league', this.textContent);
+            history.pushState({}, "", "/" + (this.textContent != 'All' ? "?" + search.toString() : ""));
             updateGames(lastupdate, this.textContent);
         }
     })
 }
 
 window.onpopstate = function(e) {
-    var searchparams = new URLSearchParams(window.location.search)
+    var searchparams = new URLSearchParams(window.location.search);
     updateLeagues(lastupdate);
     $('#filters #selected_filter').attr('id', '');
-    if (searchparams.has('name')) {
-        $('#filters .filter').each(function(i) { if (this.textContent == searchparams.get('name')) { this.id = 'selected_filter' }})
-        updateGames(lastupdate, searchparams.get('name'));
+    if (searchparams.has('league')) {
+        var filter_found = false
+        $('#filters .filter').each(function(i) { if (this.textContent == searchparams.get('league')) { this.id = 'selected_filter'; filter_found = true }});
+        if (!filter_found) { insertLeague(searchparams.get('league')).id = 'selected_filter' }
+
+        updateGames(lastupdate, searchparams.get('league'));
     } else {
         $('#filters .filter').each(function(i) { if (this.textContent == 'All') { this.id = 'selected_filter' }})
         updateGames(lastupdate, "All");
