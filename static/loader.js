@@ -1,52 +1,20 @@
+var socket = io.connect();
+
 $(document).ready(function (){
-    var socket = io.connect();
     var lastupdate;
     var grid = document.getElementById("container");
     
 
     socket.on('connect', function () {
-        socket.emit('recieved', { data: 'I\'m connected!' });
+        socket.emit('get_states', {});
     });
 
     socket.on("states_update", function (json) { //json is an object containing all game updates
+        console.log(json)
         lastupdate = json;
         updateGames(json, $('#selected_filter').text());
-
-        //get all leagues
-        leagues = []
-        for (var game of json) {
-            if (game.league != "" && !leagues.includes(game.league)) {
-                leagues.push(game.league)
-            }
-        }
-
-        //remove leagues no longer present
-        $('#filters .filter').each(function(index) {
-            if (!leagues.includes($(this).text())) {
-                if ($(this).attr('id') != 'selected_filter' && $(this).text() != "All") { //don't remove the currently selected filter or the "all" filter
-                    $(this).remove();
-                }
-            } else {
-                leagues.splice(leagues.indexOf($(this).text()), 1);
-            }
-        })
-
-        // add leagues not already present
-        for (var league of leagues) { // we removed the entries that are already there in the loop above
-            $('#filters').append("<button class='filter'>"+league+"</button>");
-        }
-
-        //add click handlers to each filter
-        $('#filters .filter').each(function(index) {
-            $(this).click(function() {
-                if ($('#filters #selected_filter').text() == 'All') {
-                    updateGames([], ""); // clear grid when switching off of All, to make games collapse to top
-                }
-                $('#filters #selected_filter').attr('id', '');
-                $(this).attr('id', 'selected_filter');
-                updateGames(lastupdate, $(this).text());
-            })
-        })
+        updateLeagues(json);
+        document.getElementsByTagName("html")[0].style.visibility = "visible";
     });
 
     const updateGames = (json, filter) => {
@@ -109,7 +77,7 @@ $(document).ready(function (){
     }
 
     const insertEmpty = (grid) => {
-        newBox = document.createElement("DIV");
+        var newBox = document.createElement("DIV");
         newBox.className = "emptyslot";
         grid.appendChild(newBox);
     }
@@ -120,4 +88,62 @@ $(document).ready(function (){
         thisBox.className = "game";
         thisBox.timestamp = game.timestamp;
     };
+
+    const updateLeagues = (games) => {
+        //get all leagues
+        var leagues = []
+        for (var game of games) {
+            if (game.league != "" && !leagues.includes(game.league)) {
+                leagues.push(game.league)
+            }
+        }
+
+         //remove leagues no longer present
+        $('#filters .filter').each(function(index) {
+            if (!leagues.includes($(this).text())) {
+                if (this.id != 'selected_filter' && $(this).text() != "All") { //don't remove the currently selected filter or the "all" filter
+                    $(this).remove();
+                }
+            } else {
+                leagues.splice(leagues.indexOf($(this).text()), 1);
+            }
+        })
+
+        // add leagues not already present
+        for (var league of leagues) { // we removed the entries that are already there in the loop above
+            var btn = document.createElement("BUTTON");
+            btn.className = "filter"
+            btn.innerHTML = league
+            $('#filters').append(btn);
+        }
+
+        //add click handlers to each filter
+        $('#filters .filter').each(function(index) {
+            this.onclick = function() {
+                if ($('#filters #selected_filter').text() == 'All') {
+                    updateGames([], ""); // clear grid when switching off of All, to make games collapse to top
+                }
+                $('#filters #selected_filter').attr('id', '');
+                this.id = 'selected_filter';
+
+                var search = new URLSearchParams();
+                search.append("name", this.textContent);
+                console.log("pushing state due to:");
+                console.log(this);
+                history.pushState({'filters' : $('#filters').html()}, "", (this.textContent != 'All' ? "/league?" + search.toString() : "/"));
+                updateGames(lastupdate, this.textContent);
+            }
+        })
+    }
 });
+
+window.onpopstate = function(e) {
+    console.log(e)
+    if (e.state) {
+        $('#filters').html(e.state.filters)
+    } else {
+        $('#filters').html("")
+        $('#filters').append("<button class='filter' id='selected_filter'>All</button>")
+    }
+    socket.emit('get_states', {});
+}

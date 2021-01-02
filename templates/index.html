@@ -23,7 +23,8 @@
         <h2 class="page_header">Join SIBR on <a href="https://discord.gg/UhAajY2NCW" class="link"><img src="static/discord.png" height="30"></a> to start your own games!</h2>
         <div id="filters">
             <div>Filter:</div>
-            <button class="filter" id="selected_filter">All</button>
+            <button class="filter" {% if not league %}id="selected_filter"{% endif %}>All</button>
+            {% if league %}<button class="filter" id="selected_filter">{{ league }}</button>{% endif %}
         </div>
     </div>
     <section class="container" id="container">

@@ -11,13 +11,18 @@ socketio = SocketIO(app)
 def index():
     return render_template("index.html")
 
+@app.route('/league')
+def league():
+    print(request.args)
+    return render_template("index.html", league=request.args['name'])
+
 thread2 = threading.Thread(target=socketio.run,args=(app,'0.0.0.0'))
 thread2.start()
 
 master_games_dic = {} #key timestamp : (game game, {} state)
 data_to_send = []
 
-@socketio.on("recieved")
+@socketio.on("get_states")
 def handle_new_conn(data):
     socketio.emit("states_update", data_to_send, room=request.sid)
 
