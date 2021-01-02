@@ -1,4 +1,4 @@
-import discord, json, math, os, roman, games, asyncio, random, main_controller, threading, time, leagues
+import discord, json, math, os, roman, games, asyncio, random, main_controller, threading, time, leagues, urllib
 import database as db
 import onomancer as ono
 from flask import Flask
@@ -646,7 +646,11 @@ async def watch_game(channel, newgame, user = None, league = None):
         discrim_string = "Unclaimed game."
         state_init["is_league"] = False
 
-    await channel.send(f"{newgame.teams['away'].name} vs. {newgame.teams['home'].name}, starting at {config()['simmadome_url']}")
+    if league is not None:
+        league_ext = "league?name=" + urllib.parse.quote_plus(league)
+    else:
+        league_ext = ""
+    await channel.send(f"{newgame.teams['away'].name} vs. {newgame.teams['home'].name}, starting at {config()['simmadome_url']+league_ext}")
     timestamp = str(time.time() * 1000.0)
     gamesarray.append((newgame, channel, user, timestamp))
     
