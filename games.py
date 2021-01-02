@@ -24,22 +24,13 @@ def config():
             return json.load(config_file)
 
 def all_weathers():
-    if not os.path.exists("weather_config.json"):
-        #generate default config
-        super_weather_json = jsonpickle.encode(weather("Supernova", "🌟"))
-        mid_weather_json = jsonpickle.encode(weather("Midnight", "🕶"))
-        config_dic = {
-            "Supernova" : super_weather_json,
-            "Midnight": mid_weather_json
-            }
-        with open("weather_config.json", "w") as config_file:
-            json.dump(config_dic, config_file, indent=4)
-    with open("weather_config.json") as config_file:
-        weather_dic = {}
-        for weather_json in json.load(config_file).values():
-            this_weather = jsonpickle.decode(weather_json, classes=weather)
-            weather_dic[this_weather.name] = this_weather
-        return weather_dic
+    weathers_dic = {
+        #"Supernova" : weather("Supernova", "🌟"),
+        "Midnight": weather("Midnight", "🕶"),
+        "Slight Tailwind": weather("Slight Tailwind", "🏌️‍♀️"),
+        "Heavy Snow": weather("Heavy Snow", "❄")
+        }
+    return weathers_dic
 
 
 class appearance_outcomes(Enum):
@@ -107,20 +98,45 @@ class team(object):
         self.score = 0
         self.slogan = None
 
+    def find_player(self, name):
+        for index in range(0,len(self.lineup)):
+            if self.lineup[index].name == name:
+                return (self.lineup[index], index, self.lineup)
+        for index in range(0,len(self.rotation)):
+            if self.rotation[index].name == name:
+                return (self.rotation[index], index, self.rotation)
+        else:
+            return (None, None, None)
+
     def swap_player(self, name):
-        if len(self.lineup) > 1:
-            for index in range(0,len(self.lineup)):
-                if self.lineup[index].name == name:
-                    if self.add_pitcher(self.lineup[index]):
-                        self.lineup.pop(index)
-                        return True
-        if len(self.rotation) > 1:
-            for index in range(0,len(self.rotation)):
-                if self.rotation[index].name == name:
-                    if self.add_lineup(self.rotation[index])[0]:
-                        self.rotation.pop(index)
-                        return True
+        this_player, index, roster = self.find_player(name)
+        if this_player is not None and len(roster) > 1:
+            if roster == self.lineup:
+                if self.add_pitcher(this_player):
+                    roster.pop(index)
+                    return True
+            else:
+                if self.add_lineup(this_player)[0]:
+                    self.rotation.pop(index)
+                    return True
         return False
+
+    def delete_player(self, name):
+        this_player, index, roster = self.find_player(name)
+        if this_player is not None and len(roster) > 1:
+            roster.pop(index)
+            return True
+        else:
+            return False
+
+    def slide_player(self, name, new_spot):
+        this_player, index, roster = self.find_player(name)
+        if this_player is not None and new_spot < len(roster):
+            roster.pop(index)
+            roster.insert(new_spot-1, this_player)
+            return True
+        else:
+            return False
                 
     def add_lineup(self, new_player):
         if len(self.lineup) < 20:
@@ -197,8 +213,13 @@ class game(object):
     def get_batter(self):
         if self.top_of_inning:
             bat_team = self.teams["away"]
+            counter = self.weather.counter_away
         else:
             bat_team = self.teams["home"]
+            counter = self.weather.counter_home
+
+        if self.weather.name == "Heavy Snow" and counter == bat_team.lineup_position:
+            return bat_team.pitcher
         return bat_team.lineup[bat_team.lineup_position % len(bat_team.lineup)]
 
     def get_pitcher(self):
@@ -459,13 +480,25 @@ class game(object):
     def batterup(self):
         scores_to_add = 0
         result = self.at_bat()
-        self.get_batter()
         if self.top_of_inning:
             offense_team = self.teams["away"]
+            weather_count = self.weather.counter_away
             defense_team = self.teams["home"]
         else:
             offense_team = self.teams["home"]
+            weather_count = self.weather.counter_home
             defense_team = self.teams["away"]
+
+        if self.weather.name == "Slight Tailwind" and "mulligan" not in self.last_update[0].keys() and not result["ishit"] and result["text"] != appearance_outcomes.walk: 
+            mulligan_roll_target = -((((self.get_batter().stlats["batting_stars"])-7)/7)**2)+1
+            if random.random() > mulligan_roll_target:
+                result["mulligan"] = True
+                return (result, 0)
+
+        if self.weather.name == "Heavy Snow" and weather_count == offense_team.lineup_position and "snow_atbat" not in self.last_update[0].keys():
+            result["snow_atbat"] = True
+            result["text"] = f"{offense_team.lineup[offense_team.lineup_position % len(offense_team.lineup)].name}'s hands are too cold! {self.get_batter().name} is forced to bat!"
+            return (result, 0)
 
         defenders = defense_team.lineup.copy()
         defenders.append(defense_team.pitcher)
@@ -556,12 +589,21 @@ class game(object):
         for base in self.bases.keys():
             self.bases[base] = None
         self.outs = 0
+        if self.top_of_inning and self.weather.name == "Heavy Snow" and self.weather.counter_away < self.teams["away"].lineup_position:
+            self.weather.counter_away = self.pitcher_insert(self.teams["away"])
+
         if not self.top_of_inning:
+            if self.weather.name == "Heavy Snow" and self.weather.counter_home < self.teams["home"].lineup_position:
+                self.weather.counter_home = self.pitcher_insert(self.teams["home"])
             self.inning += 1
             if self.inning > self.max_innings and self.teams["home"].score != self.teams["away"].score: #game over
                 self.over = True
         self.top_of_inning = not self.top_of_inning
 
+    def pitcher_insert(self, this_team):
+        rounds = math.ceil(this_team.lineup_position / len(this_team.lineup))
+        position = random.randint(0, len(this_team.lineup)-1)
+        return rounds * len(this_team.lineup) + position
 
     def end_of_game_report(self):
         return {
@@ -604,19 +646,9 @@ class game(object):
                     else:
                         inningtext = "bottom"
 
-                    updatestring = f"{self.last_update[0]['batter']} {self.last_update[0]['text'].value} {self.last_update[0]['defender']}{punc}\n"
+                    updatestring = "this isn't used but i don't want to break anything"
 
-                    if self.last_update[1] > 0:
-                        updatestring += f"{self.last_update[1]} runs scored!"
-
-                    return f"""Last update: {updatestring}
-
-        Score: {self.teams['away'].score} - {self.teams['home'].score}.
-        Current inning: {inningtext} of {self.inning}. {self.outs} outs.
-        Pitcher: {self.get_pitcher().name}
-        Batter: {self.get_batter().name}
-        Bases: 3: {str(self.bases[3])} 2: {str(self.bases[2])} 1: {str(self.bases[1])}
-        """
+                    return "this isn't used but i don't want to break anything"
                 else:
                     return f"""Game over! Final score: **{self.teams['away'].score} - {self.teams['home'].score}**
         Last update: {self.last_update[0]['batter']} {self.last_update[0]['text'].value} {self.last_update[0]['defender']}{punc}"""
@@ -735,7 +767,7 @@ def search_team(search_term):
             return None
 
         teams.append(team_json)
-        return teams
+    return teams
 
 def base_string(base):
     if base == 1:
@@ -754,6 +786,8 @@ class weather(object):
     def __init__(self, new_name, new_emoji):
         self.name = new_name
         self.emoji = new_emoji
+        self.counter_away = 0
+        self.counter_home = 0
 
     def __str__(self):
         return f"{self.emoji} {self.name}"
