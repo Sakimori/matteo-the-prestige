@@ -1,4 +1,4 @@
-import discord, json, math, os, roman, games, asyncio, random, main_controller, threading, time, urllib
+import discord, json, math, os, roman, games, asyncio, random, main_controller, threading, time, urllib, leagues
 import database as db
 import onomancer as ono
 from flask import Flask
@@ -127,32 +127,19 @@ class StartGameCommand(Command):
         innings = None
         try:
             team_name1 = command.split("\n")[1].strip()
-            team1 = games.get_team(team_name1)
-            if team1 is None:
-                teams = games.search_team(team_name1.lower())
-                if len(teams) == 1:
-                    team1 = teams[0]
+            team1 = get_team_fuzzy_search(team_name1)
+
             team_name2 = command.split("\n")[2].strip()
-            team2 = games.get_team(team_name2)
-            if team2 is None:
-                teams = games.search_team(team_name2.lower())
-                if len(teams) == 1:
-                    team2 = teams[0]
+            team2 = get_team_fuzzy_search(team_name2)
+
             innings = int(command.split("\n")[3])
         except IndexError:
             try:
                 team_name1 = command.split("\n")[1].strip()
-                team1 = games.get_team(team_name1)
-                if team1 is None:
-                    teams = games.search_team(team_name1.lower())
-                    if len(teams) == 1:
-                        team1 = teams[0]
+                team1 = get_team_fuzzy_search(team_name1)
+
                 team_name2 = command.split("\n")[2].strip()
-                team2 = games.get_team(team_name2)
-                if team2 is None:
-                    teams = games.search_team(team_name2.lower())
-                    if len(teams) == 1:
-                        team2 = teams[0]
+                team2 = get_team_fuzzy_search(team_name2)
             except IndexError:
                 await msg.channel.send("We need at least three lines: startgame, away team, and home team are required. Optionally, the number of innings can go at the end, if you want a change of pace.")
                 return
@@ -164,8 +151,8 @@ class StartGameCommand(Command):
             await msg.channel.send("Anything less than 2 innings isn't even an outing. Try again.")
             return 
                                                     
-        elif innings is not None and innings > 30 and msg.author.id not in config()["owners"]:
-            await msg.channel.send("Y'all can't behave, so we've limited games to 30 innings. Ask xvi to start it with more if you really want to.")
+        elif innings is not None and innings > 200 and msg.author.id not in config()["owners"]:
+            await msg.channel.send("Y'all can behave, so we've upped the limit on game length to 200 innings.")
             return
 
         if team1 is not None and team2 is not None:
@@ -230,15 +217,11 @@ class ShowTeamCommand(Command):
     
     async def execute(self, msg, command):
         team_name = command.strip()
-        team = games.get_team(team_name)
+        team = get_team_fuzzy_search(team_name)
         if team is not None:
             await msg.channel.send(embed=build_team_embed(team))
-        else:
-            teams = games.search_team(team_name.lower())
-            if len(teams) == 1:
-                await msg.channel.send(embed=build_team_embed(teams[0]))
-            else:
-                await msg.channel.send("Can't find that team, boss. Typo?")
+            return
+        await msg.channel.send("Can't find that team, boss. Typo?")
 
 class ShowAllTeamsCommand(Command):
     name = "showallteams"
@@ -275,7 +258,7 @@ class SwapPlayerCommand(Command):
     template = """m;swapsection
     [team name]
     [player name]"""
-    description = "Swaps a player from lineup to rotation, or from rotation to lineup. Requires team ownership."
+    description = "Swaps a player from lineup to rotation, or from rotation to lineup. Requires team ownership and exact spelling of team name."
 
     async def execute(self, msg, command):
         try:
@@ -304,7 +287,7 @@ class MovePlayerCommand(Command):
     [team name]
     [player name]
     [new lineup/rotation position number] (indexed with 1 being the top)"""
-    description = "Moves a player in your lineup or rotation. Requires team ownership."
+    description = "Moves a player in your lineup or rotation. Requires team ownership and exact spelling of team name."
 
     async def execute(self, msg, command):
         try:
@@ -334,7 +317,7 @@ class AddPlayerCommand(Command):
     template = """m;addplayer pitcher (or m;addplayer batter)
     [team name]
     [player name]"""
-    description = "Recruits a new player to your team, as either a pitcher or a batter. Requires team ownership."
+    description = "Recruits a new player to your team, as either a pitcher or a batter. Requires team ownership and exact spelling of team name."
 
     async def execute(self, msg, command):
         try:
@@ -367,6 +350,7 @@ class RemovePlayerCommand(Command):
     template = """m;removeplayer
     [team name]
     [player name]"""
+    description = "Removes a player from your team. Requires team ownership and exact spelling of team name."
 
     async def execute(self, msg, command):
         try:
@@ -412,7 +396,7 @@ class HelpCommand(Command):
 class DeleteTeamCommand(Command):
     name = "deleteteam"
     template = "m;deleteteam [name]"
-    description = "Allows you to delete the team with the provided name if you are the owner of it, Gives a confirmation first to prevent accidental deletions. If it isn't letting you delete your team, you probably created it before teams having owners was a thing, contact xvi and xie can assign you as the owner."
+    description = "Allows you to delete the team with the provided name. Requires team ownership. If you are the owner and the bot is telling you it's not yours, contact xvi and xie can assist."
 
     async def execute(self, msg, command):
         team_name = command.strip()
@@ -1005,5 +989,13 @@ def game_over_embed(game):
     embed = discord.Embed(color=discord.Color.dark_purple(), title=title_string)
     embed.add_field(name="Final score:", value=winstring)
     return embed
+
+def get_team_fuzzy_search(team_name):
+    team = games.get_team(team_name)
+    if team is None:
+        teams = games.search_team(team_name.lower())
+        if len(teams) == 1:
+            team = teams[0]
+    return team
         
 client.run(config()["token"])
