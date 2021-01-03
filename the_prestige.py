@@ -323,8 +323,8 @@ class SwapPlayerCommand(Command):
             await msg.channel.send("Three lines, remember? Command, then team, then name.")
 
 class MovePlayerCommand(Command):
-    name = "move"
-    template = """m;move 
+    name = "moveplayer"
+    template = """m;moveplayer 
     [team name]
     [player name]
     [new lineup/rotation position number] (indexed with 1 being the top)"""
@@ -386,7 +386,7 @@ class AddPlayerCommand(Command):
         except IndexError:
             await msg.channel.send("Three lines, remember? Command, then team, then name.")
 
-class DeletePlayerCommand(Command):
+class RemovePlayerCommand(Command):
     name = "removeplayer"
     template = """m;removeplayer
     [team name]
@@ -482,7 +482,7 @@ commands = [
     SwapPlayerCommand(),
     MovePlayerCommand(),
     AddPlayerCommand(),
-    DeletePlayerCommand(),
+    RemovePlayerCommand(),
     DeleteTeamCommand(),
     ShowTeamCommand(),
     ShowAllTeamsCommand(),
