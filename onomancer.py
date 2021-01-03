@@ -7,6 +7,7 @@ import database as db
 onomancer_url = "https://onomancer.sibr.dev/api/"
 name_stats_hook = "getOrGenerateStats?name="
 collection_hook = "getCollection?token="
+names_hook = "getNames"
 
 def get_stats(name):
     player = db.get_stats(name)
@@ -36,3 +37,20 @@ def get_collection(collection_url):
             db.cache_stats(player['name'], json.dumps(player))
 
         return json.dumps(response.json())
+
+
+def get_names(limit=20, threshold=1):
+    """
+    Get `limit` random players that have at least `threshold` upvotes.
+    Returns dictionary keyed by player name of stats.
+    """
+    response = requests.get(
+        onomancer_url + names_hook,
+        params={
+            'limit': limit,
+            'threshold': threshold,
+            'with_stats': 1,
+            'random': 1,
+        },
+    )
+    return {p['name']: p for p in response.json()}
