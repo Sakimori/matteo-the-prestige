@@ -448,7 +448,7 @@ class StartTournamentCommand(Command):
                 games.get_team("Pigeon’s Reckoning") : {"wins": 0, "rd": 0},
                 games.get_team("Kernow Technologists") : {"wins": 0, "rd": 0}
             }
-        tourney = leagues.tournament("Test Tourney", test_bracket)
+        tourney = leagues.tournament("Test Tourney", test_bracket, max_innings=3)
         tourney.build_bracket(random_sort=True)
 
         tourney_task = asyncio.create_task(start_tournament_round(msg.channel, tourney))

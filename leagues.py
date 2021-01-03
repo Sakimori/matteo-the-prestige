@@ -19,13 +19,13 @@ class division(object):
         self.teams = {} #key: team object, value: {wins; rd (run diff)}
 
 class tournament(object):
-    def __init__(self, name, team_dic, series_length = 5, maxinnings = 9): 
+    def __init__(self, name, team_dic, series_length = 5, max_innings = 9): 
         self.name = name
         self.teams = team_dic #same format as division, wins/losses will be used for seeding later
         self.bracket = None
         self.results = None
         self.series_length = series_length
-        self.game_length = maxinnings
+        self.game_length = max_innings
         self.active = False
 
     def build_bracket(self, random_sort = False, by_wins = False):
