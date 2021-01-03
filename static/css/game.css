@@ -27,33 +27,23 @@
     background-color: var(--background-secondary);
     border-top-right-radius: 4px;
     height: max-content;
-    
+    display: flex;
+    justify-content: space-between
 }
 
-.inning {
-    float: left;
-    margin: 5px;
-    margin-left: 8px;
-}
-
-.weather {
-    float: right;
-    margin: 5px;
-    margin-right: 8px;
+.header > div {
+    margin: 0.3rem 0.5rem;
 }
 
 .body {
-    margin: 10px;
+    margin: 0.5rem;
     display: grid;
-    grid-template-columns: 66% 33%;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     grid-template-areas:
-      "teams info" 
-      "players info" 
-      "update update";
-    grid-template-rows: 90px 85px;
-    grid-row-gap: 4px;
-    grid-column-gap: 14px;
-    flex: 1;
+      "teams teams info" "players players info" "update update update";
+    grid-template-rows: 5.5rem auto auto;
+    grid-row-gap: 0.5rem;
+    grid-column-gap: 0.75rem;
 }
 
 .teams {
@@ -61,14 +51,16 @@
     display: flex;
     flex-direction: column;
     justify-content: space-around;
-    margin-right: 12px;
+    min-width: 95%;
+    max-width: 100%;
+    width: min-content;
 }
 
 .team {
     display: flex;
     justify-content: space-between;
     width: 100%;
-    margin: 5px 0px;
+    margin: 0.25rem 0rem;
 }
 
 .team_name {
@@ -84,8 +76,7 @@
     align-items: center;
     justify-content: space-around;
     background: #4f545c;
-    padding: 25px 0px;
-    margin-right: 10px;
+    padding: 0.75rem 0rem;
     border-radius: 4px;
 }
 
@@ -93,14 +84,14 @@
     font-size: 10pt;
     text-align: left;
     height: max-content;
-    padding: 5px;
+    margin: 0.3rem 0.5rem;
 }
 
 .leagueoruser {
     font-size: 10pt;
     text-align: right;
     height: max-content;
-    padding: 5px;
+    margin: 0.3rem 0.5rem;
 }
 
 .footer {
@@ -142,17 +133,22 @@
 
 .players {
     grid-area: players;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-around;
-    align-items: start;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    grid-column-gap: 0.5rem;
+    margin-left: 0.3rem;
 }
 
-.player {
-    display: flex;
-    align-items: end;
-    width: 100%;
-    flex-direction: column;
+.players > div {
+    margin: 0.25rem 0rem;
+}
+
+.player_type {
+    text-align: end;
+    font-weight: bolder;
+    display: inline-block;
+    vertical-align: middle;
 }
 
 .player_name {
@@ -160,16 +156,13 @@
     text-overflow: ellipsis;
     text-align: start;
     white-space: nowrap;
-    width: 95%;
-    margin-top: -4px;
+    width: 100%;
 }
 
 .update {
     grid-area: update;
-    margin-right: 10px;
-    margin-top: 5px;
-    min-height: 50px;
-    padding: 0px 10px;
+    min-height: 3.5rem;
+    padding: 0rem 0.75rem;
     height: 100%;
     background: var(--background-secondary);
     border-radius: 4px;
@@ -178,14 +171,8 @@
     justify-content: start;
 }
 
-.player_type {
-    width: 100%;
-    text-align: start;
-    font-weight: bolder;
-}
-
 .update_emoji {
-    margin-right: 10px;
+    margin-right: 0.75rem;
     margin-left: 2px;
 }
 

@@ -8,7 +8,7 @@
 }
 
 .container > div {
-    min-height: 325px;
+    min-height: 298px;
 }
 
 #filters {
@@ -21,15 +21,15 @@
 }
 
 #filters > * {
-    padding: 4px 8px;
-    margin: 0px 8px;
+    padding: 0.25rem 0.5rem;
+    margin: 0rem 0.5rem;
     font-size: 16pt;
     background: rgba(0,0,0,0);
 }
 
 #filters > .filter {
-    border-radius: 8px;
-    min-width: 100px;
+    border-radius: 0.5rem;
+    min-width: 6.25rem;
     text-align: center;
     border: none;
     color: white;
@@ -45,14 +45,14 @@
     flex-direction: column;
     justify-content: center;
     width: 100%;
-    height: 75px;
+    height: 4.5rem;
 }
 
 #footer > div {
     text-align: center;
-    font-size: 20px;
+    font-size: 16pt;
     position: relative;
-    top: 5px;
+    top: 0.25rem;
 }
 
 .emptyslot {
