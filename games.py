@@ -200,8 +200,7 @@ class team(object):
 
 class game(object):
 
-    def __init__(self, name, team1, team2, length=None):
-        self.name = name
+    def __init__(self, team1, team2, length=None):
         self.over = False
         self.teams = {"away" : team1, "home" : team2}
         self.inning = 1

@@ -61,10 +61,6 @@
     <Content Include="ids" />
     <Content Include="matteo.db" />
     <Content Include="static\discord.png" />
-    <Content Include="static\game.html" />
-    <Content Include="static\games_page.css" />
-    <Content Include="static\loader.js" />
-    <Content Include="static\prism.png" />
     <Content Include="templates\game.html" />
     <Content Include="templates\index.html" />
   </ItemGroup>

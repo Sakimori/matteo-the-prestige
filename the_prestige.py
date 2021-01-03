@@ -169,7 +169,7 @@ class StartGameCommand(Command):
             return
 
         if team1 is not None and team2 is not None:
-            game = games.game(msg.author.name, team1.finalize(), team2.finalize(), length=innings)
+            game = games.game(team1.finalize(), team2.finalize(), length=innings)
             channel = msg.channel
             await msg.delete()
             
@@ -178,30 +178,6 @@ class StartGameCommand(Command):
         else:
             await msg.channel.send("We can't find one or both of those teams. Check your staging, chief.")
             return
-
-class SetupGameCommand(Command):
-    name = "setupgame"
-    template = "m;setupgame"
-    description =  "Begins setting up a 3-inning pickup game. Pitchers, lineups, and team names are given during the setup process by anyone able to type in that channel. Idols are easily signed up via emoji during the process. The game will start automatically after setup."
-
-    async def execute(self, msg, command):
-        if len(gamesarray) > 45:
-            await msg.channel.send("We're running 45 games and we doubt Discord will be happy with any more. These edit requests don't come cheap.")
-            return 
-        elif config()["game_freeze"]:
-            await msg.channel.send("Patch incoming. We're not allowing new games right now.")
-            return
-
-        for game in gamesarray:
-            if game.name == msg.author.name:
-                await msg.channel.send("You've already got a game in progress! Wait a tick, boss.")
-                return
-        try:
-            inningmax = int(command)
-        except:
-            inningmax = 3
-        game_task = asyncio.create_task(setup_game(msg.channel, msg.author, games.game(msg.author.name, games.team(), games.team(), length=inningmax)))
-        await game_task
 
 class SaveTeamCommand(Command):
     name = "saveteam"
@@ -445,7 +421,6 @@ class AssignOwnerCommand(Command):
         return user.id in config()["owners"]
 
     async def execute(self, msg, command):
-        #try:
         new_owner = msg.mentions[0]
         team_name = command.strip().split(new_owner.mention+" ")[1]
         print(team_name)
@@ -453,8 +428,32 @@ class AssignOwnerCommand(Command):
             await msg.channel.send(f"{team_name} is now owned by {new_owner.display_name}. Don't break it.")
         else:
             await msg.channel.send("We couldn't find that team. Typo?")
-        #except:
-            #await msg.channel.send("We hit a snag. Tell xvi.")
+
+class StartTournamentCommand(Command):
+    name = "starttournament"
+    template = "m;starttournament"
+    description = "We'll DM you and get your own tournament set up. Just follow our instructions and we'll be right as rain."
+
+    async def execute(self, msg, command):
+        test_bracket = {
+                games.get_team("Milwaukee Lockpicks") : {"wins": 0, "rd": 0},
+                games.get_team("Madagascar Penguins") : {"wins": 0, "rd": 0},
+                games.get_team("Twin Cities Evening") : {"wins": 0, "rd": 0},
+                games.get_team("Washington State Houses") : {"wins": 0, "rd": 0},
+                games.get_team("Appalachian Underground") : {"wins": 0, "rd": 0},
+                games.get_team("Pacific2 Rams") : {"wins": 0, "rd": 0},
+                games.get_team("New Jersey Radio") : {"wins": 0, "rd": 0},
+                games.get_team("Moline Jolenes") : {"wins": 0, "rd": 0},
+                games.get_team("California Commissioners") : {"wins": 0, "rd": 0},
+                games.get_team("Pigeon’s Reckoning") : {"wins": 0, "rd": 0},
+                games.get_team("Kernow Technologists") : {"wins": 0, "rd": 0}
+            }
+        tourney = leagues.tournament("Test Tourney", test_bracket)
+        tourney.build_bracket(random_sort=True)
+
+        tourney_task = asyncio.create_task(start_tournament_round(msg.channel, tourney))
+        await tourney_task
+
 
 
 commands = [
@@ -476,6 +475,7 @@ commands = [
     ShowAllTeamsCommand(),
     SearchTeamsCommand(),
     StartGameCommand(),
+    StartTournamentCommand(),
     CreditCommand(),
     RomanCommand(),
     HelpCommand(),
@@ -557,19 +557,6 @@ async def on_message(msg):
             await msg.channel.send("Can't find that command, boss; try checking the list with `m;help`.")
         except CommandError as ce:
             await msg.channel.send(str(ce))
-
-async def start_game(channel):
-    msg = await channel.send("Play ball!")
-    await asyncio.sleep(4)
-    newgame = games.debug_game()
-    gamesarray.append(newgame)
-    while not newgame.over:
-        state = newgame.gamestate_update_full()
-        if not state.startswith("Game over"):
-            await msg.edit(content=state)
-        await asyncio.sleep(3)
-    await channel.send(state)
-    gamesarray.pop()
 
 
 async def setup_game(channel, owner, newgame):
@@ -697,32 +684,7 @@ Creator, type `{newgame.name} done` to finalize lineups.""")
     await game_task
 
 async def watch_game(channel, newgame, user = None, league = None):
-    blank_emoji = discord.utils.get(client.emojis, id = 790899850295509053)
-    empty_base = discord.utils.get(client.emojis, id = 790899850395779074)
-    occupied_base = discord.utils.get(client.emojis, id = 790899850320543745)
-    out_emoji = discord.utils.get(client.emojis, id = 791578957241778226)
-    in_emoji = discord.utils.get(client.emojis, id = 791578957244792832)
-
-    
-
-    await asyncio.sleep(1)
-    weathers = games.all_weathers()
-    newgame.weather = weathers[random.choice(list(weathers.keys()))]
-    state_init = {
-        "away_name" : newgame.teams['away'].name,
-        "home_name" : newgame.teams['home'].name,
-        "max_innings" : newgame.max_innings,
-        "update_pause" : 0,
-        "top_of_inning" : True,
-        "victory_lap" : False,
-        "weather_emoji" : newgame.weather.emoji,
-        "weather_text" : newgame.weather.name,
-        "start_delay" : 5,
-        "end_delay" : 10
-        } 
-    if newgame.weather.name == "Heavy Snow":
-        newgame.weather.counter_away = random.randint(0,len(newgame.teams['away'].lineup)-1)
-        newgame.weather.counter_home = random.randint(0,len(newgame.teams['home'].lineup)-1)
+    newgame, state_init = prepare_game(newgame)
 
     if league is not None:
         discrim_string = league
@@ -742,15 +704,79 @@ async def watch_game(channel, newgame, user = None, league = None):
 
     await channel.send(f"{newgame.teams['away'].name} vs. {newgame.teams['home'].name}, starting at {config()['simmadome_url']+ext}")
     gamesarray.append((newgame, channel, user, timestamp))
-    
-
 
     main_controller.master_games_dic[timestamp] = (newgame, state_init, discrim_string)
 
-async def play_from_queue(channel, game, user_mention):
-    await channel.send(f"{user_mention}, your game's ready.")
-    game_task = asyncio.create_task(watch_game(channel, game))
-    await game_task
+def prepare_game(newgame, league = None, weather_name = None):
+    if weather_name is None:
+        weathers = games.all_weathers()
+        newgame.weather = weathers[random.choice(list(weathers.keys()))]
+
+    state_init = {
+        "away_name" : newgame.teams['away'].name,
+        "home_name" : newgame.teams['home'].name,
+        "max_innings" : newgame.max_innings,
+        "update_pause" : 0,
+        "top_of_inning" : True,
+        "victory_lap" : False,
+        "weather_emoji" : newgame.weather.emoji,
+        "weather_text" : newgame.weather.name,
+        "start_delay" : 5,
+        "end_delay" : 10
+        } 
+
+    if league is None:
+        state_init["is_league"] = False
+    else:
+        state_init["is_league"] = True
+
+    if newgame.weather.name == "Heavy Snow":
+        newgame.weather.counter_away = random.randint(0,len(newgame.teams['away'].lineup)-1)
+        newgame.weather.counter_home = random.randint(0,len(newgame.teams['home'].lineup)-1)
+    return newgame, state_init
+
+async def start_tournament_round(channel, tourney, seeding = None):
+    current_games = []
+    if tourney.bracket is None:
+        if seeding is None:
+            tourney.build_bracket(random_sort=True)
+
+    games_to_start = tourney.bracket.get_bottom_row()
+
+    for pair in games_to_start:
+        if pair[0] is not None and pair[1] is not None:
+            this_game = games.game(pair[0].finalize(), pair[1].finalize(), length = tourney.game_length)
+            this_game, state_init = prepare_game(this_game)
+
+            state_init["is_league"] = True
+            discrim_string = tourney.name     
+            print(discrim_string)
+
+            timestamp = str(time.time() * 1000.0 + random.randint(0,3000))
+            current_games.append((this_game, timestamp))
+            main_controller.master_games_dic[timestamp] = (this_game, state_init, discrim_string)
+
+    ext = "?league=" + urllib.parse.quote_plus(tourney.name)
+    
+    await channel.send(f"{len(current_games)} games started for the {tourney.name} tournament, at {config()['simmadome_url']+ext}")
+    tourney_task = asyncio.create_task(tourney_watcher(channel, tourney, current_games))
+    await tourney_task
+    
+
+async def tourney_watcher(channel, tourney, games_list):
+    tourney.active = True
+    while len(games_list) > 0:
+         for i in range(0, len(games_list)):
+            game, key = games_list[i]
+            if game.over and main_controller.master_games_dic[key][1]["end_delay"] <= 9:                   
+                final_embed = game_over_embed(game)
+                await channel.send(f"A {tourney.name} game just ended!")                
+                await channel.send(embed=final_embed)
+                gamesarray.pop(i)
+                break
+    tourney.active = False
+    await channel.send(f"This round of games for {tourney.name} is now complete!")
+
 
 async def team_delete_confirm(channel, team, owner):
     team_msg = await channel.send(embed=build_team_embed(team))
@@ -933,37 +959,37 @@ async def game_watcher():
             this_array = gamesarray.copy()
             for i in range(0,len(this_array)):
                 game, channel, user, key = this_array[i]
-                if game.over and main_controller.master_games_dic[key][1]["end_delay"] <= 9:
-                    title_string = f"{game.teams['away'].name} at {game.teams['home'].name} ended after {game.inning-1} innings"
-                    if (game.inning - 1) > game.max_innings: #if extra innings
-                        title_string += f" with {game.inning - (game.max_innings+1)} extra innings."
-                    else:
-                        title_string += "."
-
-                    winning_team = game.teams['home'].name if game.teams['home'].score > game.teams['away'].score else game.teams['away'].name
-                    winstring = f"{game.teams['away'].score} to {game.teams['home'].score}\n"
-                    if game.victory_lap and winning_team == game.teams['home'].name:
-                        winstring += f"{winning_team} wins with a victory lap!"
-                    elif winning_team == game.teams['home'].name:
-                        winstring += f"{winning_team} wins, shaming {game.teams['away'].name}!"
-                    else:
-                       winstring += f"{winning_team} wins!"
-
+                if game.over and main_controller.master_games_dic[key][1]["end_delay"] <= 9:                   
+                    final_embed = game_over_embed(game)
                     if user is not None:
                         await channel.send(f"{user.mention}'s game just ended.")
                     else:
-                        await channel.send("A game started from this channel just ended.")
-
-                    final_embed = discord.Embed(color=discord.Color.dark_purple(), title=title_string)
-                    final_embed.add_field(name="Final score:", value=winstring)
+                        await channel.send("A game started from this channel just ended.")                
                     await channel.send(embed=final_embed)
                     gamesarray.pop(i)
                     break
         except:
             print("something broke in game_watcher")
+        await asyncio.sleep(4)
 
-        await asyncio.sleep(6)
+def game_over_embed(game):
+    title_string = f"{game.teams['away'].name} at {game.teams['home'].name} ended after {game.inning-1} innings"
+    if (game.inning - 1) > game.max_innings: #if extra innings
+        title_string += f" with {game.inning - (game.max_innings+1)} extra innings."
+    else:
+        title_string += "."
 
+    winning_team = game.teams['home'].name if game.teams['home'].score > game.teams['away'].score else game.teams['away'].name
+    winstring = f"{game.teams['away'].score} to {game.teams['home'].score}\n"
+    if game.victory_lap and winning_team == game.teams['home'].name:
+        winstring += f"{winning_team} wins with a victory lap!"
+    elif winning_team == game.teams['home'].name:
+        winstring += f"{winning_team} wins, shaming {game.teams['away'].name}!"
+    else:
+        winstring += f"{winning_team} wins!"
 
+    embed = discord.Embed(color=discord.Color.dark_purple(), title=title_string)
+    embed.add_field(name="Final score:", value=winstring)
+    return embed
         
 client.run(config()["token"])
