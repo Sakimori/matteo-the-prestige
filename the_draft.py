@@ -88,11 +88,13 @@ class Draft:
         if self._active_participant.handle != handle:
             raise ValueError('Invalid drafter')
 
+        player_name = player_name.strip()
+
         player = self._players.get(player_name)
         if not player:
             # might be some whitespace shenanigans
             for name, stats in self._players.items():
-                if name.replace('\xa0', ' ') == player_name:
+                if name.replace('\xa0', ' ').strip() == player_name:
                     player = stats
                     break
             else:
