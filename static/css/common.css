@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Alegreya&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Goldman:wght@700&display=swap');
 body {
-    background-image: url("prism.png");
+    background-image: url("naturalblack.png");
 }
 /* Background pattern from Toptal Subtle Patterns */
 
@@ -28,6 +28,7 @@ h2 {
 .page_header {
     color: white;
     font-family: 'Goldman', cursive;
+    text-decoration: none;
 }
 
 #header {
@@ -39,8 +40,8 @@ h2 {
     align-items: center;
 }
 
-#header > .page_header {
-    margin: auto
+#header .page_header {
+    margin: auto;
 }
 
 #link_div {
