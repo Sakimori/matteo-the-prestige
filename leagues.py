@@ -1,5 +1,6 @@
 import time, asyncio, jsonpickle, random, math
 from games import team, game
+from discord import Embed, Color
 import database as db
 
 
@@ -37,7 +38,7 @@ class tournament(object):
 
         elif by_wins:
             def sorter(team_in_list):
-                return self.teams[team_in_list][0] #sorts by wins
+                return self.teams[team_in_list]["wins"] #sorts by wins
 
         else: #sort by average stars
             def sorter(team_in_list):
@@ -50,9 +51,10 @@ class tournament(object):
 
         for i in range(0, empty_slots):
             teams_list.append(None)
+            print(teams_list)
 
         previous_bracket_layer = teams_list.copy()
-        for i in range(0, bracket_layers-1):
+        for i in range(0, bracket_layers - 1):
             this_layer = []
             for pair in range(0, int(len(previous_bracket_layer)/2)):
                 if pair % 2 == 0: #if even number
@@ -60,6 +62,7 @@ class tournament(object):
                 else:
                     this_layer.insert(0-int((1+pair)/2), [previous_bracket_layer.pop(0), previous_bracket_layer.pop(-1)]) #every other pair goes at end of list, moving backward
             previous_bracket_layer = this_layer
+            print(previous_bracket_layer)
         self.bracket = bracket(previous_bracket_layer, bracket_layers)
         self.bracket.get_bottom_row()
 

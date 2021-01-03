@@ -436,20 +436,20 @@ class StartTournamentCommand(Command):
 
     async def execute(self, msg, command):
         test_bracket = {
-                games.get_team("Milwaukee Lockpicks") : {"wins": 0, "rd": 0},
-                games.get_team("Madagascar Penguins") : {"wins": 0, "rd": 0},
-                games.get_team("Twin Cities Evening") : {"wins": 0, "rd": 0},
-                games.get_team("Washington State Houses") : {"wins": 0, "rd": 0},
-                games.get_team("Appalachian Underground") : {"wins": 0, "rd": 0},
-                games.get_team("Pacific2 Rams") : {"wins": 0, "rd": 0},
-                games.get_team("New Jersey Radio") : {"wins": 0, "rd": 0},
-                games.get_team("Moline Jolenes") : {"wins": 0, "rd": 0},
-                games.get_team("California Commissioners") : {"wins": 0, "rd": 0},
-                games.get_team("Pigeon’s Reckoning") : {"wins": 0, "rd": 0},
-                games.get_team("Kernow Technologists") : {"wins": 0, "rd": 0}
+                games.get_team("Milwaukee Lockpicks") : {"wins": 10, "rd": 0},
+                games.get_team("Madagascar Penguins") : {"wins": 2, "rd": 0},
+                games.get_team("Twin Cities Evening") : {"wins": 1, "rd": 0},
+                games.get_team("Washington State Houses") : {"wins": 9, "rd": 0},
+                games.get_team("Appalachian Underground") : {"wins": 8, "rd": 0},
+                games.get_team("Pacific2 Rams") : {"wins": 3, "rd": 0},
+                games.get_team("New Jersey Radio") : {"wins": 45, "rd": 0},
+                games.get_team("Moline Jolenes") : {"wins": 44, "rd": 0},
+                games.get_team("California Commissioners") : {"wins": 41, "rd": 0},
+                games.get_team("Pigeon’s Reckoning") : {"wins": 45, "rd": 0},
+                games.get_team("Kernow Technologists") : {"wins": 42, "rd": 0}
             }
         tourney = leagues.tournament("Test Tourney", test_bracket, max_innings=3)
-        tourney.build_bracket(random_sort=True)
+        tourney.build_bracket(by_wins=True)
 
         await start_tournament_round(msg.channel, tourney)
 
@@ -757,7 +757,7 @@ async def start_tournament_round(channel, tourney, seeding = None):
     ext = "?league=" + urllib.parse.quote_plus(tourney.name)
     
     await channel.send(f"{len(current_games)} games started for the {tourney.name} tournament, at {config()['simmadome_url']+ext}")
-    await tourney_watcher(channel, tourney, current_games))
+    await tourney_watcher(channel, tourney, current_games)
     
 
 async def tourney_watcher(channel, tourney, games_list):
