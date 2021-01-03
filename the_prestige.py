@@ -743,6 +743,7 @@ async def start_tournament_round(channel, tourney, seeding = None):
             this_game, state_init = prepare_game(this_game)
 
             state_init["is_league"] = True
+            state_init["title"] = f"{tourney.name}: Round of {len(games_to_start)*2}"
             discrim_string = tourney.name     
             print(discrim_string)
 
@@ -973,9 +974,10 @@ async def game_watcher():
 def game_over_embed(game):
     title_string = f"{game.teams['away'].name} at {game.teams['home'].name} ended after {game.inning-1} innings"
     if (game.inning - 1) > game.max_innings: #if extra innings
-        title_string += f" with {game.inning - (game.max_innings+1)} extra innings."
+        title_string += f" with {game.inning - (game.max_innings+1)} extra innings.\n"
     else:
-        title_string += "."
+        title_string += ".\n"
+    title_string += game.weather.emoji + game.weather.name
 
     winning_team = game.teams['home'].name if game.teams['home'].score > game.teams['away'].score else game.teams['away'].name
     winstring = f"{game.teams['away'].score} to {game.teams['home'].score}\n"
