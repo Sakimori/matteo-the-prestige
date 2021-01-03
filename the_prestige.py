@@ -924,7 +924,10 @@ async def team_pages(msg, all_teams, search_term=None):
         embed.set_footer(text = f"Page {page+1} of {page_max}")
         for i in range(0,25):
             try:
-                embed.add_field(name=all_teams[i+25*page].name, value=all_teams[i+25*page].slogan)
+                if all_teams[i+25*page].slogan.strip() != "":
+                    embed.add_field(name=all_teams[i+25*page].name, value=all_teams[i+25*page].slogan)
+                else:
+                    embed.add_field(name=all_teams[i+25*page].name, value="404: Slogan not found")
             except:
                 break
         pages.append(embed)
