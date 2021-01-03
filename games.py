@@ -108,6 +108,14 @@ class team(object):
         else:
             return (None, None, None)
 
+    def average_stars(self):
+        total_stars = 0
+        for _player in self.lineup:
+            total_stars += _player.stlats["batting_stars"]
+        for _player in self.rotation:
+            total_stars += _player.stlats["pitching_stars"]
+        return total_stars/(len(self.lineup) + len(self.rotation))
+
     def swap_player(self, name):
         this_player, index, roster = self.find_player(name)
         if this_player is not None and len(roster) > 1:

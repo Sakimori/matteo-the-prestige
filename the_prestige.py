@@ -1,4 +1,4 @@
-import discord, json, math, os, roman, games, asyncio, random, main_controller, threading, time, leagues, urllib
+import discord, json, math, os, roman, games, asyncio, random, main_controller, threading, time, urllib
 import database as db
 import onomancer as ono
 from flask import Flask
@@ -302,22 +302,25 @@ class SwapPlayerCommand(Command):
     description = "Swaps a player from lineup to rotation, or from rotation to lineup. Requires team ownership."
 
     async def execute(self, msg, command):
-        team_name = command.split("\n")[1].strip()
-        player_name = command.split("\n")[2].strip()
-        team, owner_id = games.get_team_and_owner(team_name)
-        if team is None:
-            await msg.channel.send("Can't find that team, boss. Typo?")
-            return
-        elif owner_id != msg.author.id and msg.author.id not in config()["owners"]:
-            await msg.channel.send("You're not authorized to mess with this team. Sorry, boss.")
-            return
-        elif not team.swap_player(player_name):
-            await msg.channel.send("Either we can't find that player, you've got no space on the other side, or they're your last member of that side of the roster. Can't field an empty lineup, and we *do* have rules, chief.")
-            return
-        else:
-            await msg.channel.send(embed=build_team_embed(team))
-            games.update_team(team)
-            await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
+        try:
+            team_name = command.split("\n")[1].strip()
+            player_name = command.split("\n")[2].strip()
+            team, owner_id = games.get_team_and_owner(team_name)
+            if team is None:
+                await msg.channel.send("Can't find that team, boss. Typo?")
+                return
+            elif owner_id != msg.author.id and msg.author.id not in config()["owners"]:
+                await msg.channel.send("You're not authorized to mess with this team. Sorry, boss.")
+                return
+            elif not team.swap_player(player_name):
+                await msg.channel.send("Either we can't find that player, you've got no space on the other side, or they're your last member of that side of the roster. Can't field an empty lineup, and we *do* have rules, chief.")
+                return
+            else:
+                await msg.channel.send(embed=build_team_embed(team))
+                games.update_team(team)
+                await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
+        except IndexError:
+            await msg.channel.send("Three lines, remember? Command, then team, then name.")
 
 class MovePlayerCommand(Command):
     name = "move"
@@ -328,24 +331,27 @@ class MovePlayerCommand(Command):
     description = "Moves a player in your lineup or rotation. Requires team ownership."
 
     async def execute(self, msg, command):
-        team_name = command.split("\n")[1].strip()
-        player_name = command.split("\n")[2].strip()
-        team, owner_id = games.get_team_and_owner(team_name)
         try:
-            new_pos = int(command.split("\n")[3].strip())
-        except ValueError:
-            await msg.channel.send("Hey, quit being cheeky. We're just trying to help. Third line has to be a natural number, boss.")
-            return
-        if owner_id != msg.author.id and msg.author.id not in config()["owners"]:
-            await msg.channel.send("You're not authorized to mess with this team. Sorry, boss.")
-            return
-        elif not team.slide_player(player_name, new_pos):
-            await msg.channel.send("You either gave us a number that was bigger than your current roster, or we couldn't find the player on the team. Try again.")
-            return
-        else:
-            await msg.channel.send(embed=build_team_embed(team))
-            games.update_team(team)
-            await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
+            team_name = command.split("\n")[1].strip()
+            player_name = command.split("\n")[2].strip()
+            team, owner_id = games.get_team_and_owner(team_name)
+            try:
+                new_pos = int(command.split("\n")[3].strip())
+            except ValueError:
+                await msg.channel.send("Hey, quit being cheeky. We're just trying to help. Third line has to be a natural number, boss.")
+                return
+            if owner_id != msg.author.id and msg.author.id not in config()["owners"]:
+                await msg.channel.send("You're not authorized to mess with this team. Sorry, boss.")
+                return
+            elif not team.slide_player(player_name, new_pos):
+                await msg.channel.send("You either gave us a number that was bigger than your current roster, or we couldn't find the player on the team. Try again.")
+                return
+            else:
+                await msg.channel.send(embed=build_team_embed(team))
+                games.update_team(team)
+                await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
+        except IndexError:
+            await msg.channel.send("Four lines, remember? Command, then team, then name, and finally, new spot on the lineup or rotation.")
 
 class AddPlayerCommand(Command):
     name = "addplayer"
@@ -355,27 +361,30 @@ class AddPlayerCommand(Command):
     description = "Recruits a new player to your team, as either a pitcher or a batter. Requires team ownership."
 
     async def execute(self, msg, command):
-        team_name = command.split("\n")[1].strip()
-        player_name = command.split("\n")[2].strip()
-        team, owner_id = games.get_team_and_owner(team_name)
-        if owner_id != msg.author.id and msg.author.id not in config()["owners"]:
-            await msg.channel.send("You're not authorized to mess with this team. Sorry, boss.")
-            return
-
-        new_player = games.player(ono.get_stats(player_name))
-
-        if "batter" in command.split("\n")[0]:
-            if not team.add_lineup(new_player)[0]:
-                await msg.channel.send("Too many batters 🎶")
-                return
-        elif "pitcher" in command.split("\n")[0]:
-            if not team.add_pitcher(new_player):
-                await msg.channel.send("8 pitchers is quite enough, we think.")
+        try:
+            team_name = command.split("\n")[1].strip()
+            player_name = command.split("\n")[2].strip()
+            team, owner_id = games.get_team_and_owner(team_name)
+            if owner_id != msg.author.id and msg.author.id not in config()["owners"]:
+                await msg.channel.send("You're not authorized to mess with this team. Sorry, boss.")
                 return
 
-        await msg.channel.send(embed=build_team_embed(team))
-        games.update_team(team)
-        await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
+            new_player = games.player(ono.get_stats(player_name))
+
+            if "batter" in command.split("\n")[0]:
+                if not team.add_lineup(new_player)[0]:
+                    await msg.channel.send("Too many batters 🎶")
+                    return
+            elif "pitcher" in command.split("\n")[0]:
+                if not team.add_pitcher(new_player):
+                    await msg.channel.send("8 pitchers is quite enough, we think.")
+                    return
+
+            await msg.channel.send(embed=build_team_embed(team))
+            games.update_team(team)
+            await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
+        except IndexError:
+            await msg.channel.send("Three lines, remember? Command, then team, then name.")
 
 class DeletePlayerCommand(Command):
     name = "removeplayer"
@@ -384,21 +393,24 @@ class DeletePlayerCommand(Command):
     [player name]"""
 
     async def execute(self, msg, command):
-        team_name = command.split("\n")[1].strip()
-        player_name = command.split("\n")[2].strip()
-        team, owner_id = games.get_team_and_owner(team_name)
-        if owner_id != msg.author.id and msg.author.id not in config()["owners"]:
-            await msg.channel.send("You're not authorized to mess with this team. Sorry, boss.")
-            return
+        try:
+            team_name = command.split("\n")[1].strip()
+            player_name = command.split("\n")[2].strip()
+            team, owner_id = games.get_team_and_owner(team_name)
+            if owner_id != msg.author.id and msg.author.id not in config()["owners"]:
+                await msg.channel.send("You're not authorized to mess with this team. Sorry, boss.")
+                return
 
-        if not team.delete_player(player_name):
-            await msg.channel.send("We've got bad news: that player isn't on your team. The good news is that... that player isn't on your team?")
-            return
+            if not team.delete_player(player_name):
+                await msg.channel.send("We've got bad news: that player isn't on your team. The good news is that... that player isn't on your team?")
+                return
 
-        else:
-            await msg.channel.send(embed=build_team_embed(team))
-            games.update_team(team)
-            await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
+            else:
+                await msg.channel.send(embed=build_team_embed(team))
+                games.update_team(team)
+                await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
+        except IndexError:
+            await msg.channel.send("Three lines, remember? Command, then team, then name.")
 
 
 class HelpCommand(Command):

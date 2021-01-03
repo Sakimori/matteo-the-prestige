@@ -29,9 +29,6 @@
     <Compile Include="debug storage.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="leagues.py">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="main_controller.py">
       <SubType>Code</SubType>
     </Compile>
@@ -60,16 +57,28 @@
     <Content Include="games_config.json" />
     <Content Include="ids" />
     <Content Include="matteo.db" />
+    <Content Include="static\css\common.css" />
+    <Content Include="static\css\game.css" />
+    <Content Include="static\css\games_page.css" />
+    <Content Include="static\css\game_page.css" />
+    <Content Include="static\css\prism.png" />
     <Content Include="static\discord.png" />
-    <Content Include="static\game.html" />
-    <Content Include="static\games_page.css" />
-    <Content Include="static\loader.js" />
-    <Content Include="static\prism.png" />
+    <Content Include="static\img\base_empty.png" />
+    <Content Include="static\img\base_filled.png" />
+    <Content Include="static\img\out_in.png" />
+    <Content Include="static\img\out_out.png" />
+    <Content Include="static\js\game_loader.js" />
+    <Content Include="static\js\grid_loader.js" />
+    <Content Include="templates\base.html" />
     <Content Include="templates\game.html" />
+    <Content Include="templates\game_box.html" />
     <Content Include="templates\index.html" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="static\" />
+    <Folder Include="static\css\" />
+    <Folder Include="static\img\" />
+    <Folder Include="static\js\" />
     <Folder Include="templates\" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
