@@ -28,6 +28,7 @@ h2 {
 .page_header {
     color: white;
     font-family: 'Goldman', cursive;
+    text-decoration: none;
 }
 
 #header {
@@ -39,8 +40,8 @@ h2 {
     align-items: center;
 }
 
-#header > .page_header {
-    margin: auto
+#header .page_header {
+    margin: auto;
 }
 
 #link_div {
