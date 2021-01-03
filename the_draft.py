@@ -116,15 +116,17 @@ class Draft:
 
     def get_teams(self):
         teams = {}
-        teams[self._active_participant.handle] = self._active_participant.team
+        if self._active_participant != BOOKMARK:
+            teams[self._active_participant.handle] = self._active_participant.team
         for participant in self._participants:
-            teams[participant.handle] = participant.team
+            if participant != BOOKMARK:
+                teams[participant.handle] = participant.team
         return teams
 
 
 if __name__ == '__main__':
     # extremely robust testing OC do not steal
-    # DRAFT_ROUNDS = 3
+    DRAFT_ROUNDS = 3
     draft = Draft.make_draft()
     draft.add_participant('@bluh', 'Bluhstein Bluhs', 'bluh bluh bluh')
     draft.add_participant('@what', 'Barcelona IDK', 'huh')
