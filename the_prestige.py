@@ -451,9 +451,7 @@ class StartTournamentCommand(Command):
         tourney = leagues.tournament("Test Tourney", test_bracket, max_innings=3)
         tourney.build_bracket(random_sort=True)
 
-        tourney_task = asyncio.create_task(start_tournament_round(msg.channel, tourney))
-        await tourney_task
-
+        await start_tournament_round(msg.channel, tourney)
 
 
 commands = [
@@ -759,21 +757,25 @@ async def start_tournament_round(channel, tourney, seeding = None):
     ext = "?league=" + urllib.parse.quote_plus(tourney.name)
     
     await channel.send(f"{len(current_games)} games started for the {tourney.name} tournament, at {config()['simmadome_url']+ext}")
-    tourney_task = asyncio.create_task(tourney_watcher(channel, tourney, current_games))
-    await tourney_task
+    await tourney_watcher(channel, tourney, current_games))
     
 
 async def tourney_watcher(channel, tourney, games_list):
     tourney.active = True
     while len(games_list) > 0:
-         for i in range(0, len(games_list)):
-            game, key = games_list[i]
-            if game.over and main_controller.master_games_dic[key][1]["end_delay"] <= 9:                   
-                final_embed = game_over_embed(game)
-                await channel.send(f"A {tourney.name} game just ended!")                
-                await channel.send(embed=final_embed)
-                gamesarray.pop(i)
-                break
+        try:
+            for i in range(0, len(games_list)):
+                game, key = games_list[i]
+                if game.over and main_controller.master_games_dic[key][1]["end_delay"] <= 9:                   
+                    final_embed = game_over_embed(game)
+                    await channel.send(f"A {tourney.name} game just ended!")                
+                    await channel.send(embed=final_embed)
+                    games_list.pop(i)
+                    break
+        except:
+            print("something went wrong in tourney_watcher")
+
+        await asyncio.sleep(4)
     tourney.active = False
     await channel.send(f"This round of games for {tourney.name} is now complete!")
 
