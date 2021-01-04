@@ -139,7 +139,7 @@ class team(object):
 
     def slide_player(self, name, new_spot):
         this_player, index, roster = self.find_player(name)
-        if this_player is not None and new_spot < len(roster):
+        if this_player is not None and new_spot <= len(roster):
             roster.pop(index)
             roster.insert(new_spot-1, this_player)
             return True
