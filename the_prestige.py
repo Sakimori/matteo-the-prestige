@@ -99,7 +99,7 @@ class ShowIdolCommand(Command):
 class ShowPlayerCommand(Command):
     name = "showplayer"
     template = "m;showplayer [name]"
-    description = "Displays any name's stars in a nice discord embed, there's a limit of 70 characters. That should be *plenty*. Note: if you want to lookup a lot of different players you can do it on onomancer instead of spamming this command a bunch and clogging up discord: https://onomancer.sibr.dev/reflect"
+    description = "Displays any name's stars in a nice discord embed, there's a limit of 70 characters. That should be *plenty*. Note: if you want to lookup a lot of different players you can do it on onomancer here instead of spamming this command a bunch and clogging up discord: <https://onomancer.sibr.dev/reflect>"
 
     async def execute(self, msg, command):
         player_name = json.loads(ono.get_stats(command.split(" ",1)[1]))
@@ -108,7 +108,7 @@ class ShowPlayerCommand(Command):
 class StartGameCommand(Command):
     name = "startgame"
     template = "m;startgame [away] [home] [innings]"
-    description ="""Starts a game with premade teams made using saveteam, use this command at the top of a list followed by each of these in a new line (shift+enter in discord, or copy+paste from notepad):
+    description ="""Starts a game with premade teams made using saveteam, use this command at the top of a list followed by each of these in a new line (shift+enter in discord, or copy+paste from notepad) (this command has fuzzy search so you don't need to type the full name of the team as long as you give enough to identify the team you're looking for.):
   - the away team's name.
   - the home team's name.
   - and finally, optionally, the number of innings, which must be greater than 2 and less than 31. if not included it will default to 9."""
@@ -181,7 +181,7 @@ class StartGameCommand(Command):
 class StartRandomGameCommand(Command):
     name = "randomgame"
     template = "m;randomgame"
-    description = "Starts a 9-inning game between 2 entirely random teams. Embrace chaos."
+    description = "Starts a 9-inning game between 2 entirely random teams. Embrace chaos!"
 
     async def execute(self, msg, command):
         channel = msg.channel
@@ -227,13 +227,13 @@ class SaveTeamCommand(Command):
    [rotation]"""
 
     description = """Saves a team to the database allowing it to be used for games. Send this command at the top of a list, with entries separated by new lines (shift+enter in discord, or copy+paste from notepad).
-  - the first line of the list is your team's name (cannot contain emoji).
-  - the second line is your team's icon and slogan, this should begin with an emoji followed by a space, followed by a short slogan.
+  - the first line of the list is your team's name.
+  - the second line is the team's icon and slogan, generally this is an emoji followed by a space, followed by a short slogan.
   - the third line must be blank.
   - the next lines are your batters' names in the order you want them to appear in your lineup, lineups can contain any number of batters between 1 and 12.
   - there must be another blank line between your batters and your pitchers.
-  - the final lines are your pitchers' names.
-if you did it correctly, you'll get a team embed with a prompt to confirm. hit the 👍 and it'll be saved."""
+  - the final lines are the names of the pitchers in your rotation, rotations can contain any number of pitchers between 1 and 8.
+If you did it correctly, you'll get a team embed with a prompt to confirm. hit the 👍 and your team will be saved!"""
 
     async def execute(self, msg, command):
         if db.get_team(command.split('\n',1)[1].split("\n")[0]) == None:
@@ -248,7 +248,7 @@ if you did it correctly, you'll get a team embed with a prompt to confirm. hit t
 class ImportCommand(Command):
     name = "import"
     template = "m;import [onomancer collection URL]"
-    description = "Imports an onomancer collection as a new team. You can use the new onomancer simsim setting to ensure compatibility."
+    description = "Imports an onomancer collection as a new team. You can use the new onomancer simsim setting to ensure compatibility. Similarly to saveteam, you'll get a team embed with a prompt to confirm, hit the 👍 and your team will be saved!"
 
     async def execute(self, msg, command):
         team_raw = ono.get_collection(command.strip())
@@ -265,7 +265,7 @@ class ImportCommand(Command):
 class ShowTeamCommand(Command):
     name = "showteam"
     template = "m;showteam [name]"
-    description = "Shows information about any saved team."
+    description = "Shows the lineup, rotation, and slogan of any saved team in a discord embed with primary stat star ratings for all of the players. This command has fuzzy search so you don't need to type the full name of the team as long as you give enough to identify the team you're looking for."
     
     async def execute(self, msg, command):
         team_name = command.strip()
@@ -310,7 +310,7 @@ class SwapPlayerCommand(Command):
     template = """m;swapsection
     [team name]
     [player name]"""
-    description = "Swaps a player from lineup to rotation, or from rotation to lineup. Requires team ownership and exact spelling of team name."
+    description = "Swaps a player from your lineup to the end of your rotation or your rotation to the end of your lineup. Requires team ownership and exact spelling of team name."
 
     async def execute(self, msg, command):
         try:
@@ -339,7 +339,7 @@ class MovePlayerCommand(Command):
     [team name]
     [player name]
     [new lineup/rotation position number] (indexed with 1 being the top)"""
-    description = "Moves a player in your lineup or rotation. Requires team ownership and exact spelling of team name."
+    description = "Moves a player within your lineup or rotation. If you want to instead move a player from your rotation to your lineup or vice versa, use m;swapsection instead. Requires team ownership and exact spelling of team name."
 
     async def execute(self, msg, command):
         try:
@@ -369,7 +369,7 @@ class AddPlayerCommand(Command):
     template = """m;addplayer pitcher (or m;addplayer batter)
     [team name]
     [player name]"""
-    description = "Recruits a new player to your team, as either a pitcher or a batter. Requires team ownership and exact spelling of team name."
+    description = "Adds a new player to the end of your team, either in the lineup or the rotation depending on which version you use. Requires team ownership and exact spelling of team name."
 
     async def execute(self, msg, command):
         try:
@@ -402,7 +402,7 @@ class RemovePlayerCommand(Command):
     template = """m;removeplayer
     [team name]
     [player name]"""
-    description = "Removes a player from your team. Requires team ownership and exact spelling of team name."
+    description = "Removes a player from your team. If there are multiple copies of the same player on a team this will only delete the first one. Requires team ownership and exact spelling of team name."
 
     async def execute(self, msg, command):
         try:
@@ -448,7 +448,7 @@ class HelpCommand(Command):
 class DeleteTeamCommand(Command):
     name = "deleteteam"
     template = "m;deleteteam [name]"
-    description = "Allows you to delete the team with the provided name. Requires team ownership. If you are the owner and the bot is telling you it's not yours, contact xvi and xie can assist."
+    description = "Allows you to delete the team with the provided name. You'll get an embed with a confirmation to prevent accidental deletions. Hit the 👍 and your team will be deleted.. Requires team ownership. If you are the owner and the bot is telling you it's not yours, contact xvi and xie can assist."
 
     async def execute(self, msg, command):
         team_name = command.strip()
@@ -482,7 +482,7 @@ class StartTournamentCommand(Command):
     template = """m;starttournament
     [tournament name]
     [list of teams, each on a new line]"""
-    description = "Starts a tournament with the teams given. Byes will be given to teams to allow for numbers other than powers of two. The current tournament format is:\nBest of 5 until the finals, which are Best of 7"
+    description = "Starts a randomly seeded tournament with up to 64 provided teams, automatically adding byes as necessary. All series have a 5 minute break between games and by default there is a 10 minute break between rounds. The current tournament format is:\nBest of 5 until the finals, which are Best of 7."
 
     async def execute(self, msg, command):
         to_parse = command.split("\n")[0]

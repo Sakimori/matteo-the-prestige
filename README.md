@@ -15,35 +15,35 @@ accepting pull requests, check the issues for to-dos.
 
 #### creation and deletion:
 - m;saveteam
-  - saves a team to the database allowing it to be used for games. use this command at the top of a list with each of these in a new line after:
-	- the team's name.
-	- the team's icon and slogan, generally this is an emoji followed by a space, followed by a short slogan.
-	- a blank line.
-	- the batters' names in the order you want them to appear in your lineup, each on its own line. lineups can contain any number of batters between 1 and 12.
-	- a blank line.
-	- the pitchers' names in the order you want them to appear in your rotation. rotations can contain any number of pitchers between 1 and 8.
-  - if you did everything correctly you'll get a team embed with a prompt to confirm. hit the 👍 and your team will be saved!
+  - saves a team to the database allowing it to be used for games. use this command at the top of a list with entries separated by new lines:
+	- the first line of the list is your team's name.
+	- the second line is the team's icon and slogan, generally this is an emoji followed by a space, followed by a short slogan.
+	- the third line must be blank.
+	- the next lines are your batters' names in the order you want them to appear in your lineup, lineups can contain any number of batters between 1 and 12.
+	- then another blank line seperating your batters and your pitchers.
+	- the final lines are the names of the pitchers in your rotation, rotations can contain any number of pitchers between 1 and 8.
+  - if you did it correctly, you'll get a team embed with a prompt to confirm. hit the 👍 and your team will be saved!
 - m;deleteteam [teamname] (requires team ownership)
   - allows you to delete the team with the provided name. you'll get an embed with a confirmation to prevent accidental deletions. hit the 👍 and your team will be deleted.
 - m;import
   - imports an onomancer collection as a new team. you can use the new onomancer simsim setting to ensure compatibility. similarly to saveteam, you'll get a team embed with a prompt to confirm, hit the 👍 and your team will be saved!
 
-#### editing (all of these commands require ownership of the team used):
+#### editing (all of these commands require ownership and exact spelling of the team name):
 - m;addplayer batter/pitcher [team name] [player name]
-  - adds a new player to the end of your team, either in the lineup or the rotation depending on which version you use. use addplayer batter or addplayer pitcher at the top of a list with each of these in a new line after:
-    -the name of the team you want to add the player to.
-	-the name of the player you want to add to the team.
+  - adds a new player to the end of your team, either in the lineup or the rotation depending on which version you use. use addplayer batter or addplayer pitcher at the top of a list with entries separated by new lines:
+    - the name of the team you want to add the player to.
+	- the name of the player you want to add to the team.
 - m;moveplayer [team name] [player name] [new lineup/rotation position number]
-  - changes the position of a player within your lineup or rotation. if you want to instead move a player from your rotation to your lineup or vice versa, use m;swapsection instead. use this command at the top of a list with each of these in a new line after:
+  - moves a player within your lineup or rotation. if you want to instead move a player from your rotation to your lineup or vice versa, use m;swapsection instead. use this command at the top of a list with entries separated by new lines:
     - the name of the team you want to move the player on.
 	- the name of the player you want to move.
 	- the position you want to move them too, indexed with 1 being the first position of the lineup or rotation. all players below the specified position in the lineup or rotation will be pushed down.
 - m;swapsection [team name] [player name]
-  - swaps a player from your lineup to the end of your rotation or your rotation to the end of your lineup. use this command at the top of a list followed by each of these in a new line after:
+  - swaps a player from your lineup to the end of your rotation or your rotation to the end of your lineup. use this command at the top of a list with entries separated by new lines:
     - the name of the team you want to swap the player on.
 	- the name of the player you want to swap.
 - m;removeplayer [team name] [player name]	
-  - removes a player from your lineup or rotation. if there are multiple copies of the same player on a team this will only delete the first one. use this command at the top of a list with each of these in a new line after:
+  - removes a player from your team. if there are multiple copies of the same player on a team this will only delete the first one. use this command at the top of a list with entries separated by new lines:
 	- the name of the team you want to remove the player from.
 	- the name of the player you want to remove.
 
@@ -61,13 +61,13 @@ accepting pull requests, check the issues for to-dos.
 - m;idolize [name]
   - records any name as your idol, mostly for fun.
 - m;showidol 
-  - displays your idol's name and stars.
+  - displays your idol's name and stars in a discord embed.
   
 ### game commands:
 - m;startgame --day # or -d #
   - starts a game with premade teams made using saveteam. provides a link to the website where you can watch the game. 
   - the --day/-d is optional, if used it'll force the game to use the #th spot in each team's rotations. if this number is larger than the number of pitchers in one or both of the teams' rotations it'll wrap around. if it is not used pitchers will be chosen randomly from the teams' rotations.
-  - use this command at the top of a list with each of these in a new line after:
+  - use this command at the top of a list with entries separated by new lines:
 	- the away team's name.
 	- the home team's name.
 	- optionally, the number of innings, which must be greater than 2 and less than 31. if not included it will default to 9.
@@ -75,9 +75,9 @@ accepting pull requests, check the issues for to-dos.
 - m;randomgame
   - starts a 9-inning game between 2 entirely random teams. embrace chaos!
 - m;starttournament --rounddelay #
-  - starts a randomly seeded tournament with up to 64 provided teams, automatically adding byes as nescesary. all rounds are best of 5 until the finals which is best of 7. all series have a 5 minute break between games.
+  - starts a randomly seeded tournament with up to 64 provided teams, automatically adding byes as necessary. all series have a 5 minute break between games. the current format is: best of 5 until the finals which are best of 7. 
   - the --rounddelay is optional, if used, # must be between 1 and 120 and it'll set the delay between rounds to be # minutes. if not included it will default to 10.
-  - use this command at the top of a list with each of these in a new line after:
+  - use this command at the top of a list with entries separated by new lines:
     - the name of the tournament.
 	- the name of each participating team on its own line.
 
