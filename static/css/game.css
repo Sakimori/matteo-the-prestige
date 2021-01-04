@@ -19,7 +19,7 @@
     border-top: none;
     border-right: none;
     border-bottom: none;
-    height: max-content;
+    height: min-content;
 }
 
 .header {
@@ -41,7 +41,7 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
     grid-template-areas:
       "teams teams info" "players players info" "update update update";
-    grid-template-rows: 5.5rem auto auto;
+    grid-template-rows: minmax(5.75rem, min-content) minmax(4rem, min-content) minmax(4rem, min-content);
     grid-row-gap: 0.5rem;
     grid-column-gap: 0.75rem;
 }
@@ -196,33 +196,21 @@
 }
 
 @media only screen and (max-device-width: 800px) {
-    .batting {
+    .game {
         font-size: 15pt;
-        text-align: left;
-        height: max-content;
-        padding: 5px;
     }
 
-    .leagueoruser {
-        font-size: 15pt;
-        text-align: right;
-        height: max-content;
-        padding: 5px;
+    .batting, .leagueoruser {
+        font-size: 14pt;
+        padding: 3px;
     }
 
     .team_name, .score {
-        font-size: 23px
+        font-size: 25px
     }
 
     .players {
         font-size: 20px;
-        grid-area: players;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-around;
-        align-items: center;
-        height: 100%;
-        padding-right: 50px;
     }
 
     .update_emoji, .update_text {
