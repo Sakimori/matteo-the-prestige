@@ -171,7 +171,12 @@ class team(object):
             self.pitcher = temp_rotation[rotation_slot % len(temp_rotation)]
 
     def is_ready(self):
-        return (len(self.lineup) >= 1 and len(self.rotation) > 0)
+        try:
+            return (len(self.lineup) >= 1 and len(self.rotation) > 0)
+        except AttributeError:
+            self.rotation = [self.pitcher]
+            self.pitcher = None
+            return (len(self.lineup) >= 1 and len(self.rotation) > 0)
 
     def prepare_for_save(self):
         self.lineup_position = 0

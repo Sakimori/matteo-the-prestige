@@ -166,6 +166,46 @@ class StartGameCommand(Command):
             await msg.channel.send("We can't find one or both of those teams. Check your staging, chief.")
             return
 
+class StartRandomGameCommand(Command):
+    name = "randomgame"
+    template = "m;randomgame"
+    description = "Starts a 9-inning game between 2 entirely random teams. Embrace chaos."
+
+    async def execute(self, msg, command):
+        channel = msg.channel
+        await msg.delete()
+        await channel.send("Rolling the bones...")
+        teamslist = games.get_all_teams()
+
+        game = games.game(msg.author.name, random.choice(teamslist).finalize(), random.choice(teamslist).finalize(), length=3)
+
+        game_task = asyncio.create_task(watch_game(channel, game, user="the winds of chaos"))
+        await game_task
+
+class SetupGameCommand(Command):
+    name = "setupgame"
+    template = "m;setupgame"
+    description =  "Begins setting up a 3-inning pickup game. Pitchers, lineups, and team names are given during the setup process by anyone able to type in that channel. Idols are easily signed up via emoji during the process. The game will start automatically after setup."
+
+    async def execute(self, msg, command):
+        if len(gamesarray) > 45:
+            await msg.channel.send("We're running 45 games and we doubt Discord will be happy with any more. These edit requests don't come cheap.")
+            return 
+        elif config()["game_freeze"]:
+            await msg.channel.send("Patch incoming. We're not allowing new games right now.")
+            return
+
+        for game in gamesarray:
+            if game.name == msg.author.name:
+                await msg.channel.send("You've already got a game in progress! Wait a tick, boss.")
+                return
+        try:
+            inningmax = int(command)
+        except:
+            inningmax = 3
+        game_task = asyncio.create_task(setup_game(msg.channel, msg.author, games.game(msg.author.name, games.team(), games.team(), length=inningmax)))
+        await game_task
+        
 class SaveTeamCommand(Command):
     name = "saveteam"
     template = """m;saveteam
@@ -483,6 +523,7 @@ commands = [
     SearchTeamsCommand(),
     StartGameCommand(),
     StartTournamentCommand(),
+    StartRandomGameCommand(),
     CreditCommand(),
     RomanCommand(),
     HelpCommand(),
@@ -771,6 +812,7 @@ async def start_tournament_round(channel, tourney, seeding = None):
     if tourney.round_check(): #if finals
         await channel.send(f"The {tourney.name} finals are starting now, at {config()['simmadome_url']+ext}")
         finals = True
+
     else:
         await channel.send(f"{len(current_games)} games started for the {tourney.name} tournament, at {config()['simmadome_url']+ext}")
         finals = False
