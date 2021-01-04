@@ -518,12 +518,20 @@ class StartTournamentCommand(Command):
                 return
             team_dic[team] = {"wins": 0}
 
+        channel = msg.channel
+        await msg.delete()
+
+        if len(team_dic) < 2:
+            await msg.channel.send("One team does not a tournament make.")
+            return
+
         id = random.randint(1111,9999)
 
         tourney = leagues.tournament(tourney_name, team_dic, id=id, secs_between_rounds = round_delay * 60)
         tourney.build_bracket(random_sort = True)
 
-        await start_tournament_round(msg.channel, tourney)
+        
+        await start_tournament_round(channel, tourney)
 
 
 commands = [
