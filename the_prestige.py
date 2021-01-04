@@ -184,6 +184,10 @@ class StartRandomGameCommand(Command):
     description = "Starts a 9-inning game between 2 entirely random teams. Embrace chaos!"
 
     async def execute(self, msg, command):
+        if config()["game_freeze"]:
+            await msg.channel.send("Patch incoming. We're not allowing new games right now.")
+            return
+
         channel = msg.channel
         await msg.delete()
         await channel.send("Rolling the bones...")
@@ -382,14 +386,17 @@ class AddPlayerCommand(Command):
 
             new_player = games.player(ono.get_stats(player_name))
 
-            if "batter" in command.split("\n")[0]:
+            if "batter" in command.split("\n")[0].lower():
                 if not team.add_lineup(new_player)[0]:
                     await msg.channel.send("Too many batters 🎶")
                     return
-            elif "pitcher" in command.split("\n")[0]:
+            elif "pitcher" in command.split("\n")[0].lower():
                 if not team.add_pitcher(new_player):
                     await msg.channel.send("8 pitchers is quite enough, we think.")
                     return
+            else:
+                await msg.channel.send("You have to tell us if you want a pitcher or a batter, boss. Just say so in the first line, with the command.")
+                return
 
             await msg.channel.send(embed=build_team_embed(team))
             games.update_team(team)
@@ -485,6 +492,10 @@ class StartTournamentCommand(Command):
     description = "Starts a randomly seeded tournament with up to 64 provided teams, automatically adding byes as necessary. All series have a 5 minute break between games and by default there is a 10 minute break between rounds. The current tournament format is:\nBest of 5 until the finals, which are Best of 7."
 
     async def execute(self, msg, command):
+        if config()["game_freeze"]:
+            await msg.channel.send("Patch incoming. We're not allowing new games right now.")
+            return
+
         to_parse = command.split("\n")[0]
         if "--rounddelay " in to_parse:
             try:
@@ -507,12 +518,20 @@ class StartTournamentCommand(Command):
                 return
             team_dic[team] = {"wins": 0}
 
+        channel = msg.channel
+        await msg.delete()
+
+        if len(team_dic) < 2:
+            await msg.channel.send("One team does not a tournament make.")
+            return
+
         id = random.randint(1111,9999)
 
         tourney = leagues.tournament(tourney_name, team_dic, id=id, secs_between_rounds = round_delay * 60)
         tourney.build_bracket(random_sort = True)
 
-        await start_tournament_round(msg.channel, tourney)
+        
+        await start_tournament_round(channel, tourney)
 
 
 commands = [
@@ -1104,7 +1123,9 @@ async def game_watcher():
                 game, channel, user, key = this_array[i]
                 if game.over and main_controller.master_games_dic[key][1]["end_delay"] <= 9:                   
                     final_embed = game_over_embed(game)
-                    if user is not None:
+                    if user is isinstance(user, str):
+                        await channel.send(f"A game started by {user} just ended.")
+                    elif user is not None:
                         await channel.send(f"{user.mention}'s game just ended.")
                     else:
                         await channel.send("A game started from this channel just ended.")                
@@ -1143,24 +1164,5 @@ def get_team_fuzzy_search(team_name):
         if len(teams) == 1:
             team = teams[0]
     return team
-        
-
-#test_bracket = {
-#        "Milwaukee Lockpicks" : {"wins": 4, "rd": 0},
-#        "Madagascar Penguins" : {"wins": 2, "rd": 0},
-#        "Twin Cities Evening" : {"wins": 1, "rd": 0},
-#        "Washington State Houses" : {"wins": 9, "rd": 0},
-#        "Appalachian Underground" : {"wins": 8, "rd": 0},
-#        "Pacific2 Rams" : {"wins": 3, "rd": 0},
-#        "New Jersey Radio" : {"wins": 11, "rd": 0},
-#        "Moline Jolenes" : {"wins": 6, "rd": 0},
-#        "California Commissioners" : {"wins": 10, "rd": 0},
-#        "Pigeon’s Reckoning" : {"wins": 7, "rd": 0},
-#        "Kernow Technologists" : {"wins": 5, "rd": 0}
-#    }
-#tourney = leagues.tournament("Test Tourney", test_bracket, max_innings=3)
-#tourney.build_bracket(by_wins=True)
-#tourney.bracket.set_winners_dive(['Twin Cities Evening','Madagascar Penguins', 'Pacific2 Rams'])
-#print(tourney.bracket.this_bracket)
 
 client.run(config()["token"])
