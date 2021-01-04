@@ -153,4 +153,4 @@ def update_loop():
             })
 
         socketio.emit("states_update", data_to_send)
-        time.sleep(6)
+        time.sleep(8)

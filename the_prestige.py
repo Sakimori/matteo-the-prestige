@@ -427,25 +427,38 @@ class AssignOwnerCommand(Command):
 
 class StartTournamentCommand(Command):
     name = "starttournament"
-    template = "m;starttournament"
-    description = "We'll DM you and get your own tournament set up. Just follow our instructions and we'll be right as rain."
+    template = """m;starttournament
+    [tournament name]
+    [list of teams, each on a new line]"""
+    description = "Starts a tournament with the teams given. Byes will be given to teams to allow for numbers other than powers of two. The current tournament format is:\nBest of 5 until the finals, which are Best of 7"
 
     async def execute(self, msg, command):
-        test_bracket = {
-                games.get_team("Milwaukee Lockpicks") : {"wins": 10, "rd": 0},
-                games.get_team("Madagascar Penguins") : {"wins": 2, "rd": 0},
-                games.get_team("Twin Cities Evening") : {"wins": 1, "rd": 0},
-                games.get_team("Washington State Houses") : {"wins": 9, "rd": 0},
-                games.get_team("Appalachian Underground") : {"wins": 8, "rd": 0},
-                games.get_team("Pacific2 Rams") : {"wins": 3, "rd": 0},
-                games.get_team("New Jersey Radio") : {"wins": 45, "rd": 0},
-                games.get_team("Moline Jolenes") : {"wins": 44, "rd": 0},
-                games.get_team("California Commissioners") : {"wins": 41, "rd": 0},
-                games.get_team("Pigeon’s Reckoning") : {"wins": 45, "rd": 0},
-                games.get_team("Kernow Technologists") : {"wins": 42, "rd": 0}
-            }
-        tourney = leagues.tournament("Test Tourney", test_bracket, max_innings=3)
-        tourney.build_bracket(by_wins=True)
+        to_parse = command.split("\n")[0]
+        if "--rounddelay " in to_parse:
+            try:
+                round_delay = int(to_parse.split("--rounddelay ")[1].split(" ")[0])
+            except ValueError:
+                await msg.channel.send("The delay between rounds should be a whole number.")
+                return
+            if round_delay < 1 or round_delay > 120:
+                await msg.channel.send("The delay between rounds has to be between 1 and 120 minutes.")
+        else:
+            round_delay = 10
+
+        tourney_name = command.split("\n")[1]
+        list_of_team_names = command.split("\n")[2:]
+        team_dic = {}
+        for name in list_of_team_names:
+            team = get_team_fuzzy_search(name.strip())
+            if team == None:
+                await msg.channel.send(f"We couldn't find {name}. Try again?")
+                return
+            team_dic[team] = {"wins": 0}
+
+        id = random.randint(1111,9999)
+
+        tourney = leagues.tournament(tourney_name, team_dic, id=id, secs_between_rounds = round_delay * 60)
+        tourney.build_bracket(random_sort = True)
 
         await start_tournament_round(msg.channel, tourney)
 
@@ -477,7 +490,7 @@ commands = [
 
 client = discord.Client()
 gamesarray = []
-gamesqueue = []
+active_tournaments = []
 setupmessages = {}
 
 thread1 = threading.Thread(target=main_controller.update_loop)
@@ -684,7 +697,10 @@ async def watch_game(channel, newgame, user = None, league = None):
         discrim_string = league
         state_init["is_league"] = True
     elif user is not None:
-        discrim_string = f"Started by {user.name}"
+        if isinstance(user, str):
+            discrim_string = f"Started by {user}"
+        else:
+            discrim_string = f"Started by {user.name}"
         state_init["is_league"] = False
     else:
         discrim_string = "Unclaimed game."
@@ -739,42 +755,113 @@ async def start_tournament_round(channel, tourney, seeding = None):
 
     for pair in games_to_start:
         if pair[0] is not None and pair[1] is not None:
-            this_game = games.game(pair[0].finalize(), pair[1].finalize(), length = tourney.game_length)
+            this_game = games.game(pair[0].prepare_for_save().finalize(), pair[1].prepare_for_save().finalize(), length = tourney.game_length)
             this_game, state_init = prepare_game(this_game)
 
             state_init["is_league"] = True
-            state_init["title"] = f"{tourney.name}: Round of {len(games_to_start)*2}"
+            state_init["title"] = f"0 - 0"
             discrim_string = tourney.name     
-            print(discrim_string)
 
             timestamp = str(time.time() * 1000.0 + random.randint(0,3000))
             current_games.append((this_game, timestamp))
             main_controller.master_games_dic[timestamp] = (this_game, state_init, discrim_string)
 
     ext = "?league=" + urllib.parse.quote_plus(tourney.name)
-    
-    await channel.send(f"{len(current_games)} games started for the {tourney.name} tournament, at {config()['simmadome_url']+ext}")
-    await tourney_watcher(channel, tourney, current_games)
-    
 
-async def tourney_watcher(channel, tourney, games_list):
+    if tourney.round_check(): #if finals
+        await channel.send(f"The {tourney.name} finals are starting now, at {config()['simmadome_url']+ext}")
+        finals = True
+    else:
+        await channel.send(f"{len(current_games)} games started for the {tourney.name} tournament, at {config()['simmadome_url']+ext}")
+        finals = False
+    await tourney_round_watcher(channel, tourney, current_games, config()['simmadome_url']+ext, finals)
+
+async def continue_tournament_series(tourney, queue, games_list, wins_in_series):
+    for oldgame in queue:
+        away_team = games.get_team(oldgame.teams["away"].name)
+        home_team = games.get_team(oldgame.teams["home"].name)
+        this_game = games.game(away_team.finalize(), home_team.finalize(), length = tourney.game_length)
+        this_game, state_init = prepare_game(this_game)
+
+        state_init["is_league"] = True
+
+        state_init["title"] = f"{wins_in_series[oldgame.teams['away'].name]} - {wins_in_series[oldgame.teams['home'].name]}"
+
+        discrim_string = tourney.name     
+
+        timestamp = str(time.time() * 1000.0 + random.randint(0,3000))
+        games_list.append((this_game, timestamp))
+        main_controller.master_games_dic[timestamp] = (this_game, state_init, discrim_string)
+
+    return games_list
+
+async def tourney_round_watcher(channel, tourney, games_list, filter_url, finals = False):
     tourney.active = True
-    while len(games_list) > 0:
-        try:
-            for i in range(0, len(games_list)):
-                game, key = games_list[i]
-                if game.over and main_controller.master_games_dic[key][1]["end_delay"] <= 9:                   
-                    final_embed = game_over_embed(game)
-                    await channel.send(f"A {tourney.name} game just ended!")                
-                    await channel.send(embed=final_embed)
-                    games_list.pop(i)
-                    break
-        except:
-            print("something went wrong in tourney_watcher")
+    active_tournaments.append(tourney)
+    wins_in_series = {}
+    winner_list = []
+    while tourney.active:
+        queued_games = []
+        while len(games_list) > 0:
+            try:
+                for i in range(0, len(games_list)):
+                    game, key = games_list[i]
+                    if game.over and main_controller.master_games_dic[key][1]["end_delay"] <= 9:
+                        if game.teams['home'].name not in wins_in_series.keys():
+                            wins_in_series[game.teams["home"].name] = 0
+                        if game.teams['away'].name not in wins_in_series.keys():
+                            wins_in_series[game.teams["away"].name] = 0
 
-        await asyncio.sleep(4)
-    tourney.active = False
-    await channel.send(f"This round of games for {tourney.name} is now complete!")
+                        winner_name = game.teams['home'].name if game.teams['home'].score > game.teams['away'].score else game.teams['away'].name
+
+                        if winner_name in wins_in_series.keys():
+                            wins_in_series[winner_name] += 1
+                        else:
+                            wins_in_series[winner_name] = 1
+
+                        final_embed = game_over_embed(game)
+                        await channel.send(f"A {tourney.name} game just ended!")                
+                        await channel.send(embed=final_embed)
+                        if wins_in_series[winner_name] >= int((tourney.series_length+1)/2) and not finals:
+                            winner_list.append(winner_name)
+                        elif wins_in_series[winner_name] >= int((tourney.finals_length+1)/2):
+                            winner_list.append(winner_name)
+                        else:
+                            queued_games.append(game)
+                            
+                        games_list.pop(i)
+                        break
+            except:
+                print("something went wrong in tourney_watcher")
+            await asyncio.sleep(4)
+
+        
+        if len(queued_games) > 0:
+            await channel.send(f"The next batch of games for {tourney.name} will start in {int(tourney.delay/60)} minutes.")
+            await asyncio.sleep(tourney.delay)
+            await channel.send(f"{len(queued_games)} games for {tourney.name}, starting at {filter_url}")
+            games_list = await continue_tournament_series(tourney, queued_games, games_list, wins_in_series)
+        else:
+            tourney.active = False
+
+    if finals: #if this last round was finals
+        embed = discord.Embed(color = discord.Color.dark_purple(), title = f"{winner_list[0]} win the {tourney.name} finals!")
+        await channel.send(embed=embed)
+        active_tournaments.pop(active_tournaments.index(tourney))
+        return
+
+    tourney.bracket.set_winners_dive(winner_list)
+
+    winners_string = ""
+    for game in tourney.bracket.get_bottom_row():
+        winners_string += f"{game[0].name}\n{game[1].name}\n"
+    await channel.send(f"""
+This round of games for {tourney.name} is now complete! The next round will be starting in {int(tourney.round_delay/60)} minutes.
+Advancing teams:
+{winners_string}""")
+    await asyncio.sleep(tourney.round_delay)
+    await start_tournament_round(channel, tourney)
+
 
 
 async def team_delete_confirm(channel, team, owner):
@@ -843,8 +930,8 @@ def team_from_collection(newteam_json):
         raise CommandError("We've given you 100 characters for the slogan. Discord puts limits on us and thus, we put limits on you. C'est la vie.")
     if len(newteam_json["lineup"]) > 20:
         raise CommandError("20 players in the lineup, maximum. We're being really generous here.")
-    if not len(newteam_json["rotation"]) == 1:
-        raise CommandError("One and only one pitcher per team, thanks.")
+    if not len(newteam_json["rotation"]) > 8:
+        raise CommandError("8 pitchers on the rotation, max. That's a *lot* of pitchers.")
     for player in newteam_json["lineup"] + newteam_json["rotation"]:
         if len(player["name"]) > 70:
             raise CommandError(f"{player['name']} is too long, chief. 70 or less.")
@@ -1003,4 +1090,23 @@ def get_team_fuzzy_search(team_name):
             team = teams[0]
     return team
         
+
+#test_bracket = {
+#        "Milwaukee Lockpicks" : {"wins": 4, "rd": 0},
+#        "Madagascar Penguins" : {"wins": 2, "rd": 0},
+#        "Twin Cities Evening" : {"wins": 1, "rd": 0},
+#        "Washington State Houses" : {"wins": 9, "rd": 0},
+#        "Appalachian Underground" : {"wins": 8, "rd": 0},
+#        "Pacific2 Rams" : {"wins": 3, "rd": 0},
+#        "New Jersey Radio" : {"wins": 11, "rd": 0},
+#        "Moline Jolenes" : {"wins": 6, "rd": 0},
+#        "California Commissioners" : {"wins": 10, "rd": 0},
+#        "Pigeon’s Reckoning" : {"wins": 7, "rd": 0},
+#        "Kernow Technologists" : {"wins": 5, "rd": 0}
+#    }
+#tourney = leagues.tournament("Test Tourney", test_bracket, max_innings=3)
+#tourney.build_bracket(by_wins=True)
+#tourney.bracket.set_winners_dive(['Twin Cities Evening','Madagascar Penguins', 'Pacific2 Rams'])
+#print(tourney.bracket.this_bracket)
+
 client.run(config()["token"])

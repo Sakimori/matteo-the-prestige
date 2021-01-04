@@ -185,12 +185,11 @@ class team(object):
         for this_player in self.rotation:
             for stat in this_player.game_stats.keys():
                 this_player.game_stats[stat] = 0
-        return True
+        return self
 
     def finalize(self):
         if self.is_ready():
-            if self.pitcher is None:
-                self.set_pitcher()
+            self.set_pitcher()
             while len(self.lineup) <= 4:
                 self.lineup.append(random.choice(self.lineup))       
             return self
