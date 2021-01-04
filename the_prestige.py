@@ -386,14 +386,17 @@ class AddPlayerCommand(Command):
 
             new_player = games.player(ono.get_stats(player_name))
 
-            if "batter" in command.split("\n")[0]:
+            if "batter" in command.split("\n")[0].lower():
                 if not team.add_lineup(new_player)[0]:
                     await msg.channel.send("Too many batters 🎶")
                     return
-            elif "pitcher" in command.split("\n")[0]:
+            elif "pitcher" in command.split("\n")[0].lower():
                 if not team.add_pitcher(new_player):
                     await msg.channel.send("8 pitchers is quite enough, we think.")
                     return
+            else:
+                await msg.channel.send("You have to tell us if you want a pitcher or a batter, boss. Just say so in the first line, with the command.")
+                return
 
             await msg.channel.send(embed=build_team_embed(team))
             games.update_team(team)
