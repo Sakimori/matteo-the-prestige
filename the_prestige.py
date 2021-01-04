@@ -115,14 +115,23 @@ class StartGameCommand(Command):
 
     async def execute(self, msg, command):
         league = None
+        day = None
         if config()["game_freeze"]:
             await msg.channel.send("Patch incoming. We're not allowing new games right now.")
             return
 
         if "-l " in command.split("\n")[0]:          
-            league = command.split("\n")[0].split("-l ")[1]
+            league = command.split("\n")[0].split("-l ")[1].split("-")[0].strip()
         elif "--league " in command.split("\n")[0]:
-            league = command.split("\n")[0].split("--league ")[1]
+            league = command.split("\n")[0].split("--league ")[1].split("-")[0].strip()
+        try:
+            if "-d " in command.split("\n")[0]:
+                day = int(command.split("\n")[0].split("-d ")[1].split("-")[0].strip())
+            elif "--day " in command.split("\n")[0]:
+                day = int(command.split("\n")[0].split("--day ")[1].split("-")[0].strip())
+        except ValueError:
+            await msg.channel.send("Make sure you put an integer after the -d flag.")
+            return
 
         innings = None
         try:
@@ -157,6 +166,9 @@ class StartGameCommand(Command):
 
         if team1 is not None and team2 is not None:
             game = games.game(team1.finalize(), team2.finalize(), length=innings)
+            if day is not None:
+                game.teams['away'].set_pitcher(rotation_slot = day)
+                game.teams['home'].set_pitcher(rotation_slot = day)
             channel = msg.channel
             await msg.delete()
             
@@ -177,7 +189,7 @@ class StartRandomGameCommand(Command):
         await channel.send("Rolling the bones...")
         teamslist = games.get_all_teams()
 
-        game = games.game(msg.author.name, random.choice(teamslist).finalize(), random.choice(teamslist).finalize(), length=3)
+        game = games.game(random.choice(teamslist).finalize(), random.choice(teamslist).finalize())
 
         game_task = asyncio.create_task(watch_game(channel, game, user="the winds of chaos"))
         await game_task
