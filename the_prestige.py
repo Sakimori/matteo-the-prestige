@@ -1,6 +1,8 @@
 import discord, json, math, os, roman, games, asyncio, random, main_controller, threading, time, urllib, leagues
 import database as db
 import onomancer as ono
+import random
+from the_draft import Draft, DRAFT_ROUNDS
 from flask import Flask
 from uuid import uuid4
 
@@ -13,6 +15,12 @@ class Command:
 
     async def execute(self, msg, command):
         return
+
+class DraftError(Exception):
+    pass
+
+class SlowDraftError(DraftError):
+    pass
 
 class CommandError(Exception):
     pass
@@ -572,6 +580,119 @@ class StartTournamentCommand(Command):
         await start_tournament_round(channel, tourney)
 
 
+class DraftPlayerCommand(Command):
+    name = "draft"
+    template = "m;draft [playername]"
+    description = "On your turn during a draft, use this command to pick your player."
+
+    async def execute(self, msg, command):
+        """
+        This is a no-op definition. `StartDraftCommand` handles the orchestration directly,
+        this is just here to provide a help entry and so the command dispatcher recognizes it
+        as valid.
+        """
+        pass
+
+
+class StartDraftCommand(Command):
+    name = "startdraft"
+    template = "m;startdraft [mention] [teamname] [slogan]"
+    description = """Starts a draft with an arbitrary number of participants. Send this command at the 
+top of the list with each mention, teamname, and slogan on a new line (shift+enter in discord).
+ - The draft will proceed in the order that participants were entered.
+ - 20 players will be available for draft at a time, and the pool will refresh automatically when it becomes small.
+ - Each participant will be asked to draft 12 hitters then finally one pitcher.
+ - The draft will start only once every participant has given a 👍 to begin.
+ - use the command `m;draft` on your turn to draft someone
+    """
+
+    async def execute(self, msg, command):
+        draft = Draft.make_draft()
+        mentions = {f'<@!{m.id}>' for m in msg.mentions}
+        content = msg.content.split('\n')[1:]  # drop command out of message
+        if len(content) % 3:
+            await msg.channel.send('Invalid list')
+            raise ValueError('Invalid length')
+
+        for i in range(0, len(content), 3):
+            handle = content[i].strip()
+            team_name = content[i + 1].strip()
+            if games.get_team(team_name):
+                await msg.channel.send(f'Sorry {handle}, {team_name} already exists')
+                raise ValueError('Existing team')
+            slogan = content[i + 2].strip()
+            draft.add_participant(handle, team_name, slogan)
+
+        success = await self.wait_start(msg.channel, mentions)
+        if not success:
+            return
+
+        draft.start_draft()
+        while draft.round <= DRAFT_ROUNDS:
+            choosing = 'pitcher' if draft.round == DRAFT_ROUNDS else 'hitter'
+            await msg.channel.send(
+                f'Round {draft.round}/{DRAFT_ROUNDS}: {draft.active_drafter}, choose a {choosing}.',
+                embed=build_draft_embed(draft.get_draftees()),
+            )
+            try:
+                draft_message = await self.wait_draft(msg.channel, draft)
+                draft.draft_player(f'<@!{draft_message.author.id}>', draft_message.content.split(' ', 1)[1]) 
+            except SlowDraftError:
+                player = random.choice(draft.get_draftees())
+                await msg.channel.send(f"I'm not waiting forever. You get {player}. Next")
+                draft.draft_player(draft.active_drafter, player)
+            except ValueError as e:
+                await msg.channel.send(str(e))
+
+        for handle, team in draft.get_teams().items():
+            await msg.channel.send(f'{handle} behold your team', embed=build_team_embed(team))
+        try:
+            draft.finish_draft()
+        except Exception as e:
+            await msg.channel.send(str(e))
+
+    async def wait_start(self, channel, mentions):
+        start_msg = await channel.send('Are we good to go? ' + ' '.join(mentions))
+        await start_msg.add_reaction("👍")
+        await start_msg.add_reaction("👎")
+
+        def react_check(react, user):
+            return f'<@!{user.id}>' in mentions and react.message == start_msg
+
+        while True:
+            try:
+                react, _ = await client.wait_for('reaction_add', timeout=60.0, check=react_check)
+                if react.emoji == "👎":
+                    await channel.send("Got it, stopping the draft")
+                    return False
+                if react.emoji == "👍":
+                    reactors = set()
+                    async for user in react.users():
+                        reactors.add(f'<@!{user.id}>')
+                    if reactors.intersection(mentions) == mentions:
+                        return True
+            except asyncio.TimeoutError:
+                await channel.send("Y'all aren't ready.")
+                return False
+        return False
+
+    async def wait_draft(self, channel, draft):
+
+        def check(m):
+            if m.channel != channel:
+                return False
+            for prefix in config()['prefix']:
+                if m.content.startswith(prefix + 'draft'):
+                    return True
+            return False
+
+        try:
+            draft_message = await client.wait_for('message', timeout=120.0, check=check)
+        except asyncio.TimeoutError:
+            raise SlowDraftError('Too slow')
+        return draft_message
+
+
 commands = [
     IntroduceCommand(),
     CountActiveGamesCommand(),
@@ -596,6 +717,8 @@ commands = [
     CreditCommand(),
     RomanCommand(),
     HelpCommand(),
+    StartDraftCommand(),
+    DraftPlayerCommand(),
 ]
 
 client = discord.Client()
@@ -1013,6 +1136,16 @@ async def team_delete_confirm(channel, team, owner):
     except asyncio.TimeoutError:
         await channel.send("Guessing you got cold feet, so we're putting the axe away. Let us know if we need to fetch it again, aye?")
         return
+
+
+def build_draft_embed(names):
+    embed = discord.Embed(color=discord.Color.purple(), title="The Draft")
+    column_size = 7
+    for i in range(0, len(names), column_size):
+        draft = '\n'.join(names[i:i + column_size])
+        embed.add_field(name="-", value=draft, inline=True)
+    embed.set_footer(text="You must choose")
+    return embed
 
 
 def build_team_embed(team):

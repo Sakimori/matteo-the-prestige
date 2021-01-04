@@ -1,5 +1,6 @@
 from collections import namedtuple
 import games
+import json
 import uuid
 
 import onomancer
@@ -18,12 +19,9 @@ class Draft:
     of names.
     """
 
-    _ongoing_drafts = {}
-
     @classmethod
     def make_draft(cls):
         draft = cls()
-        cls._ongoing_drafts[draft._id] = draft
         return draft
 
     def __init__(self):
@@ -86,7 +84,7 @@ class Draft:
         `handle` is the participant's discord handle.
         """
         if self._active_participant.handle != handle:
-            raise ValueError('Invalid drafter')
+            raise ValueError(f'{self._active_participant.handle} is drafting, not you')
 
         player_name = player_name.strip()
 
@@ -99,16 +97,16 @@ class Draft:
                     break
             else:
                 # still not found
-                raise ValueError('Player not in draft list')
+                raise ValueError(f'Player `{player_name}` not in draft list')
         del self._players[player['name']]
 
         if len(self._players) <= REFRESH_DRAFT_SIZE:
             self.refresh_players()
 
         if self._round < DRAFT_ROUNDS:
-            self._active_participant.team.add_lineup(player['name'])
+            self._active_participant.team.add_lineup(games.player(json.dumps(player)))
         elif self._round == DRAFT_ROUNDS:
-            self._active_participant.team.set_pitcher(player['name'])
+            self._active_participant.team.set_pitcher(games.player(json.dumps(player)))
 
         self.advance_draft()
         if self._active_participant == BOOKMARK:
@@ -124,6 +122,12 @@ class Draft:
             if participant != BOOKMARK:
                 teams[participant.handle] = participant.team
         return teams
+
+    def finish_draft(self):
+        for handle, team in self.get_teams().items():
+            success = games.save_team(team, int(handle[3:-1]))
+            if not success:
+                raise Exception(f'Error saving team for {handle}')
 
 
 if __name__ == '__main__':
