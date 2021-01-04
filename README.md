@@ -64,12 +64,22 @@ accepting pull requests, check the issues for to-dos.
   - displays your idol's name and stars.
   
 ### game commands:
-- m;startgame
-  - starts a game with premade teams made using saveteam. provide's a link to the website where you can watch the game. use this command at the top of a list with each of these in a new line after:
+- m;startgame --day # or -d #
+  - starts a game with premade teams made using saveteam. provides a link to the website where you can watch the game. 
+  - the --day/-d is optional, if used it'll force the game to use the #th spot in each team's rotations. if this number is larger than the number of pitchers in one or both of the teams' rotations it'll wrap around. if it is not used pitchers will be chosen randomly from the teams' rotations.
+  - use this command at the top of a list with each of these in a new line after:
 	- the away team's name.
 	- the home team's name.
 	- optionally, the number of innings, which must be greater than 2 and less than 31. if not included it will default to 9.
   -	this command has fuzzy search so you don't need to type the full name of the team as long as you give enough to identify the team you're looking for.
+- m;randomgame
+  - starts a 9-inning game between 2 entirely random teams. embrace chaos!
+- m;starttournament --rounddelay #
+  - starts a randomly seeded tournament with up to 64 provided teams, automatically adding byes as nescesary. all rounds are best of 5 until the finals which is best of 7. all series have a 5 minute break between games.
+  - the --rounddelay is optional, if used, # must be between 1 and 120 and it'll set the delay between rounds to be # minutes. if not included it will default to 10.
+  - use this command at the top of a list with each of these in a new line after:
+    - the name of the tournament.
+	- the name of each participating team on its own line.
 
 ### other commands:
 - m;help [command]
