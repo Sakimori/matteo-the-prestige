@@ -190,12 +190,11 @@ class team(object):
         for this_player in self.rotation:
             for stat in this_player.game_stats.keys():
                 this_player.game_stats[stat] = 0
-        return True
+        return self
 
     def finalize(self):
         if self.is_ready():
-            if self.pitcher is None:
-                self.set_pitcher()
+            self.set_pitcher()
             while len(self.lineup) <= 4:
                 self.lineup.append(random.choice(self.lineup))       
             return self
@@ -205,8 +204,7 @@ class team(object):
 
 class game(object):
 
-    def __init__(self, name, team1, team2, length=None):
-        self.name = name
+    def __init__(self, team1, team2, length=None):
         self.over = False
         self.teams = {"away" : team1, "home" : team2}
         self.inning = 1

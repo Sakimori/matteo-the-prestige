@@ -1,4 +1,4 @@
-import asyncio, time, datetime, games, json, threading, jinja2
+import asyncio, time, datetime, games, json, threading, jinja2, leagues
 from flask import Flask, url_for, Response, render_template, request, jsonify
 from flask_socketio import SocketIO, emit
 
@@ -153,4 +153,4 @@ def update_loop():
             })
 
         socketio.emit("states_update", data_to_send)
-        time.sleep(6)
+        time.sleep(8)
