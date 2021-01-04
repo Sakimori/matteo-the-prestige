@@ -126,9 +126,9 @@ class StartGameCommand(Command):
             league = command.split("\n")[0].split("--league ")[1].split("-")[0].strip()
         try:
             if "-d " in command.split("\n")[0]:
-                day = int(command.split("\n")[0].split("-d ")[1].split("-")[0].strip())
+                day = int(command.split("\n")[0].split("-d ")[1].split("-")[0].strip())-1
             elif "--day " in command.split("\n")[0]:
-                day = int(command.split("\n")[0].split("--day ")[1].split("-")[0].strip())
+                day = int(command.split("\n")[0].split("--day ")[1].split("-")[0].strip())-1
         except ValueError:
             await msg.channel.send("Make sure you put an integer after the -d flag.")
             return
