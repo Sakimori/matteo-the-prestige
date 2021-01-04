@@ -1,4 +1,4 @@
-import asyncio, time, datetime, games, json, threading, jinja2
+import asyncio, time, datetime, games, json, threading, jinja2, leagues
 from flask import Flask, url_for, Response, render_template, request, jsonify
 from flask_socketio import SocketIO, emit
 
@@ -9,7 +9,14 @@ socketio = SocketIO(app)
 
 @app.route('/')
 def index():
+    if ('league' in request.args):
+        return render_template("index.html", league=request.args['league'])
     return render_template("index.html")
+
+@app.route('/game')
+def game_page():
+    return render_template("game.html")
+
 
 thread2 = threading.Thread(target=socketio.run,args=(app,'0.0.0.0'))
 thread2.start()
@@ -84,6 +91,19 @@ def update_loop():
                         state["update_emoji"] = "💎" 
                         state["update_text"] = updatestring
 
+                    elif "mulligan" in this_game.last_update[0].keys():
+                        updatestring = ""
+                        punc = ""
+                        if this_game.last_update[0]["defender"] != "":
+                            punc = ", "
+
+                        state["update_emoji"] = "🏌️‍♀️"
+                        state["update_text"] = f"{this_game.last_update[0]['batter']} would have gone out, but they took a mulligan!"
+
+                    elif "snow_atbat" in this_game.last_update[0].keys():
+                        state["update_emoji"] = "❄"
+                        state["update_text"] = this_game.last_update[0]["text"]
+
                     else:
                         updatestring = ""
                         punc = ""
@@ -121,14 +141,16 @@ def update_loop():
             state["update_pause"] -= 1
 
         global data_to_send
-        template = jinja2.Environment(loader=jinja2.FileSystemLoader('templates')).get_template('game.html')
         data_to_send = []
+        template = jinja2.Environment(loader=jinja2.FileSystemLoader('templates')).get_template('game_box.html')
+        
         for timestamp in game_states:
             data_to_send.append({
                 'timestamp' : timestamp,
                 'league' : game_states[timestamp]['leagueoruser'] if game_states[timestamp]['is_league'] else '',
-                'html' : template.render(state=game_states[timestamp])
+                'state' : game_states[timestamp],
+                'html' : template.render(state=game_states[timestamp], timestamp=timestamp)
             })
 
         socketio.emit("states_update", data_to_send)
-        time.sleep(6)
+        time.sleep(8)

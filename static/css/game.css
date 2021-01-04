@@ -1,0 +1,232 @@
+
+:root {
+    --background-main: #2f3136; /*discord dark theme background-secondary - the same color as the embeds*/
+    --background-secondary: #4f545c; /*discord's background-tertiary*/
+    --background-accent: #4f545c; /*discord's background-accent*/
+    --highlight: rgb(113, 54, 138); /*matteo purple™*/
+}
+
+.game {
+    align-self: stretch;
+    justify-self: stretch;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    background:var(--background-main);
+    border: 4px solid;
+    border-radius: 4px;
+    border-color: var(--highlight);
+    border-top: none;
+    border-right: none;
+    border-bottom: none;
+    height: max-content;
+}
+
+.header {
+    width: 100%;
+    background-color: var(--background-secondary);
+    border-top-right-radius: 4px;
+    height: max-content;
+    display: flex;
+    justify-content: space-between
+}
+
+.header > div {
+    margin: 0.3rem 0.5rem;
+}
+
+.body {
+    margin: 0.5rem;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-areas:
+      "teams teams info" "players players info" "update update update";
+    grid-template-rows: 5.5rem auto auto;
+    grid-row-gap: 0.5rem;
+    grid-column-gap: 0.75rem;
+}
+
+.teams {
+    grid-area: teams;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    min-width: 95%;
+    max-width: 100%;
+    width: min-content;
+}
+
+.team {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    margin: 0.25rem 0rem;
+}
+
+.team_name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.info {
+    grid-area: info;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-around;
+    background: #4f545c;
+    padding: 0.75rem 0rem;
+    border-radius: 4px;
+}
+
+.batting {
+    font-size: 10pt;
+    text-align: left;
+    height: max-content;
+    margin: 0.3rem 0.5rem;
+}
+
+.leagueoruser {
+    font-size: 10pt;
+    text-align: right;
+    height: max-content;
+    margin: 0.3rem 0.5rem;
+}
+
+.footer {
+    display: flex;
+    justify-content: space-between;
+}
+
+.outs {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 60%;
+}
+
+.outs_title {
+    font-weight: bolder;
+}
+
+.outs_count {
+    display: flex;
+}
+
+.out {
+    height: 20px;
+}
+
+.team_name, .score {
+    font-size: 25px
+}
+
+.score {
+    background: var(--background-accent);
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+    border-radius: 20px;
+    margin-left: 10px;
+}
+
+.players {
+    grid-area: players;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    grid-column-gap: 0.5rem;
+    margin-left: 0.3rem;
+}
+
+.players > div {
+    margin: 0.25rem 0rem;
+}
+
+.player_type {
+    text-align: end;
+    font-weight: bolder;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.player_name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: start;
+    white-space: nowrap;
+    width: 100%;
+}
+
+.update {
+    grid-area: update;
+    min-height: 3.5rem;
+    padding: 0rem 0.75rem;
+    height: 100%;
+    background: var(--background-secondary);
+    border-radius: 4px;
+    align-items: center;
+    display: flex;
+    justify-content: start;
+}
+
+.update_emoji {
+    margin-right: 0.75rem;
+    margin-left: 2px;
+}
+
+.update_text {
+    text-align: start;
+}
+
+.field {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    flex-direction: column;
+}
+
+.base {
+    height: 60px;
+}
+
+.base_2 {
+    margin-bottom: -25%
+}
+
+@media only screen and (max-device-width: 800px) {
+    .batting {
+        font-size: 15pt;
+        text-align: left;
+        height: max-content;
+        padding: 5px;
+    }
+
+    .leagueoruser {
+        font-size: 15pt;
+        text-align: right;
+        height: max-content;
+        padding: 5px;
+    }
+
+    .team_name, .score {
+        font-size: 23px
+    }
+
+    .players {
+        font-size: 20px;
+        grid-area: players;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        align-items: center;
+        height: 100%;
+        padding-right: 50px;
+    }
+
+    .update_emoji, .update_text {
+        display: inline;
+        font-size: 20px;
+    }
+}
