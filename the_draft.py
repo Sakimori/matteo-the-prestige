@@ -96,7 +96,7 @@ class Draft:
         if not player:
             # might be some whitespace shenanigans
             for name, stats in self._players.items():
-                if name.replace('\xa0', ' ').strip() == player_name:
+                if name.replace('\xa0', ' ').strip().lower() == player_name.lower():
                     player = stats
                     break
             else:
@@ -124,7 +124,7 @@ class Draft:
             teams.append((self._active_participant.handle, self._active_participant.team))
         for participant in self._participants:
             if participant != BOOKMARK:
-                teams.append((self._active_participant.handle, self._active_participant.team))
+                teams.append((participant.handle, participant.team))
         return teams
 
     def finish_draft(self):
@@ -136,7 +136,7 @@ class Draft:
 
 if __name__ == '__main__':
     # extremely robust testing OC do not steal
-    DRAFT_ROUNDS = 3
+    DRAFT_ROUNDS = 2
     draft = Draft.make_draft()
     draft.add_participant('@bluh', 'Bluhstein Bluhs', 'bluh bluh bluh')
     draft.add_participant('@what', 'Barcelona IDK', 'huh')
@@ -151,7 +151,3 @@ if __name__ == '__main__':
         except ValueError as e:
             print(e)
     print(draft.get_teams())
-    print(draft.get_teams()['@bluh'].lineup)
-    print(draft.get_teams()['@bluh'].pitcher)
-    print(draft.get_teams()['@what'].lineup)
-    print(draft.get_teams()['@what'].pitcher)

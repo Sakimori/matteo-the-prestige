@@ -634,31 +634,56 @@ class StartDraftCommand(Command):
             return
 
         draft.start_draft()
+        footer = f"The draft class of {random.randint(2007, 2075)}"
         while draft.round <= DRAFT_ROUNDS:
-            choosing = '⚾️pitcher⚾️' if draft.round == DRAFT_ROUNDS else '🏏hitter🏏'
+            message_prefix = f'Round {draft.round}/{DRAFT_ROUNDS}:'
+            if draft.round == DRAFT_ROUNDS:
+                body = random.choice([
+                    f"Now just choose a pitcher and we can finish off this paperwork for you, {draft.active_drafter}",
+                    f"Pick a pitcher, {draft.active_drafter}, and we can all go home happy. 'Cept your players. They'll have to play bllaseball.",
+                    f"Almost done, {draft.active_drafter}. Pick your pitcher.",
+                ])
+                message = f"⚾️ {message_prefix} {body}"
+            else:
+                body = random.choice([
+                    f"Choose a batter, {draft.active_drafter}",
+                    f"{draft.active_drafter}, your turn. Pick one.",
+                    f"Pick one to fill your next lineup slot, {draft.active_drafter}",
+                    f"Alright, {draft.active_drafter}, choose a batter.",
+                ])
+                message = f"🏏 {message_prefix} {body}"
             await msg.channel.send(
-                f'Round {draft.round}/{DRAFT_ROUNDS}: {draft.active_drafter}, choose a {choosing} for {draft.active_drafting_team}.',
-                embed=build_draft_embed(draft.get_draftees(), footer=f"{choosing[0]}You must choose"),
+                message,
+                embed=build_draft_embed(draft.get_draftees(), footer=footer),
             )
             try:
                 draft_message = await self.wait_draft(msg.channel, draft)
                 draft.draft_player(f'<@!{draft_message.author.id}>', draft_message.content.split(' ', 1)[1])
             except SlowDraftError:
                 player = random.choice(draft.get_draftees())
-                await msg.channel.send(f"I'm not waiting forever. You get {player}. Next")
+                await msg.channel.send(f"I'm not waiting forever. You get {player}. Next.")
                 draft.draft_player(draft.active_drafter, player)
             except ValueError as e:
                 await msg.channel.send(str(e))
+            except IndexError:
+                await msg.channel.send("Quit the funny business.")
 
         for handle, team in draft.get_teams():
-            await msg.channel.send(f'{handle} behold your team', embed=build_team_embed(team))
+            await msg.channel.send(
+                random.choice([
+                    f"Done and dusted, {handle}. Here's your squad.",
+                    f"Behold the {team.name}, {handle}. Flawless, we think.",
+                    f"Oh, huh. Interesting stat distribution. Good luck, {handle}.",
+                ]),
+                embed=build_team_embed(team),
+            )
         try:
             draft.finish_draft()
         except Exception as e:
             await msg.channel.send(str(e))
 
     async def wait_start(self, channel, mentions):
-        start_msg = await channel.send('Are we good to go? ' + ' '.join(mentions))
+        start_msg = await channel.send("Sound off, folks. 👍 if you're good to go " + " ".join(mentions))
         await start_msg.add_reaction("👍")
         await start_msg.add_reaction("👎")
 
@@ -669,7 +694,7 @@ class StartDraftCommand(Command):
             try:
                 react, _ = await client.wait_for('reaction_add', timeout=60.0, check=react_check)
                 if react.emoji == "👎":
-                    await channel.send("Got it, stopping the draft")
+                    await channel.send("We dragged out the photocopier for this! Fine, putting it back.")
                     return False
                 if react.emoji == "👍":
                     reactors = set()
@@ -687,10 +712,10 @@ class StartDraftCommand(Command):
         def check(m):
             if m.channel != channel:
                 return False
-            if m.content.startswith('d') or m.content.startswith('draft'):
+            if m.content.startswith('d ') or m.content.startswith('draft '):
                 return True
             for prefix in config()['prefix']:
-                if m.content.startswith(prefix + 'draft'):
+                if m.content.startswith(prefix + 'draft '):
                     return True
             return False
 
