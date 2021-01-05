@@ -597,8 +597,7 @@ class DraftPlayerCommand(Command):
 class StartDraftCommand(Command):
     name = "startdraft"
     template = "m;startdraft [mention] [teamname] [slogan]"
-    description = """Starts a draft with an arbitrary number of participants. Send this command at the
-top of the list with each mention, teamname, and slogan on a new line (shift+enter in discord).
+    description = """Starts a draft with an arbitrary number of participants. Send this command at the top of the list with each mention, teamname, and slogan on a new line (shift+enter in discord).
  - The draft will proceed in the order that participants were entered.
  - 20 players will be available for draft at a time, and the pool will refresh automatically when it becomes small.
  - Each participant will be asked to draft 12 hitters then finally one pitcher.
