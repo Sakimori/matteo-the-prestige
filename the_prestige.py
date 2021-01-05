@@ -1015,7 +1015,8 @@ def team_from_collection(newteam_json):
     newteam.slogan = newteam_json["slogan"]
     for player in newteam_json["lineup"]:
         newteam.add_lineup(games.player(json.dumps(player)))
-    newteam.set_pitcher(games.player(json.dumps(newteam_json["rotation"][0])))
+    for player in newteam_json["rotation"]:
+        newteam.add_pitcher(games.player(json.dumps(player)))
 
     return newteam
 
