@@ -1069,8 +1069,8 @@ def team_from_collection(newteam_json):
 def team_from_message(command):
     newteam = games.team()
     roster = command.split("\n",1)[1].split("\n")
-    newteam.name = roster[0] #first line is team name
-    newteam.slogan = roster[1] #second line is slogan
+    newteam.name = roster[0].strip() #first line is team name
+    newteam.slogan = roster[1].strip() #second line is slogan
     if not roster[2].strip() == "":
         raise CommandError("The third line should be blank. It wasn't, so just in case, we've not done anything on our end.")
     pitchernum = len(roster)-2
