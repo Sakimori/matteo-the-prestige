@@ -1123,7 +1123,7 @@ async def game_watcher():
                 game, channel, user, key = this_array[i]
                 if game.over and main_controller.master_games_dic[key][1]["end_delay"] <= 9:                   
                     final_embed = game_over_embed(game)
-                    if user is isinstance(user, str):
+                    if isinstance(user, str):
                         await channel.send(f"A game started by {user} just ended.")
                     elif user is not None:
                         await channel.send(f"{user.mention}'s game just ended.")
