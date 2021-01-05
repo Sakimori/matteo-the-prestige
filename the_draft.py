@@ -119,16 +119,16 @@ class Draft:
         return player
 
     def get_teams(self):
-        teams = {}
+        teams = []
         if self._active_participant != BOOKMARK:
-            teams[self._active_participant.handle] = self._active_participant.team
+            teams.append((self._active_participant.handle, self._active_participant.team))
         for participant in self._participants:
             if participant != BOOKMARK:
-                teams[participant.handle] = participant.team
+                teams.append((self._active_participant.handle, self._active_participant.team))
         return teams
 
     def finish_draft(self):
-        for handle, team in self.get_teams().items():
+        for handle, team in self.get_teams():
             success = games.save_team(team, int(handle[3:-1]))
             if not success:
                 raise Exception(f'Error saving team for {handle}')

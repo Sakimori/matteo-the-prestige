@@ -639,7 +639,7 @@ top of the list with each mention, teamname, and slogan on a new line (shift+ent
             choosing = '⚾️pitcher⚾️' if draft.round == DRAFT_ROUNDS else '🏏hitter🏏'
             await msg.channel.send(
                 f'Round {draft.round}/{DRAFT_ROUNDS}: {draft.active_drafter}, choose a {choosing} for {draft.active_drafting_team}.',
-                embed=build_draft_embed(draft.get_draftees()),
+                embed=build_draft_embed(draft.get_draftees(), footer=f"{choosing[0]}You must choose"),
             )
             try:
                 draft_message = await self.wait_draft(msg.channel, draft)
@@ -651,7 +651,7 @@ top of the list with each mention, teamname, and slogan on a new line (shift+ent
             except ValueError as e:
                 await msg.channel.send(str(e))
 
-        for handle, team in draft.get_teams().items():
+        for handle, team in draft.get_teams():
             await msg.channel.send(f'{handle} behold your team', embed=build_team_embed(team))
         try:
             draft.finish_draft()
@@ -1147,13 +1147,13 @@ async def team_delete_confirm(channel, team, owner):
         return
 
 
-def build_draft_embed(names):
-    embed = discord.Embed(color=discord.Color.purple(), title="The Draft")
+def build_draft_embed(names, title="The Draft", footer="You must choose"):
+    embed = discord.Embed(color=discord.Color.purple(), title=title)
     column_size = 7
     for i in range(0, len(names), column_size):
         draft = '\n'.join(names[i:i + column_size])
         embed.add_field(name="-", value=draft, inline=True)
-    embed.set_footer(text="You must choose")
+    embed.set_footer(text=footer)
     return embed
 
 
