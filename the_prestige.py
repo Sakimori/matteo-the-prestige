@@ -2,6 +2,7 @@ import discord, json, math, os, roman, games, asyncio, random, main_controller, 
 import database as db
 import onomancer as ono
 from flask import Flask
+from uuid import uuid4
 
 
 class Command:
@@ -779,15 +780,15 @@ async def watch_game(channel, newgame, user = None, league = None):
         state_init["is_league"] = False
 
 
-    timestamp = str(time.time() * 1000.0)
-    ext = "?game="+timestamp
+    id = str(uuid4())
+    ext = "?game="+id
     if league is not None:
         ext += "&league=" + urllib.parse.quote_plus(league)
 
     await channel.send(f"{newgame.teams['away'].name} vs. {newgame.teams['home'].name}, starting at {config()['simmadome_url']+ext}")
-    gamesarray.append((newgame, channel, user, timestamp))
+    gamesarray.append((newgame, channel, user, id))
 
-    main_controller.master_games_dic[timestamp] = (newgame, state_init, discrim_string)
+    main_controller.master_games_dic[id] = (newgame, state_init, discrim_string)
 
 def prepare_game(newgame, league = None, weather_name = None):
     if weather_name is None:
@@ -834,9 +835,9 @@ async def start_tournament_round(channel, tourney, seeding = None):
             state_init["title"] = f"0 - 0"
             discrim_string = tourney.name     
 
-            timestamp = str(time.time() * 1000.0 + random.randint(0,3000))
-            current_games.append((this_game, timestamp))
-            main_controller.master_games_dic[timestamp] = (this_game, state_init, discrim_string)
+            id = str(uuid4())
+            current_games.append((this_game, id))
+            main_controller.master_games_dic[id] = (this_game, state_init, discrim_string)
 
     ext = "?league=" + urllib.parse.quote_plus(tourney.name)
 
@@ -862,9 +863,9 @@ async def continue_tournament_series(tourney, queue, games_list, wins_in_series)
 
         discrim_string = tourney.name     
 
-        timestamp = str(time.time() * 1000.0 + random.randint(0,3000))
-        games_list.append((this_game, timestamp))
-        main_controller.master_games_dic[timestamp] = (this_game, state_init, discrim_string)
+        id = str(uuid4())
+        games_list.append((this_game, id))
+        main_controller.master_games_dic[id] = (this_game, state_init, discrim_string)
 
     return games_list
 
