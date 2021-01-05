@@ -45,6 +45,10 @@ class Draft:
         """
         return self._active_participant.handle
 
+    @property
+    def active_drafting_team(self):
+        return self._active_participant.team.name
+
     def add_participant(self, handle, team_name, slogan):
         """
         A participant is someone participating in this draft. Initializes an empty team for them
@@ -106,7 +110,7 @@ class Draft:
         if self._round < DRAFT_ROUNDS:
             self._active_participant.team.add_lineup(games.player(json.dumps(player)))
         elif self._round == DRAFT_ROUNDS:
-            self._active_participant.team.set_pitcher(games.player(json.dumps(player)))
+            self._active_participant.team.add_pitcher(games.player(json.dumps(player)))
 
         self.advance_draft()
         if self._active_participant == BOOKMARK:

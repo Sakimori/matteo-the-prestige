@@ -636,9 +636,9 @@ top of the list with each mention, teamname, and slogan on a new line (shift+ent
 
         draft.start_draft()
         while draft.round <= DRAFT_ROUNDS:
-            choosing = 'pitcher' if draft.round == DRAFT_ROUNDS else 'hitter'
+            choosing = '⚾️pitcher⚾️' if draft.round == DRAFT_ROUNDS else '🏏hitter🏏'
             await msg.channel.send(
-                f'Round {draft.round}/{DRAFT_ROUNDS}: {draft.active_drafter}, choose a {choosing}.',
+                f'Round {draft.round}/{DRAFT_ROUNDS}: {draft.active_drafter}, choose a {choosing} for {draft.active_drafting_team}.',
                 embed=build_draft_embed(draft.get_draftees()),
             )
             try:
