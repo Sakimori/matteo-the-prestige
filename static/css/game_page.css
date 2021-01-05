@@ -1,11 +1,7 @@
 #game_container {
-	margin-top: 50px;
+	margin-top: 3rem;
+	margin-left: 1rem;
+	margin-right: 1rem;
 	display: flex;
 	justify-content: space-around;
-}
-
-.game {
-	width: 95%;
-	max-width: 700px;
-	min-width: 600px;
 }

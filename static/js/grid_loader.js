@@ -58,9 +58,7 @@ const updateGames = (json, filter) => {
         if (!Array.prototype.slice.call(grid.children).some(x => x.timestamp == game.timestamp)) {
             for (var slotnum = 0; true; slotnum++) { //this is really a while loop but shh don't tell anyone
                 if (slotnum >= grid.children.length) {
-                    for (var i = 0; i < 3; i ++) {
-                        insertEmpty(grid);
-                    }
+                    insertEmpty(grid);
                 }
                 if (grid.children[slotnum].className == "emptyslot") {
                     insertGame(slotnum, game);
@@ -68,17 +66,9 @@ const updateGames = (json, filter) => {
                 };
             };
         }
-    };
 
-    //remove last rows if not needed
-    while (grid.children[grid.children.length-1].className == "emptyslot" &&
-           grid.children[grid.children.length-2].className == "emptyslot" &&
-           grid.children[grid.children.length-3].className == "emptyslot" &&
-           grid.children.length > 3) {
-        for (var i = 0; i < 3; i++) {
-            grid.removeChild(grid.children[grid.children.length-1]);
-        }
-    }
+        fillgrid(grid)
+    };
 }
 
 const insertEmpty = (grid) => {
@@ -107,6 +97,22 @@ const clearBox = (box) => {
     box.className = "emptyslot";
     box.timestamp = null;
     box.innerHTML = "";
+}
+
+const fillgrid = (grid) => {
+    var gridwidth = window.getComputedStyle(grid).getPropertyValue('grid-template-columns').split(" ").length //hack to get number of grid columns
+
+    // add cells to fill last row
+    while (grid.children.length % gridwidth != 0) {
+        insertEmpty(grid)
+    }
+
+    //remove last rows if not needed
+    while (grid.children.length > gridwidth && Array.prototype.slice.call(grid.children).slice(grid.children.length - gridwidth).every( x => x.className == 'emptyslot')) {
+        for (var i = 0; i < gridwidth; i++) {
+            grid.removeChild(grid.children[grid.children.length-1]);
+        }
+    }
 }
 
 const updateLeagues = (games) => {
@@ -166,3 +172,7 @@ window.onpopstate = function(e) {
         updateGames(lastupdate, "All");
     }
 }
+
+window.addEventListener('resize', function(e) {
+    fillgrid(grid)
+})
