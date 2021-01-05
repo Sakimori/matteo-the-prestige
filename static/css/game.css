@@ -19,9 +19,13 @@
     border-right: none;
     border-bottom: none;
     height: min-content;
+<<<<<<< HEAD
     width: 100%;
     min-width: 32rem;
     max-width: 44rem;
+=======
+    min-width: 500px;
+>>>>>>> upstream/indev
 }
 
 .header {
