@@ -803,8 +803,8 @@ def prepare_game(newgame, league = None, weather_name = None):
         "victory_lap" : False,
         "weather_emoji" : newgame.weather.emoji,
         "weather_text" : newgame.weather.name,
-        "start_delay" : 5,
-        "end_delay" : 10
+        "start_delay" : 3,
+        "end_delay" : 9
         } 
 
     if league is None:
