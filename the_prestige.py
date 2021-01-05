@@ -498,16 +498,51 @@ class StartTournamentCommand(Command):
             return
 
         to_parse = command.split("\n")[0]
+
         if "--rounddelay " in to_parse:
             try:
-                round_delay = int(to_parse.split("--rounddelay ")[1].split(" ")[0])
+                round_delay = int(to_parse.split("--rounddelay ")[1].split("-")[0].strip())
             except ValueError:
                 await msg.channel.send("The delay between rounds should be a whole number.")
                 return
             if round_delay < 1 or round_delay > 120:
-                await msg.channel.send("The delay between rounds has to be between 1 and 120 minutes.")
+                await msg.channel.send("The delay between rounds has to  bebetween 1 and 120 minutes.")
+                return
         else:
             round_delay = 10
+       
+        if "--bestof " in command.split("\n")[0]:
+            try:
+                series_length = int(to_parse.split("--bestof ")[1].split("-")[0].strip())
+                if series_length % 2 == 0 or series_length < 0:
+                    raise ValueError
+            except ValueError:
+                await msg.channel.send("Series length has to be an odd positive integer.")
+                return
+            if msg.author.id not in config()["owners"] and series_length > 21:
+                await msg.channel.send("That's too long, boss. We have to run patches *some* time.")
+                return
+        else:
+            series_length = 5
+
+        if "--finalsbestof " in command.split("\n")[0]:
+            try:
+                finals_series_length = int(to_parse.split("--finalsbestof ")[1].split("-")[0].strip())
+                if finals_series_length % 2 == 0 or finals_series_length < 0:
+                    raise ValueError
+            except ValueError:
+                await msg.channel.send("Finals series length has to be an odd positive integer.")
+                return
+            if msg.author.id not in config()["owners"] and finals_series_length > 21:
+                await msg.channel.send("That's too long, boss. We have to run patches *some* time.")
+                return
+        else:
+            finals_series_length = 7
+
+        rand_seed = not "--seeding stars" in command.split("\n")[0]
+
+        
+        
 
         tourney_name = command.split("\n")[1]
         list_of_team_names = command.split("\n")[2:]
@@ -528,8 +563,8 @@ class StartTournamentCommand(Command):
 
         id = random.randint(1111,9999)
 
-        tourney = leagues.tournament(tourney_name, team_dic, id=id, secs_between_rounds = round_delay * 60)
-        tourney.build_bracket(random_sort = True)
+        tourney = leagues.tournament(tourney_name, team_dic, series_length = series_length, finals_series_length = finals_series_length,  id=id, secs_between_rounds = round_delay * 60)
+        tourney.build_bracket(random_sort = rand_seed)
 
         
         await start_tournament_round(channel, tourney)
@@ -832,7 +867,12 @@ async def start_tournament_round(channel, tourney, seeding = None):
             this_game, state_init = prepare_game(this_game)
 
             state_init["is_league"] = True
-            state_init["title"] = f"0 - 0"
+
+            if tourney.round_check():
+                series_string = f"Best of {tourney.finals_length}:"
+            else:
+                series_string = f"Best of {tourney.series_length}:"
+            state_init["title"] = f"{series_string} 0 - 0"
             discrim_string = tourney.name     
 
             id = str(uuid4())
@@ -859,7 +899,12 @@ async def continue_tournament_series(tourney, queue, games_list, wins_in_series)
 
         state_init["is_league"] = True
 
-        state_init["title"] = f"{wins_in_series[oldgame.teams['away'].name]} - {wins_in_series[oldgame.teams['home'].name]}"
+        if tourney.round_check():
+            series_string = f"Best of {tourney.finals_length}:"
+        else:
+            series_string = f"Best of {tourney.series_length}:"
+
+        state_init["title"] = f"{series_string} {wins_in_series[oldgame.teams['away'].name]} - {wins_in_series[oldgame.teams['home'].name]}"
 
         discrim_string = tourney.name     
 
@@ -880,7 +925,7 @@ async def tourney_round_watcher(channel, tourney, games_list, filter_url, finals
             try:
                 for i in range(0, len(games_list)):
                     game, key = games_list[i]
-                    if game.over and main_controller.master_games_dic[key][1]["end_delay"] <= 9:
+                    if game.over and main_controller.master_games_dic[key][1]["end_delay"] <= 8:
                         if game.teams['home'].name not in wins_in_series.keys():
                             wins_in_series[game.teams["home"].name] = 0
                         if game.teams['away'].name not in wins_in_series.keys():
