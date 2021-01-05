@@ -7,7 +7,7 @@
     grid-auto-flow: row;
 }
 
-.container > div {
+.emptyslot, .game {
     min-height: 298px;
 }
 
@@ -68,12 +68,6 @@
     .container {
         display: grid;
         grid-template-columns: repeat(1, minmax(700px, 90%));
-        grid-template-rows: 400px;
-        grid-gap: 50px 30px; /*space between rows, then columns*/
-        align-items: center;
-        justify-items: center;
-        grid-auto-rows: 400px;
-        grid-auto-flow: row;
         position: absolute;
         left: 50%;
         transform: translate(-50%, 0);
@@ -81,11 +75,6 @@
 
     .emptyslot {
         border: none;
-        border-radius: 15px;
-        align-self: stretch;
-        justify-self: stretch;
-        text-align: center;
-        color: white;
-        flex: 1;
+        min-height: 0px;
     }
 }
