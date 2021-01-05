@@ -1004,7 +1004,7 @@ def team_from_collection(newteam_json):
         raise CommandError("We've given you 100 characters for the slogan. Discord puts limits on us and thus, we put limits on you. C'est la vie.")
     if len(newteam_json["lineup"]) > 20:
         raise CommandError("20 players in the lineup, maximum. We're being really generous here.")
-    if not len(newteam_json["rotation"]) > 8:
+    if len(newteam_json["rotation"]) > 8:
         raise CommandError("8 pitchers on the rotation, max. That's a *lot* of pitchers.")
     for player in newteam_json["lineup"] + newteam_json["rotation"]:
         if len(player["name"]) > 70:
@@ -1016,7 +1016,8 @@ def team_from_collection(newteam_json):
     newteam.slogan = newteam_json["slogan"]
     for player in newteam_json["lineup"]:
         newteam.add_lineup(games.player(json.dumps(player)))
-    newteam.set_pitcher(games.player(json.dumps(newteam_json["rotation"][0])))
+    for player in newteam_json["rotation"]:
+        newteam.add_pitcher(games.player(json.dumps(player)))
 
     return newteam
 
