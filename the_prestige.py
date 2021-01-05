@@ -603,7 +603,7 @@ top of the list with each mention, teamname, and slogan on a new line (shift+ent
  - 20 players will be available for draft at a time, and the pool will refresh automatically when it becomes small.
  - Each participant will be asked to draft 12 hitters then finally one pitcher.
  - The draft will start only once every participant has given a 👍 to begin.
- - use the command `m;draft` on your turn to draft someone
+ - use the command `d`, `draft`, or `m;draft` on your turn to draft someone
     """
 
     async def execute(self, msg, command):
@@ -615,11 +615,18 @@ top of the list with each mention, teamname, and slogan on a new line (shift+ent
             raise ValueError('Invalid length')
 
         for i in range(0, len(content), 3):
-            handle = content[i].strip()
+            handle_token = content[i].strip()
+            for mention in mentions:
+                if mention in handle_token:
+                    handle = mention
+                    break
+            else:
+                await msg.channel.send(f"I don't recognize {handle_token}")
+                return
             team_name = content[i + 1].strip()
             if games.get_team(team_name):
                 await msg.channel.send(f'Sorry {handle}, {team_name} already exists')
-                raise ValueError('Existing team')
+                return
             slogan = content[i + 2].strip()
             draft.add_participant(handle, team_name, slogan)
 
@@ -681,6 +688,8 @@ top of the list with each mention, teamname, and slogan on a new line (shift+ent
         def check(m):
             if m.channel != channel:
                 return False
+            if m.content.startswith('d') or m.content.startswith('draft'):
+                return True
             for prefix in config()['prefix']:
                 if m.content.startswith(prefix + 'draft'):
                     return True
