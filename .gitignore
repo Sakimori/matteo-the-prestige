@@ -347,4 +347,6 @@ ids
 
 # database
 matteo.db
+matteo.db-wal
+matteo.db-shm
 /matteo_env/Lib/site-packages/flask_socketio/__init__.py
