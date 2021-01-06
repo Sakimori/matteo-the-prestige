@@ -2,6 +2,7 @@ import discord, json, math, os, roman, games, asyncio, random, main_controller, 
 import database as db
 import onomancer as ono
 from flask import Flask
+from uuid import uuid4
 
 
 class Command:
@@ -497,16 +498,51 @@ class StartTournamentCommand(Command):
             return
 
         to_parse = command.split("\n")[0]
+
         if "--rounddelay " in to_parse:
             try:
-                round_delay = int(to_parse.split("--rounddelay ")[1].split(" ")[0])
+                round_delay = int(to_parse.split("--rounddelay ")[1].split("-")[0].strip())
             except ValueError:
                 await msg.channel.send("The delay between rounds should be a whole number.")
                 return
             if round_delay < 1 or round_delay > 120:
-                await msg.channel.send("The delay between rounds has to be between 1 and 120 minutes.")
+                await msg.channel.send("The delay between rounds has to  bebetween 1 and 120 minutes.")
+                return
         else:
             round_delay = 10
+       
+        if "--bestof " in command.split("\n")[0]:
+            try:
+                series_length = int(to_parse.split("--bestof ")[1].split("-")[0].strip())
+                if series_length % 2 == 0 or series_length < 0:
+                    raise ValueError
+            except ValueError:
+                await msg.channel.send("Series length has to be an odd positive integer.")
+                return
+            if msg.author.id not in config()["owners"] and series_length > 21:
+                await msg.channel.send("That's too long, boss. We have to run patches *some* time.")
+                return
+        else:
+            series_length = 5
+
+        if "--finalsbestof " in command.split("\n")[0]:
+            try:
+                finals_series_length = int(to_parse.split("--finalsbestof ")[1].split("-")[0].strip())
+                if finals_series_length % 2 == 0 or finals_series_length < 0:
+                    raise ValueError
+            except ValueError:
+                await msg.channel.send("Finals series length has to be an odd positive integer.")
+                return
+            if msg.author.id not in config()["owners"] and finals_series_length > 21:
+                await msg.channel.send("That's too long, boss. We have to run patches *some* time.")
+                return
+        else:
+            finals_series_length = 7
+
+        rand_seed = not "--seeding stars" in command.split("\n")[0]
+
+        
+        
 
         tourney_name = command.split("\n")[1]
         list_of_team_names = command.split("\n")[2:]
@@ -527,8 +563,8 @@ class StartTournamentCommand(Command):
 
         id = random.randint(1111,9999)
 
-        tourney = leagues.tournament(tourney_name, team_dic, id=id, secs_between_rounds = round_delay * 60)
-        tourney.build_bracket(random_sort = True)
+        tourney = leagues.tournament(tourney_name, team_dic, series_length = series_length, finals_series_length = finals_series_length,  id=id, secs_between_rounds = round_delay * 60)
+        tourney.build_bracket(random_sort = rand_seed)
 
         
         await start_tournament_round(channel, tourney)
@@ -779,15 +815,15 @@ async def watch_game(channel, newgame, user = None, league = None):
         state_init["is_league"] = False
 
 
-    timestamp = str(time.time() * 1000.0)
-    ext = "?game="+timestamp
+    id = str(uuid4())
+    ext = "?game="+id
     if league is not None:
         ext += "&league=" + urllib.parse.quote_plus(league)
 
     await channel.send(f"{newgame.teams['away'].name} vs. {newgame.teams['home'].name}, starting at {config()['simmadome_url']+ext}")
-    gamesarray.append((newgame, channel, user, timestamp))
+    gamesarray.append((newgame, channel, user, id))
 
-    main_controller.master_games_dic[timestamp] = (newgame, state_init, discrim_string)
+    main_controller.master_games_dic[id] = (newgame, state_init, discrim_string)
 
 def prepare_game(newgame, league = None, weather_name = None):
     if weather_name is None:
@@ -831,12 +867,17 @@ async def start_tournament_round(channel, tourney, seeding = None):
             this_game, state_init = prepare_game(this_game)
 
             state_init["is_league"] = True
-            state_init["title"] = f"0 - 0"
+
+            if tourney.round_check():
+                series_string = f"Best of {tourney.finals_length}:"
+            else:
+                series_string = f"Best of {tourney.series_length}:"
+            state_init["title"] = f"{series_string} 0 - 0"
             discrim_string = tourney.name     
 
-            timestamp = str(time.time() * 1000.0 + random.randint(0,3000))
-            current_games.append((this_game, timestamp))
-            main_controller.master_games_dic[timestamp] = (this_game, state_init, discrim_string)
+            id = str(uuid4())
+            current_games.append((this_game, id))
+            main_controller.master_games_dic[id] = (this_game, state_init, discrim_string)
 
     ext = "?league=" + urllib.parse.quote_plus(tourney.name)
 
@@ -858,13 +899,18 @@ async def continue_tournament_series(tourney, queue, games_list, wins_in_series)
 
         state_init["is_league"] = True
 
-        state_init["title"] = f"{wins_in_series[oldgame.teams['away'].name]} - {wins_in_series[oldgame.teams['home'].name]}"
+        if tourney.round_check():
+            series_string = f"Best of {tourney.finals_length}:"
+        else:
+            series_string = f"Best of {tourney.series_length}:"
+
+        state_init["title"] = f"{series_string} {wins_in_series[oldgame.teams['away'].name]} - {wins_in_series[oldgame.teams['home'].name]}"
 
         discrim_string = tourney.name     
 
-        timestamp = str(time.time() * 1000.0 + random.randint(0,3000))
-        games_list.append((this_game, timestamp))
-        main_controller.master_games_dic[timestamp] = (this_game, state_init, discrim_string)
+        id = str(uuid4())
+        games_list.append((this_game, id))
+        main_controller.master_games_dic[id] = (this_game, state_init, discrim_string)
 
     return games_list
 
@@ -879,7 +925,7 @@ async def tourney_round_watcher(channel, tourney, games_list, filter_url, finals
             try:
                 for i in range(0, len(games_list)):
                     game, key = games_list[i]
-                    if game.over and main_controller.master_games_dic[key][1]["end_delay"] <= 9:
+                    if game.over and main_controller.master_games_dic[key][1]["end_delay"] <= 8:
                         if game.teams['home'].name not in wins_in_series.keys():
                             wins_in_series[game.teams["home"].name] = 0
                         if game.teams['away'].name not in wins_in_series.keys():
@@ -1003,7 +1049,7 @@ def team_from_collection(newteam_json):
         raise CommandError("We've given you 100 characters for the slogan. Discord puts limits on us and thus, we put limits on you. C'est la vie.")
     if len(newteam_json["lineup"]) > 20:
         raise CommandError("20 players in the lineup, maximum. We're being really generous here.")
-    if not len(newteam_json["rotation"]) > 8:
+    if len(newteam_json["rotation"]) > 8:
         raise CommandError("8 pitchers on the rotation, max. That's a *lot* of pitchers.")
     for player in newteam_json["lineup"] + newteam_json["rotation"]:
         if len(player["name"]) > 70:
@@ -1015,15 +1061,16 @@ def team_from_collection(newteam_json):
     newteam.slogan = newteam_json["slogan"]
     for player in newteam_json["lineup"]:
         newteam.add_lineup(games.player(json.dumps(player)))
-    newteam.set_pitcher(games.player(json.dumps(newteam_json["rotation"][0])))
+    for player in newteam_json["rotation"]:
+        newteam.add_pitcher(games.player(json.dumps(player)))
 
     return newteam
 
 def team_from_message(command):
     newteam = games.team()
     roster = command.split("\n",1)[1].split("\n")
-    newteam.name = roster[0] #first line is team name
-    newteam.slogan = roster[1] #second line is slogan
+    newteam.name = roster[0].strip() #first line is team name
+    newteam.slogan = roster[1].strip() #second line is slogan
     if not roster[2].strip() == "":
         raise CommandError("The third line should be blank. It wasn't, so just in case, we've not done anything on our end.")
     pitchernum = len(roster)-2
@@ -1121,7 +1168,7 @@ async def game_watcher():
             this_array = gamesarray.copy()
             for i in range(0,len(this_array)):
                 game, channel, user, key = this_array[i]
-                if game.over and main_controller.master_games_dic[key][1]["end_delay"] <= 9:                   
+                if game.over and main_controller.master_games_dic[key][1]["end_delay"] <= 8:                   
                     final_embed = game_over_embed(game)
                     if isinstance(user, str):
                         await channel.send(f"A game started by {user} just ended.")

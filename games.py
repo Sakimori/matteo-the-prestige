@@ -501,8 +501,8 @@ class game(object):
             defense_team = self.teams["away"]
 
         if self.weather.name == "Slight Tailwind" and "mulligan" not in self.last_update[0].keys() and not result["ishit"] and result["text"] != appearance_outcomes.walk: 
-            mulligan_roll_target = -((((self.get_batter().stlats["batting_stars"])-7)/7)**2)+1
-            if random.random() > mulligan_roll_target:
+            mulligan_roll_target = -((((self.get_batter().stlats["batting_stars"])-5)/6)**2)+1
+            if random.random() > mulligan_roll_target and self.get_batter().stlats["batting_stars"] >= 5:
                 result["mulligan"] = True
                 return (result, 0)
 
