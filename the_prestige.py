@@ -4,6 +4,8 @@ import onomancer as ono
 from flask import Flask
 from uuid import uuid4
 
+data_dir = "data"
+config_filename = os.path.join(data_dir, "config.json")
 
 class Command:
     def isauthorized(self, user):
@@ -605,7 +607,9 @@ thread1 = threading.Thread(target=main_controller.update_loop)
 thread1.start()
 
 def config():
-    if not os.path.exists("config.json"):
+    if not os.path.exists(os.path.dirname(config_filename)):
+        os.makedirs(os.path.dirname(config_filename))
+    if not os.path.exists(config_filename):
         #generate default config
         config_dic = {
                 "token" : "",
@@ -617,12 +621,12 @@ def config():
                 "soulscream channel id" : 0,
                 "game_freeze" : 0
             }
-        with open("config.json", "w") as config_file:
+        with open(config_filename, "w") as config_file:
             json.dump(config_dic, config_file, indent=4)
             print("please fill in bot token and any bot admin discord ids to the new config.json file!")
             quit()
     else:
-        with open("config.json") as config_file:
+        with open(config_filename) as config_file:
             return json.load(config_file)
 
 @client.event
