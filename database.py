@@ -9,6 +9,10 @@ def create_connection():
     conn = None
     try:
         conn = sql.connect(os.path.join(data_dir, "matteo.db"))
+
+        # enable write-ahead log for performance and resilience
+        conn.execute('pragma journal_mode=wal')
+
         return conn
     except:
         print("oops, db connection no work")
