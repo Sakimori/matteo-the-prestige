@@ -103,9 +103,6 @@ class bracket(object):
             self.depth += 1
             return self.dive(branch[0]), self.dive(branch[1])
 
-    #def set_winners(self, branch, winners_list):
-        #new_bracket = 
-
     def set_winners_dive(self, winners_list, index = 0, branch = None, parent = None):
         if branch is None:
             branch = self.this_bracket.copy()
