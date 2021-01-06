@@ -88,10 +88,19 @@ const insertGame = (gridboxnum, game) => {
 const insertLeague = (league) => {
     var btn = document.createElement("BUTTON");
     btn.className = "filter";
-    btn.innerHTML = league;
+    btn.innerHTML = escapeHtml(league);
     $('#filters').append(btn);
     return btn;
 }
+
+function escapeHtml(unsafe) {
+    return unsafe
+         .replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#039;");
+ }
 
 const clearBox = (box) => {
     box.className = "emptyslot";
