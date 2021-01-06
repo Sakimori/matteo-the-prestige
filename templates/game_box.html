@@ -5,18 +5,18 @@ src={% if state.bases[number] %}"/static/img/base_filled.png" alt="{{state.bases
 {% if number <= state.outs %}/static/img/out_out.png{% else %}/static/img/out_in.png{% endif %}
 {%- endmacro %}
 <div class="header">
-    <div class="inning">Inning: {% if state.display_top_of_inning == true %}🔼{% else %}🔽{% endif %} {{ state.display_inning }}/{{ state.max_innings }}</div>
-    <div class="title">{{ state.title }}</div>
-    <div class="weather">{{ state.weather_emoji }} {{ state.weather_text }}</div>
+    <div class="inning">Inning: {% if state.display_top_of_inning == true %}🔼{% else %}🔽{% endif %} {{ state.display_inning | escape }}/{{ state.max_innings | escape }}</div>
+    <div class="title">{{ state.title  | escape }}</div>
+    <div class="weather">{{ state.weather_emoji | escape }} {{ state.weather_text  | escape }}</div>
 </div>
 <div class="body">
     <div class="teams">
         <div class="team">
-            <div class="team_name">{{ state.away_name }}</div>
+            <div class="team_name">{{ state.away_name | escape }}</div>
             <div class="score">{{ state.away_score }}</div>
         </div>
         <div class="team">
-            <div class="team_name">{{ state.home_name }}</div>
+            <div class="team_name">{{ state.home_name | escape }}</div>
             <div class="score">{{ state.home_score }}</div>
         </div>
     </div>
@@ -38,16 +38,16 @@ src={% if state.bases[number] %}"/static/img/base_filled.png" alt="{{state.bases
     </div>
     <div class="players">
         <div class="player_type">PITCHER</div>
-        <div class="player_name pitcher_name">{{ state.pitcher }}</div>
+        <div class="player_name pitcher_name">{{ state.pitcher | escape }}</div>
         <div class="player_type">BATTER</div>
-        <div class="player_name batter_name">{{ state.batter }}</div>
+        <div class="player_name batter_name">{{ state.batter | escape }}</div>
     </div>
     <div class="update">
-        <div class="update_emoji">{{ state.update_emoji }}</div>
-        <div class="update_text">{{ state.update_text }}</div>
+        <div class="update_emoji">{{ state.update_emoji | escape }}</div>
+        <div class="update_text">{{ state.update_text | escape }}</div>
     </div>
 </div>
 <div class="footer">
-    <div class="batting">{% if state.display_top_of_inning == true %}{{ state.away_name }}{% else %}{{ state.home_name }}{% endif %} batting.</div>
-    <div class="leagueoruser">{{ state.leagueoruser }} (<a href="/game?timestamp={{ timestamp }}">share</a>)</div>
+    <div class="batting">{% if state.display_top_of_inning == true %}{{ state.away_name | escape }}{% else %}{{ state.home_name | escape }}{% endif %} batting.</div>
+    <div class="leagueoruser">{{ state.leagueoruser | escape }} (<a href="/game?timestamp={{ timestamp }}">share</a>)</div>
 </div>
