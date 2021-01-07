@@ -2,8 +2,13 @@ import json, random, os, math, jsonpickle
 from enum import Enum
 import database as db
 
+data_dir = "data"
+games_config_file = os.path.join(data_dir, "games_config.json")
+
 def config():
-    if not os.path.exists("games_config.json"):
+    if not os.path.exists(os.path.dirname(games_config_file)):
+        os.makedirs(os.path.dirname(games_config_file))
+    if not os.path.exists(games_config_file):
         #generate default config
         config_dic = {
                 "default_length" : 3,
@@ -16,11 +21,11 @@ def config():
                 "stolen_base_chance_mod" : 1,
                 "stolen_base_success_mod" : 1
             }
-        with open("games_config.json", "w") as config_file:
+        with open(games_config_file, "w") as config_file:
             json.dump(config_dic, config_file, indent=4)
             return config_dic
     else:
-        with open("games_config.json") as config_file:
+        with open(games_config_file) as config_file:
             return json.load(config_file)
 
 def all_weathers():
