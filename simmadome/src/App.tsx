@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState, useRef, useEffect} from 'react';
 import io from 'socket.io-client';
 import './App.css';
 import Game from './Game';
@@ -26,120 +26,95 @@ interface GameState {
 
 type GameList = ([id: string, game: GameState] | null)[];
 
-interface AppProps { 
-  filter: string | null
-  gameId: string | null
-}
+function App(props: {filter: string | null, gameId: string | null}) {
 
-interface AppState { 
-  filter: string
-  games: [string, GameState][] 
-}
+  let [games, setGames] = useState(new Array<[string, GameState]>());
+  let [filter, setFilter] = useState("");
+  useListener(setGames);
 
-class App extends React.Component<AppProps, AppState> {
-  gameList: GameList;
+  let filters: string[] = [];
+  games.forEach((game, id) => { if (game[1].is_league && !filters.includes(game[1].leagueoruser)) { filters.push(game[1].leagueoruser) }});
 
-  constructor(props: AppProps) {
-    super(props);
-
-    let socket = io();
-    socket.on('connect', () => socket.emit('recieved', {}));
-    socket.on('states_update', (update: [string, GameState][]) => this.onStatesUpdate(update));
-
-    this.gameList = [];
-    this.state = {
-      filter: props.filter ?? "",
-      games: []
-    };
-    this.onSelectNewFilter = this.onSelectNewFilter.bind(this);
-  }
-
-  onStatesUpdate(newStates: [string, GameState][]) {
-    console.log(newStates);
-    this.setState({ games: newStates });
-  }
-
-  onSelectNewFilter(newFilter: string) {
-    this.setState({ filter: newFilter });
-    this.gameList = [];
-  }
-
-  updateGameList() {
-    let filterGames = this.state.games.filter((game, i) => this.state.filter === "" || game[1].leagueoruser === this.state.filter)
-
-    //remove games no longer present, update games with new info
-    for (let i = 0; i < this.gameList.length; i ++) {
-      if (this.gameList[i] !== null) {
-        let newState = filterGames.find((val) => val[0] === this.gameList[i]![0]);
-        if (newState !== undefined) {
-          this.gameList[i] = newState;
-        } else {
-          this.gameList[i] = null;
-        }
-      }
-    }
-
-    // add games not present
-    for (let game of filterGames) {
-      if (!this.gameList.find((val) => val !== null && val[0] === game[0])) {
-        let firstEmpty = this.gameList.indexOf(null);
-        if (firstEmpty < 0) {
-          this.gameList.push(game)
-        } else {
-          this.gameList[firstEmpty] = game;
-        }
-      }
-    }
-
-    //remove trailing empty cells
-    while (this.gameList[this.gameList.length-1] === null) {
-      this.gameList.pop();
-    }
-  }
-
-  render() {
-    this.updateGameList();
-
-    let filters: string[] = [];
-    this.state.games.forEach((game, id) => { if (game[1].is_league && !filters.includes(game[1].leagueoruser)) { filters.push(game[1].leagueoruser) }});
-    return (
-      <div className="App">
-        <Filters filterList={filters} selectedFilter={this.state.filter} onSelectNewFilter={this.onSelectNewFilter}/>
-        <Grid gameList={this.gameList}/>
-        <Footer has_games={this.gameList.length > 0}/>
-      </div>
-    );
-  }
-}
-
-function Filters (props: {filterList: string[], selectedFilter: string, onSelectNewFilter: (newFilter: string) => void}) {
-  let filters = props.filterList.map((filter: string) => 
-    <button className="filter"
-            id={filter === props.selectedFilter ? "selected_filter" : ""}
-            onClick={() => props.onSelectNewFilter(filter)}>
-      {filter}
-    </button>
-  )
+  let gameList = useRef(new Array<(string | null)>());
+  let filterGames = games.filter((game, i) => filter === "" || game[1].leagueoruser === filter);
+  updateList(gameList.current, filterGames);
 
   return (
-    <div id="filters">
-        <div>Filter:</div>
-        <button className="filter" 
-                id={"" === props.selectedFilter ? "selected_filter" : ""} 
-                onClick={() => props.onSelectNewFilter("")}>
-          All
-        </button>
-        {filters}
+    <div className="App">
+      <Filters filterList={filters} selectedFilter={filter} onSelectNewFilter={(filter: string) => {gameList.current = []; setFilter(filter)}}/>
+      <Grid gameList={gameList.current.map((val) => val !== null ? filterGames.find((game) => game[0] === val) as [string, GameState] : null )}/>
+      <Footer has_games={filterGames.length > 0}/>
     </div>
   );
 }
 
+// App Utils
+
+// connects to the given url (or host if none) and waits for state updates
+const useListener = (onUpdate: (update: [string, GameState][]) => void, url: string | null = null) => {
+  useEffect(() => {
+    let socket = url ? io(url) : io();
+    socket.on('connect', () => socket.emit('recieved', {}));
+    socket.on('states_update', onUpdate);
+    return () => {socket.disconnect()}
+  }, [url])
+}
+
+// adds and removes games from list to keep it up to date, without relocating games already in place
+function updateList(gameList: (string | null)[], games: [string, GameState][]) {
+
+  //remove games no longer present
+  for (let i = 0; i < gameList.length; i ++) {
+    if (gameList[i] !== null && games.findIndex((val) => val[0] === gameList[i]) < 0) {
+        gameList[i] = null;
+    }
+  }
+
+  // add games not present
+  for (let game of games) {
+    if (!gameList.find((val) => val !== null && val === game[0])) {
+      let firstEmpty = gameList.indexOf(null);
+      if (firstEmpty < 0) {
+        gameList.push(game[0])
+      } else {
+        gameList[firstEmpty] = game[0];
+      }
+    }
+  }
+
+  //remove trailing empty cells
+  while (gameList[gameList.length-1] === null) {
+    gameList.pop();
+  }
+}
+
+function Filters (props: {filterList: string[], selectedFilter: string, onSelectNewFilter: (newFilter: string) => void}) {
+  function Filter(innerprops: {title: string, filter:string} ) {
+    return (
+      <button className="filter"
+              id={innerprops.filter === props.selectedFilter ? "selected_filter" : ""}
+              onClick={() => props.onSelectNewFilter(innerprops.filter)}>
+        {innerprops.title}
+      </button>
+    );
+  }
+
+  return (
+    <div id="filters">
+      <div>Filter:</div>
+      <Filter title="All" filter="" key="" />
+      {props.filterList.map((filter: string) => 
+        <Filter title={filter} filter={filter} key={filter} />
+      )}
+    </div>
+  );
+}
 
 function Grid(props: { gameList: GameList }) {
    return (
     <section className="container" id="container">
       {props.gameList.map((game) => {if (game) {
-        return <Game gameId={game[0]} state={game[1]}/>
+        return <Game gameId={game[0]} state={game[1]} key={game[0]}/>
       } else {
         return <div className="emptyslot"/>
       }})}
