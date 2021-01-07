@@ -8,7 +8,7 @@ import reportWebVitals from './reportWebVitals';
 ReactDOM.render(
   <React.StrictMode>
   	<Header />
-    <App />
+    <App filter={null} gameId={null}/>
   </React.StrictMode>,
   document.getElementById('root')
 );
@@ -22,7 +22,7 @@ function Header() {
             <a href="https://github.com/Sakimori/matteo-the-prestige" className="link" target="_blank" rel="noopener noreferrer">Github</a><br />
             <a href="https://twitter.com/intent/follow?screen_name=SIBR_XVI" className="link" target="_blank" rel="noopener noreferrer">Twitter</a>
         </div>
-        <a href="/" className="page_header"><h2 className="page_header" style={{"font-size":"50px"} as React.CSSProperties}>THE SIMMADOME</h2></a>
+        <a href="/" className="page_header"><h2 className="page_header" style={{fontSize:"50px"} as React.CSSProperties}>THE SIMMADOME</h2></a>
         <h2 className="page_header">Join SIBR on <a href="https://discord.gg/UhAajY2NCW" className="link"><img src={discordlogo} alt="" height="30"/></a> to start your own games!</h2>
     </div>
   );

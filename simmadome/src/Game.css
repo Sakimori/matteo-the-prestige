@@ -1,4 +1,3 @@
-
 :root {
     --background-main: #2f3136; /*discord dark theme background-secondary - the same color as the embeds*/
     --background-secondary: #4f545c; /*discord's background-tertiary*/
@@ -193,7 +192,7 @@
     height: 60px;
 }
 
-.base_2 {
+.field > .base {
     margin-bottom: -25%
 }
 
