@@ -1,4 +1,4 @@
-import React, {useState, useRef, useEffect} from 'react';
+import React, {useState, useRef, useEffect, useLayoutEffect} from 'react';
 import io from 'socket.io-client';
 import './App.css';
 import Game from './Game';
@@ -56,7 +56,7 @@ const useListener = (onUpdate: (update: [string, GameState][]) => void, url: str
     let socket = url ? io(url) : io();
     socket.on('connect', () => socket.emit('recieved', {}));
     socket.on('states_update', onUpdate);
-    return () => {socket.disconnect()}
+    return () => {socket.disconnect()};
   }, [url])
 }
 
@@ -111,13 +111,45 @@ function Filters (props: {filterList: string[], selectedFilter: string, onSelect
 }
 
 function Grid(props: { gameList: GameList }) {
-   return (
-    <section className="container" id="container">
-      {props.gameList.map((game) => {if (game) {
-        return <Game gameId={game[0]} state={game[1]} key={game[0]}/>
-      } else {
-        return <div className="emptyslot"/>
-      }})}
+  let self: React.RefObject<HTMLElement> = useRef(null);
+  let [numcols, setNumcols] = useState(3);
+  let newList = [...props.gameList];
+
+  while (newList.length === 0 || newList.length % numcols !== 0) {
+    newList.push(null);
+  }
+
+  function getCols() {
+    if (self.current !== null) {
+      //this is a hack, but there's weirdly no "real" way to get the number of columns
+      return window.getComputedStyle(self.current).getPropertyValue('grid-template-columns').split(' ').length;
+    } else {
+      return 3;
+    }
+  }
+
+  useLayoutEffect(() => {
+    setNumcols(getCols());
+  }, [])
+
+  useEffect(() => {
+    window.addEventListener('resize', (event) => {
+      setNumcols(getCols());
+    })
+  })
+
+
+  let slots = newList.map((game) => {
+    if (game) {
+      return <Game gameId={game[0]} state={game[1]} key={game[0]}/>
+    } else {
+      return <div className="emptyslot"/>
+    }
+  })
+
+  return (
+    <section className="container" id="container" ref={self}>
+      {slots.map((elem) => <div className="slot_container">{elem}</div>)}
     </section>
   );
 }

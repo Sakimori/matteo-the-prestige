@@ -25,7 +25,6 @@ game_states = []
 
 @socketio.on("recieved")
 def handle_new_conn(data):
-    print("new connection")
     socketio.emit("states_update", game_states, room=request.sid)
 
 def update_loop():
