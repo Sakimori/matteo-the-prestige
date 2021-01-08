@@ -50,7 +50,7 @@ class appearance_outcomes(Enum):
     single = "hits a single!"
     double = "hits a double!"
     triple = "hits a triple!"
-    homerun = "hits a home run!"
+    homerun = "hits a dinger!"
     grandslam = "hits a grand slam!"
 
 
