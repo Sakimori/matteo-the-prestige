@@ -22,7 +22,7 @@ function GamesPage() {
 
   let gameList = useRef(new Array<(string | null)>());
   let filterGames = games.filter((game, i) => filter === "" || game[1].leagueoruser === filter);
-  updateList(gameList.current, filterGames, searchparams.get('gameId'));
+  updateList(gameList.current, filterGames, searchparams.get('game'));
 
   return (
     <>

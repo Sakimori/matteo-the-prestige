@@ -1,6 +1,7 @@
 import { GameState } from './GamesUtil';
 import twemoji from 'twemoji';
 import React, { useRef, useLayoutEffect } from 'react';
+import { Link } from 'react-router-dom';
 import './Game.css';
 import base_filled from './img/base_filled.png';
 import base_empty from './img/base_empty.png';
@@ -56,7 +57,7 @@ function Game(props: {gameId: string, state : GameState}) {
 			</div>
 			<div className="footer">
 			    <div className="batting">{state.display_top_of_inning ? state.away_name : state.home_name} batting.</div>
-			    <div className="leagueoruser">{state.leagueoruser} (<a href={"/game?id=" + props.gameId}>share</a>)</div>
+			    <div className="leagueoruser">{state.leagueoruser} (<Link to={"/game?id=" + props.gameId}>share</Link>)</div>
 			</div>
 		</div>
 	);
