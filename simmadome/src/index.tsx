@@ -1,18 +1,24 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
 import './index.css';
-import App from './App';
+import GamesPage from './GamesPage';
+import GamePage from './GamePage';
 import discordlogo from "./img/discord.png";
 import reportWebVitals from './reportWebVitals';
 
 ReactDOM.render(
   <React.StrictMode>
-  	<Header />
-    <App filter={null} gameId={null}/>
+    <Router>
+      <Header />
+      <Switch>
+        <Route path="/game" component={() => <GamePage key={window.location.search}/>}/>
+        <Route path="/" component={() => <GamesPage />}/>
+      </Switch>
+    </Router>
   </React.StrictMode>,
   document.getElementById('root')
 );
-
 
 function Header() {
   return (

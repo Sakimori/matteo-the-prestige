@@ -1,4 +1,6 @@
-import { GameState } from './App';
+import { GameState } from './GamesUtil';
+import twemoji from 'twemoji';
+import React, { useRef, useLayoutEffect } from 'react';
 import './Game.css';
 import base_filled from './img/base_filled.png';
 import base_empty from './img/base_empty.png';
@@ -6,9 +8,16 @@ import out_filled from './img/out_out.png';
 import out_empty from './img/out_in.png';
 
 function Game(props: {gameId: string, state : GameState}) {
+	let self: React.MutableRefObject<HTMLDivElement | null> = useRef(null);
+	useLayoutEffect(() => {
+		if (self.current) {
+			twemoji.parse(self.current);
+		}
+	})
+
 	let state = props.state;
 	return (
-		<div className="game">
+		<div className="game" ref={self}>
 			<div className="header">
 			    <div className="inning">Inning: {state.display_top_of_inning ? "🔼" : "🔽"} {state.display_inning}/{state.max_innings}</div>
 			    <div className="title">{state.title}</div>

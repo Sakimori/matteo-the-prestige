@@ -1,67 +1,47 @@
 import React, {useState, useRef, useEffect, useLayoutEffect} from 'react';
-import io from 'socket.io-client';
-import './App.css';
+import {GameState, GameList, useListener} from './GamesUtil';
+import {Link} from 'react-router-dom';
+import './GamesPage.css';
 import Game from './Game';
 
-interface GameState {
-  bases: (string | null)[];
-  outs: number;
-  display_top_of_inning: boolean
-  display_inning: number
-  max_innings: number
-  title: string
-  weather_emoji: string
-  weather_text: string
-  away_name: string
-  away_score: number
-  home_name: string
-  home_score: number
-  pitcher: string
-  batter: string
-  update_emoji: string
-  update_text: string
-  is_league: boolean
-  leagueoruser: string
-}
+function GamesPage() {
+  let [search, setSearch] = useState(window.location.search);
+  useEffect(() => {
+    setSearch(window.location.search);
+  }, [window.location.search])
 
-type GameList = ([id: string, game: GameState] | null)[];
-
-function App(props: {filter: string | null, gameId: string | null}) {
+  let searchparams = new URLSearchParams(search);
+  let filter = searchparams.get('league') ?? ""
 
   let [games, setGames] = useState(new Array<[string, GameState]>());
-  let [filter, setFilter] = useState("");
   useListener(setGames);
 
-  let filters: string[] = [];
-  games.forEach((game, id) => { if (game[1].is_league && !filters.includes(game[1].leagueoruser)) { filters.push(game[1].leagueoruser) }});
+  let filters = useRef(filter !== "" ? [filter] : []); 
+  games.forEach((game) => { if (game[1].is_league && !filters.current.includes(game[1].leagueoruser)) { filters.current.push(game[1].leagueoruser) }});
+  filters.current = filters.current.filter((f) => games.find((game) => game && game[1].is_league && game[1].leagueoruser === f) || f === filter);
 
   let gameList = useRef(new Array<(string | null)>());
   let filterGames = games.filter((game, i) => filter === "" || game[1].leagueoruser === filter);
-  updateList(gameList.current, filterGames);
+  updateList(gameList.current, filterGames, searchparams.get('gameId'));
 
   return (
-    <div className="App">
-      <Filters filterList={filters} selectedFilter={filter} onSelectNewFilter={(filter: string) => {gameList.current = []; setFilter(filter)}}/>
+    <>
+      <Filters filterList={filters.current} selectedFilter={filter} />
       <Grid gameList={gameList.current.map((val) => val !== null ? filterGames.find((game) => game[0] === val) as [string, GameState] : null )}/>
       <Footer has_games={filterGames.length > 0}/>
-    </div>
+    </>
   );
 }
 
-// App Utils
-
-// connects to the given url (or host if none) and waits for state updates
-const useListener = (onUpdate: (update: [string, GameState][]) => void, url: string | null = null) => {
-  useEffect(() => {
-    let socket = url ? io(url) : io();
-    socket.on('connect', () => socket.emit('recieved', {}));
-    socket.on('states_update', onUpdate);
-    return () => {socket.disconnect()};
-  }, [url])
-}
-
 // adds and removes games from list to keep it up to date, without relocating games already in place
-function updateList(gameList: (string | null)[], games: [string, GameState][]) {
+function updateList(gameList: (string | null)[], games: [string, GameState][], firstGame: string | null) {
+  // insert firstGame into first slot, if necessary 
+  if (firstGame !== null && games.find((game) => game[0] === firstGame)) {
+    if (gameList.includes(firstGame)) {
+      gameList[gameList.indexOf(firstGame)] = null;
+    }
+    gameList[0] = firstGame;
+  }
 
   //remove games no longer present
   for (let i = 0; i < gameList.length; i ++) {
@@ -88,14 +68,15 @@ function updateList(gameList: (string | null)[], games: [string, GameState][]) {
   }
 }
 
-function Filters (props: {filterList: string[], selectedFilter: string, onSelectNewFilter: (newFilter: string) => void}) {
+function Filters (props: {filterList: string[], selectedFilter: string}) {
   function Filter(innerprops: {title: string, filter:string} ) {
+    let search = new URLSearchParams();
+    search.append('league', innerprops.filter);
+
     return (
-      <button className="filter"
-              id={innerprops.filter === props.selectedFilter ? "selected_filter" : ""}
-              onClick={() => props.onSelectNewFilter(innerprops.filter)}>
-        {innerprops.title}
-      </button>
+      <Link to={innerprops.filter !== "" ? "/?" + search.toString() : "/"} className="filter" id={innerprops.filter === props.selectedFilter ? "selected_filter" : ""}>
+          {innerprops.title}
+      </Link>
     );
   }
 
@@ -127,29 +108,27 @@ function Grid(props: { gameList: GameList }) {
       return 3;
     }
   }
-
+  
+  //set num cols after page loads
   useLayoutEffect(() => {
     setNumcols(getCols());
   }, [])
 
+  //set num cols on page resize
   useEffect(() => {
     window.addEventListener('resize', (event) => {
       setNumcols(getCols());
     })
   })
 
-
-  let slots = newList.map((game) => {
-    if (game) {
-      return <Game gameId={game[0]} state={game[1]} key={game[0]}/>
-    } else {
-      return <div className="emptyslot"/>
-    }
-  })
-
+  let emptyKey = 0;
   return (
     <section className="container" id="container" ref={self}>
-      {slots.map((elem) => <div className="slot_container">{elem}</div>)}
+      {newList.map((game) => (
+        <div className="slot_container" key={game ? game[0] : emptyKey++}>
+          {game ? <Game gameId={game[0]} state={game[1]}/> : <div className="emptyslot"/>}
+        </div>
+      ))}
     </section>
   );
 }
@@ -163,5 +142,4 @@ function Footer(props: { has_games: boolean }) {
   );
 }
 
-export default App;
-export type { GameState };
+export default GamesPage;

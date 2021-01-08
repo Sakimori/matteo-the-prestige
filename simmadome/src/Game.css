@@ -169,7 +169,7 @@
     border-radius: 4px;
     align-items: center;
     display: flex;
-    justify-content: start;
+    justify-content: flex-start;
 }
 
 .update_emoji {
