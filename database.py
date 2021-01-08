@@ -2,12 +2,17 @@
 import os, json, datetime, re
 import sqlite3 as sql
 
+data_dir = "data"
 
 def create_connection():
     #create connection, create db if doesn't exist
     conn = None
     try:
-        conn = sql.connect("matteo.db")
+        conn = sql.connect(os.path.join(data_dir, "matteo.db"))
+
+        # enable write-ahead log for performance and resilience
+        conn.execute('pragma journal_mode=wal')
+
         return conn
     except:
         print("oops, db connection no work")

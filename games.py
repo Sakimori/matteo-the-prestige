@@ -2,8 +2,13 @@ import json, random, os, math, jsonpickle
 from enum import Enum
 import database as db
 
+data_dir = "data"
+games_config_file = os.path.join(data_dir, "games_config.json")
+
 def config():
-    if not os.path.exists("games_config.json"):
+    if not os.path.exists(os.path.dirname(games_config_file)):
+        os.makedirs(os.path.dirname(games_config_file))
+    if not os.path.exists(games_config_file):
         #generate default config
         config_dic = {
                 "default_length" : 3,
@@ -16,11 +21,11 @@ def config():
                 "stolen_base_chance_mod" : 1,
                 "stolen_base_success_mod" : 1
             }
-        with open("games_config.json", "w") as config_file:
+        with open(games_config_file, "w") as config_file:
             json.dump(config_dic, config_file, indent=4)
             return config_dic
     else:
-        with open("games_config.json") as config_file:
+        with open(games_config_file) as config_file:
             return json.load(config_file)
 
 def all_weathers():
@@ -45,7 +50,7 @@ class appearance_outcomes(Enum):
     single = "hits a single!"
     double = "hits a double!"
     triple = "hits a triple!"
-    homerun = "hits a home run!"
+    homerun = "hits a dinger!"
     grandslam = "hits a grand slam!"
 
 
@@ -502,7 +507,7 @@ class game(object):
 
         if self.weather.name == "Slight Tailwind" and "mulligan" not in self.last_update[0].keys() and not result["ishit"] and result["text"] != appearance_outcomes.walk: 
             mulligan_roll_target = -((((self.get_batter().stlats["batting_stars"])-5)/6)**2)+1
-            if random.random() > mulligan_roll_target and self.get_batter().stlats["batting_stars"] >= 5:
+            if random.random() > mulligan_roll_target and self.get_batter().stlats["batting_stars"] <= 5:
                 result["mulligan"] = True
                 return (result, 0)
 
