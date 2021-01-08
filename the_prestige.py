@@ -489,7 +489,6 @@ class AssignOwnerCommand(Command):
     async def execute(self, msg, command):
         new_owner = msg.mentions[0]
         team_name = command.strip().split(new_owner.mention+" ")[1]
-        print(team_name)
         if db.assign_owner(team_name, new_owner.id):
             await msg.channel.send(f"{team_name} is now owned by {new_owner.display_name}. Don't break it.")
         else:
