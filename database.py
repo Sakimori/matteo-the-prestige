@@ -191,8 +191,8 @@ def get_user_player_conn(conn, user):
     except:
         conn.close()
         return False
-conn.close()
-return False
+    conn.close()
+    return False
 
 def get_user_player(user): 
     conn = create_connection()
