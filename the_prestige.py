@@ -123,7 +123,7 @@ class StartGameCommand(Command):
   - the away team's name.
   - the home team's name.
   - and finally, optionally, the number of innings, which must be greater than 2 and less than 201. if not included it will default to 9. 
-  - this command has fuzzy search so you don't need to type the full name of the team as long as you give enough to identify the team you're looking for.)"""
+  - this command has fuzzy search so you don't need to type the full name of the team as long as you give enough to identify the team you're looking for."""
 
     async def execute(self, msg, command):
         league = None
