@@ -7,7 +7,7 @@ function GamePage() {
 	let searchparams = new URLSearchParams(window.location.search);
 	let gameId = searchparams.get('id');
 
-	let [games, setGames] = useState(new Array<[string, GameState]>());
+	let [games, setGames] = useState<[string, GameState][]>([]);
 	useListener((newGames) => setGames(newGames));
 
 	let game = games.find((game) => game[0] === gameId)

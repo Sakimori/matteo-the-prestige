@@ -13,14 +13,14 @@ function GamesPage() {
   let searchparams = new URLSearchParams(search);
   let filter = searchparams.get('league') ?? ""
 
-  let [games, setGames] = useState(new Array<[string, GameState]>());
+  let [games, setGames] = useState<[string, GameState][]>([]);
   useListener(setGames);
 
   let filters = useRef(filter !== "" ? [filter] : []); 
   games.forEach((game) => { if (game[1].is_league && !filters.current.includes(game[1].leagueoruser)) { filters.current.push(game[1].leagueoruser) }});
   filters.current = filters.current.filter((f) => games.find((game) => game && game[1].is_league && game[1].leagueoruser === f) || f === filter);
 
-  let gameList = useRef(new Array<(string | null)>());
+  let gameList = useRef<(string | null)[]>([]);
   let filterGames = games.filter((game, i) => filter === "" || game[1].leagueoruser === filter);
   updateList(gameList.current, filterGames, searchparams.get('game'));
 
