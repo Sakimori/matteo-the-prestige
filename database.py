@@ -2,12 +2,17 @@
 import os, json, datetime, re
 import sqlite3 as sql
 
+data_dir = "data"
 
 def create_connection():
     #create connection, create db if doesn't exist
     conn = None
     try:
-        conn = sql.connect("matteo.db")
+        conn = sql.connect(os.path.join(data_dir, "matteo.db"))
+
+        # enable write-ahead log for performance and resilience
+        conn.execute('pragma journal_mode=wal')
+
         return conn
     except:
         print("oops, db connection no work")
@@ -181,9 +186,13 @@ def get_user_player_conn(conn, user):
             except TypeError:
                 return False
         else:
-            print(conn)
+            conn.close()
+            return False
     except:
-        print(conn)
+        conn.close()
+        return False
+    conn.close()
+    return False
 
 def get_user_player(user): 
     conn = create_connection()
@@ -206,6 +215,8 @@ def save_team(name, team_json_string, user_id):
         return False
     except:
         return False
+    conn.close()
+    return False
 
 def update_team(name, team_json_string):
     conn = create_connection()
@@ -220,7 +231,10 @@ def update_team(name, team_json_string):
         conn.close()
         return False
     except:
+        conn.close()
         return False
+    conn.close()
+    return False
 
 def get_team(name, owner=False):
     conn = create_connection()
@@ -253,6 +267,8 @@ def delete_team(team):
         except:
             conn.close()
             return False
+    conn.close()
+    return False
 
 def assign_owner(team_name, owner_id):
     conn = create_connection()
@@ -266,6 +282,8 @@ def assign_owner(team_name, owner_id):
         except:
             conn.close()
             return False
+    conn.close()
+    return False
 
 def get_all_teams():
     conn = create_connection()
