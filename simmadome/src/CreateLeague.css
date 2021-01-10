@@ -1,0 +1,177 @@
+th, td {
+	border: none;
+	padding: 0;
+	height: 100%;
+}
+
+table {
+	border-collapse: collapse;
+	height: min-content;
+}
+
+th .cl_subleague_bg {
+	border-top-left-radius: 0.5rem;
+	border-top-right-radius: 0.5rem;
+}
+
+tbody tr:last-child .cl_subleague_bg {
+	border-bottom-left-radius: 0.5rem;
+	border-bottom-right-radius: 0.5rem;
+}
+
+input {
+	border: none;
+	border-radius: 1rem;
+	height: 2rem;
+	padding-left: 1rem;
+	background: var(--background-secondary);
+	font-size: 14pt;
+}
+
+.cl_league_main {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	width: 100%;
+	margin-top: 3rem;
+}
+
+.cl_league_name {
+	margin: 1rem;
+}
+
+.cl_league_options, .cl_league_structure {
+	display: flex;
+	background: var(--background-tertiary);
+	flex-direction: column;
+	max-width: 100%;
+	border-radius: 1rem;
+	padding-top: 1.5rem;
+}
+
+.cl_league_structure, .cl_subleague_add_align {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: min-content;
+}
+
+.cl_league_structure_table {
+	margin: 1rem;
+	margin-left: 0rem;
+	margin-top: 0rem;
+}
+
+.cl_league_structure_scrollbox {
+	max-width: 100%;
+	overflow-y: scroll;
+}
+
+ /* Hide scrollbar for Chrome, Safari and Opera */
+.cl_league_structure_scrollbox::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.cl_league_structure_scrollbox {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.cl_subleague_add_align{
+	margin-left: 1.5rem;
+	padding-right: 1.5rem;
+}
+
+.cl_subleague_header {
+	display: flex;
+	width:100%;
+	align-items: center;
+	justify-content: space-between;
+} 
+
+.cl_subleague_bg {
+	background: var(--background-main);
+	padding:1rem;
+	padding-bottom: 0rem;
+	margin: 0rem 0.5rem;
+	height: 100%;
+	width: 20rem;
+}
+
+.cl_subleague_name, .cl_newteam_name {
+	flex-grow: 1;
+	margin-right: 0.5rem;
+}
+
+.cl_division_name {
+	margin-bottom: 0.5rem;
+	width: 95%;
+}
+
+.cl_division {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 1rem;
+	border-radius: 0.5rem;
+	background: var(--background-accent);
+}
+
+.cl_team, .cl_team_add {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+	margin: 0.25rem 0rem;
+}
+
+.cl_team_name {
+	font-size: 14pt;
+	padding-right: 0.5rem;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* button styles */
+
+button > .emoji {
+	margin: 0;
+}
+
+.cl_subleague_delete, .cl_team_delete, .cl_division_delete, .cl_subleague_add, .cl_division_add, .cl_newteam_add {
+	padding: 0;
+	width: 2rem;
+	height: 2rem;
+	border: none;
+	border-radius: 1rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.cl_subleague_delete, .cl_team_delete, .cl_division_delete {
+	background: var(--accent-red);
+}
+
+.cl_subleague_add, .cl_division_add, .cl_newteam_add {
+	background: var(--accent-green);
+}
+
+.cl_subleague_add {
+	margin-top: 3rem;
+}
+
+.cl_division_add {
+	margin: 1.25rem;
+}
+
+.cl_division_delete {
+	margin-right: 1rem;
+	margin-top: 1rem;
+}
+
+.cl_delete_filler {
+	min-width: 3rem;
+}

@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
 import './index.css';
 import GamesPage from './GamesPage';
 import GamePage from './GamePage';
+import CreateLeague from './CreateLeague';
 import discordlogo from "./img/discord.png";
 import reportWebVitals from './reportWebVitals';
 
@@ -13,6 +14,7 @@ ReactDOM.render(
       <Header />
       <Switch>
         <Route path="/game/:id" component={GamePage}/>
+        <Route path="/create_league" component={CreateLeague} />
         <Route path="/" component={GamesPage}/>
       </Switch>
     </Router>
