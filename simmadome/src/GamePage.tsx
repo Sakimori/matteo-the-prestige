@@ -1,16 +1,14 @@
 import React, {useState} from 'react';
+import ReactRouter from 'react-router';
 import {GameState, useListener} from './GamesUtil';
 import './GamePage.css';
 import Game from './Game';
 
-function GamePage() {
-	let searchparams = new URLSearchParams(window.location.search);
-	let gameId = searchparams.get('id');
-
+function GamePage(props: ReactRouter.RouteComponentProps<{id: string}>) {
 	let [games, setGames] = useState<[string, GameState][]>([]);
 	useListener((newGames) => setGames(newGames));
 
-	let game = games.find((game) => game[0] === gameId)
+	let game = games.find((game) => game[0] === props.match.params.id)
 	return (
 		<div id="game_container">
 	        { game ? 

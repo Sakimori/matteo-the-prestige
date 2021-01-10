@@ -109,17 +109,13 @@ function Grid(props: { gameList: GameList }) {
     }
   }
   
-  //set num cols after page loads
+  //set num cols after page loads, then add listener to update if window resizes
   useLayoutEffect(() => {
     setNumcols(getCols());
-  }, [])
-
-  //set num cols on page resize
-  useEffect(() => {
     window.addEventListener('resize', (event) => {
       setNumcols(getCols());
     })
-  })
+  }, [])
 
   let emptyKey = 0;
   return (

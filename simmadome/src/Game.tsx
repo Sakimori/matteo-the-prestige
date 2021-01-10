@@ -57,7 +57,7 @@ function Game(props: {gameId: string, state : GameState}) {
 			</div>
 			<div className="footer">
 			    <div className="batting">{state.display_top_of_inning ? state.away_name : state.home_name} batting.</div>
-			    <div className="leagueoruser">{state.leagueoruser} (<Link to={"/game?id=" + props.gameId}>share</Link>)</div>
+			    <div className="leagueoruser">{state.leagueoruser} (<Link to={"/game/" + props.gameId}>share</Link>)</div>
 			</div>
 		</div>
 	);

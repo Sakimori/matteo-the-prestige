@@ -12,8 +12,8 @@ ReactDOM.render(
     <Router>
       <Header />
       <Switch>
-        <Route path="/game" component={() => <GamePage key={window.location.search}/>}/>
-        <Route path="/" component={() => <GamesPage />}/>
+        <Route path="/game/:id" component={GamePage}/>
+        <Route path="/" component={GamesPage}/>
       </Switch>
     </Router>
   </React.StrictMode>,
