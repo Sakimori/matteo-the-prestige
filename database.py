@@ -186,9 +186,13 @@ def get_user_player_conn(conn, user):
             except TypeError:
                 return False
         else:
-            print(conn)
+            conn.close()
+            return False
     except:
-        print(conn)
+        conn.close()
+        return False
+    conn.close()
+    return False
 
 def get_user_player(user): 
     conn = create_connection()
@@ -211,6 +215,8 @@ def save_team(name, team_json_string, user_id):
         return False
     except:
         return False
+    conn.close()
+    return False
 
 def update_team(name, team_json_string):
     conn = create_connection()
@@ -225,7 +231,10 @@ def update_team(name, team_json_string):
         conn.close()
         return False
     except:
+        conn.close()
         return False
+    conn.close()
+    return False
 
 def get_team(name, owner=False):
     conn = create_connection()
@@ -258,6 +267,8 @@ def delete_team(team):
         except:
             conn.close()
             return False
+    conn.close()
+    return False
 
 def assign_owner(team_name, owner_id):
     conn = create_connection()
@@ -271,6 +282,8 @@ def assign_owner(team_name, owner_id):
         except:
             conn.close()
             return False
+    conn.close()
+    return False
 
 def get_all_teams():
     conn = create_connection()

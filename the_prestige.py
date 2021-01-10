@@ -119,10 +119,11 @@ class ShowPlayerCommand(Command):
 class StartGameCommand(Command):
     name = "startgame"
     template = "m;startgame [away] [home] [innings]"
-    description ="""Starts a game with premade teams made using saveteam, use this command at the top of a list followed by each of these in a new line (shift+enter in discord, or copy+paste from notepad) (this command has fuzzy search so you don't need to type the full name of the team as long as you give enough to identify the team you're looking for.):
+    description ="""Starts a game with premade teams made using saveteam, use this command at the top of a list followed by each of these in a new line (shift+enter in discord, or copy+paste from notepad):
   - the away team's name.
   - the home team's name.
-  - and finally, optionally, the number of innings, which must be greater than 2 and less than 31. if not included it will default to 9."""
+  - and finally, optionally, the number of innings, which must be greater than 2 and less than 201. if not included it will default to 9. 
+  - this command has fuzzy search so you don't need to type the full name of the team as long as you give enough to identify the team you're looking for."""
 
     async def execute(self, msg, command):
         league = None
@@ -489,7 +490,6 @@ class AssignOwnerCommand(Command):
     async def execute(self, msg, command):
         new_owner = msg.mentions[0]
         team_name = command.strip().split(new_owner.mention+" ")[1]
-        print(team_name)
         if db.assign_owner(team_name, new_owner.id):
             await msg.channel.send(f"{team_name} is now owned by {new_owner.display_name}. Don't break it.")
         else:
@@ -500,7 +500,7 @@ class StartTournamentCommand(Command):
     template = """m;starttournament
     [tournament name]
     [list of teams, each on a new line]"""
-    description = "Starts a randomly seeded tournament with up to 64 provided teams, automatically adding byes as necessary. All series have a 5 minute break between games and by default there is a 10 minute break between rounds. The current tournament format is:\nBest of 5 until the finals, which are Best of 7."
+    description = "Starts a randomly seeded tournament with the provided teams, automatically adding byes as necessary. All series have a 5 minute break between games and by default there is a 10 minute break between rounds. The current tournament format is:\nBest of 5 until the finals, which are Best of 7."
 
     async def execute(self, msg, command):
         if config()["game_freeze"]:
