@@ -1,7 +1,6 @@
 import React, {useState, useRef, useLayoutEffect, useReducer} from 'react';
 import './CreateLeague.css';
 import twemoji from 'twemoji';
-import $, {getJSON} from 'jquery';
 
 interface LeagueStructureState {
 	subleagues: SubleagueState[]
@@ -262,10 +261,9 @@ function Division(props: {state: DivisionState, dispatch:(action: DistributiveOm
 				<input type="text" className="cl_newteam_name" placeholder="Add team..." value={newName} ref={newNameInput}
 					onChange={e => {
 						let params = new URLSearchParams({query: e.target.value, page_len: '5', page_num: '0'});
-						$.getJSON("/api/teams/search?" + params.toString(), data => {
-							console.log(data);
-							setSearchResults(data);
-						})
+						fetch("/api/teams/search?" + params.toString())
+							.then(response => response.json())
+							.then(data => setSearchResults(data));
 						setNewName(e.target.value);
 					}}/>
 			</div>

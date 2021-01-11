@@ -7,23 +7,20 @@ import GamePage from './GamePage';
 import CreateLeague from './CreateLeague';
 import discordlogo from "./img/discord.png";
 import reportWebVitals from './reportWebVitals';
-import $ from 'jquery'
 
-$(document).ready(function() {
-  ReactDOM.render(
-    <React.StrictMode>
-      <Router>
-        <Header />
-        <Switch>
-          <Route path="/game/:id" component={GamePage}/>
-          <Route path="/create_league" component={CreateLeague} />
-          <Route path="/" component={GamesPage}/>
-        </Switch>
-      </Router>
-    </React.StrictMode>,
-    document.getElementById('root')
-  );
-});
+ReactDOM.render(
+  <React.StrictMode>
+    <Router>
+      <Header />
+      <Switch>
+        <Route path="/game/:id" component={GamePage}/>
+        <Route path="/create_league" component={CreateLeague} />
+        <Route path="/" component={GamesPage}/>
+      </Switch>
+    </Router>
+  </React.StrictMode>,
+  document.getElementById('root')
+);
 
 
 function Header() {

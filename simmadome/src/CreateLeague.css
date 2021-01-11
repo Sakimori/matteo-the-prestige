@@ -58,7 +58,6 @@ input:focus {
 .cl_league_structure_table {
 	display: table;
 	margin-right: 1rem;
-	table-layout: fixed;
 }
 
 .cl_headers, .cl_table_row {
