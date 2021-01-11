@@ -1,22 +1,17 @@
-th, td {
-	border: none;
-	padding: 0;
-	height: 100%;
-}
-
-table {
-	border-collapse: collapse;
-	height: min-content;
-}
-
-th .cl_subleague_bg {
+.cl_table_header > .cl_subleague_bg {
 	border-top-left-radius: 0.5rem;
 	border-top-right-radius: 0.5rem;
+	padding-top: 1rem;
 }
 
-tbody tr:last-child .cl_subleague_bg {
+.cl_league_structure_table .cl_table_row:last-child .cl_subleague_bg {
 	border-bottom-left-radius: 0.5rem;
 	border-bottom-right-radius: 0.5rem;
+	padding-bottom: 1rem;
+}
+
+.cl_league_structure_table .cl_table_row:last-child .cl_division_delete {
+	margin-bottom: 0.5rem;
 }
 
 input {
@@ -26,6 +21,10 @@ input {
 	padding-left: 1rem;
 	background: var(--background-secondary);
 	font-size: 14pt;
+}
+
+input:focus {
+	outline: none;
 }
 
 .cl_league_main {
@@ -57,9 +56,23 @@ input {
 }
 
 .cl_league_structure_table {
-	margin: 1rem;
-	margin-left: 0rem;
-	margin-top: 0rem;
+	display: table;
+	margin-right: 1rem;
+	table-layout: fixed;
+}
+
+.cl_headers, .cl_table_row {
+	display: table-row;
+	height: min-content;
+}
+
+.cl_table_header, .cl_delete_filler, .cl_delete_box, .cl_division_cell {
+	display: table-cell;
+	height:100%;
+}
+
+.cl_delete_box {
+    vertical-align: middle;
 }
 
 .cl_league_structure_scrollbox {
@@ -92,20 +105,24 @@ input {
 
 .cl_subleague_bg {
 	background: var(--background-main);
-	padding:1rem;
-	padding-bottom: 0rem;
+	padding: 0.5rem 1rem;
 	margin: 0rem 0.5rem;
-	height: 100%;
-	width: 20rem;
+	width: 22rem;
+	height:100%;
+	box-sizing: border-box;
 }
 
-.cl_subleague_name, .cl_newteam_name {
+.cl_subleague_name {
 	flex-grow: 1;
 	margin-right: 0.5rem;
 }
 
 .cl_division_name {
 	margin-bottom: 0.5rem;
+	width: 95%;
+}
+
+.cl_newteam_name {
 	width: 95%;
 }
 
@@ -124,7 +141,7 @@ input {
 	align-items: center;
 	justify-content: space-between;
 	width: 100%;
-	margin: 0.25rem 0rem;
+	margin: 0.4rem 0rem;
 }
 
 .cl_team_name {
@@ -134,13 +151,38 @@ input {
 	text-overflow: ellipsis;
 }
 
+.cl_team_add {
+	display: flex;
+	flex-direction: column;
+	margin-bottom: 0rem;
+}
+
+.cl_search_list {
+	width: 95%;
+	margin-top: 0.6rem;
+	padding: 0.5rem;
+	background: var(--background-tertiary);
+	border-radius: 0.5rem;
+}
+
+.cl_search_result {
+	padding: 0.2rem 0.4rem;
+	border-radius: 0.5rem;
+}
+
+.cl_search_result:hover {
+	background: var(--background-main);
+}
+
 /* button styles */
 
 button > .emoji {
 	margin: 0;
+	width: 1rem;
+	height: 1rem;
 }
 
-.cl_subleague_delete, .cl_team_delete, .cl_division_delete, .cl_subleague_add, .cl_division_add, .cl_newteam_add {
+.cl_subleague_delete, .cl_team_delete, .cl_division_delete, .cl_subleague_add, .cl_division_add {
 	padding: 0;
 	width: 2rem;
 	height: 2rem;
@@ -155,21 +197,18 @@ button > .emoji {
 	background: var(--accent-red);
 }
 
-.cl_subleague_add, .cl_division_add, .cl_newteam_add {
+.cl_subleague_add, .cl_division_add {
 	background: var(--accent-green);
 }
 
 .cl_subleague_add {
-	margin-top: 3rem;
+	position: relative;
+	top: 1.6rem;
 }
 
 .cl_division_add {
-	margin: 1.25rem;
-}
-
-.cl_division_delete {
-	margin-right: 1rem;
-	margin-top: 1rem;
+	margin-top: 1.25rem;
+	margin-bottom: 1.25rem;
 }
 
 .cl_delete_filler {
