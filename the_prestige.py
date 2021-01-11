@@ -1444,9 +1444,14 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
 
                         winner_name = game.teams['home'].name if game.teams['home'].score > game.teams['away'].score else game.teams['away'].name
                         loser_name = game.teams['away'].name if game.teams['home'].score > game.teams['away'].score else game.teams['home'].name
+                        rd = int(math.fabs(game.teams['home'].score - game.teams['away'].score))
 
                         wins_in_series[winner_name] += 1
+                        league.standings[winner_name]["wins"] += 1
+                        league.standings[winner_name]["run differential"] += rd
                         losses_in_series[loser_name] += 1
+                        league.standings[loser_name]["losses"] += 1
+                        league.standings[loser_name]["run differential"] -= rd
 
                         final_embed = game_over_embed(game)
                         await channel.send(f"A {league.name} game just ended!")                

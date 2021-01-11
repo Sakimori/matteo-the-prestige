@@ -10,13 +10,12 @@ import database as db
 
 class league_structure(object):
     def __init__(self, name, league_dic, division_games = 1, inter_division_games = 1, inter_league_games = 1, games_per_hour = 2):
-        self.league = league_dic #key: subleague, value: {division, teams}
+        self.league = league_dic #key: subleague, value: {division : teams}
         self.constraints = {
             "division_games" : division_games,
             "inter_div_games" : inter_division_games,
             "inter_league_games" : inter_league_games
             }
-        self.season_length = 0
         self.day = 1
         self.name = name
         self.schedule = {}
@@ -24,6 +23,14 @@ class league_structure(object):
         self.game_length = None
         self.active = False
         self.games_per_hour = games_per_hour
+        self.standings = {}
+
+        for this_team in self.teams_in_league():
+            self.standings[this_team.name] = {
+                "wins" : 0,
+                "losses" : 0,
+                "run differential" : 0,
+                }
 
     def last_series_check(self):
         return day + 1 in self.schedule.keys()
@@ -125,7 +132,6 @@ class league_structure(object):
                         matchups.append([team_a, team_b])
                     a_home != a_home
 
-                self.season_length = self.constraints["division_games"]*(division_max) + self.constraints["inter_div_games"] + self.constraints["inter_league_games"]
 
         for subleague in self.league.keys():
             for division in self.league[subleague].values(): #generate round-robin matchups
@@ -168,14 +174,10 @@ class league_structure(object):
                     scheduled = True
                 day += 1
 
-class division(object):
-    def __init__(self):
-        self.teams = {} #key: team object, value: {wins; rd (run diff)}
-
 class tournament(object):
     def __init__(self, name, team_dic, series_length = 5, finals_series_length = 7, max_innings = 9, id = None, secs_between_games = 300, secs_between_rounds = 600): 
         self.name = name
-        self.teams = team_dic #same format as division, wins/losses will be used for seeding later
+        self.teams = team_dic #key: team object, value: wins
         self.bracket = None
         self.results = None
         self.series_length = series_length
