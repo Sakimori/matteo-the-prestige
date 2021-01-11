@@ -248,9 +248,11 @@ function Division(props: {state: DivisionState, dispatch:(action: DistributiveOm
 
 	return (
 		<div className="cl_division">
-			<input type="text" className="cl_division_name" placeholder="Division Name" key="input" value={props.state.name} onChange={e => 
-				props.dispatch({type: 'rename_division', name: e.target.value})
-			}/>
+			<div>
+				<input type="text" className="cl_division_name" placeholder="Division Name" key="input" value={props.state.name} onChange={e => 
+					props.dispatch({type: 'rename_division', name: e.target.value})
+				}/>
+			</div>
 			{props.state.teams.map((team, i) => (
 				<div className="cl_team" key={team.id}>
 					<div className="cl_team_name">{team.name}</div>
