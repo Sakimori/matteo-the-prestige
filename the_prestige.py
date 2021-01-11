@@ -1,7 +1,6 @@
-import discord, json, math, os, roman, games, asyncio, random, main_controller, threading, time, urllib, leagues
+import discord, json, math, os, roman, games, asyncio, random, main_controller, threading, time, urllib, leagues, datetime
 import database as db
 import onomancer as ono
-import random
 from the_draft import Draft, DRAFT_ROUNDS
 from flask import Flask
 from uuid import uuid4
@@ -757,6 +756,7 @@ commands = [
 client = discord.Client()
 gamesarray = []
 active_tournaments = []
+active_leagues = []
 setupmessages = {}
 
 thread1 = threading.Thread(target=main_controller.update_loop)
@@ -1381,5 +1381,162 @@ def get_team_fuzzy_search(team_name):
         if len(teams) == 1:
             team = teams[0]
     return team
+
+async def start_league_day(channel, league):
+    current_games = []
+    if league.schedule is {}:
+        league.generate_schedule()
+        
+    games_to_start = league.schedule[math.ceil(league.day/league.series_length)]
+    if league.game_length is None:
+        game_length = games.config()["default_length"]
+    else:
+        game_length = league.game_length
+
+    for pair in games_to_start:
+        if pair[0] is not None and pair[1] is not None:
+            this_game = games.game(pair[0].prepare_for_save().finalize(), pair[1].prepare_for_save().finalize(), length = game_length)
+            this_game, state_init = prepare_game(this_game)
+
+            state_init["is_league"] = True
+            series_string = f"Series score:"
+            state_init["title"] = f"{series_string} 0 - 0"
+            discrim_string = league.name     
+
+            id = str(uuid4())
+            current_games.append((this_game, id))
+            main_controller.master_games_dic[id] = (this_game, state_init, discrim_string)
+
+    ext = "?league=" + urllib.parse.quote_plus(league.name)
+
+    if league.last_series_check(): #if finals
+        await channel.send(f"The final series of the {league.name} is starting now, at {config()['simmadome_url']+ext}")
+        last = True
+
+    else:
+        await channel.send(f"The next series of the {league.name} is starting now, at {config()['simmadome_url']+ext}")
+        last = False
+
+    await league_day_watcher(channel, league, current_games, config()['simmadome_url']+ext, last)
+
+
+async def league_day_watcher(channel, league, games_list, filter_url, last = False):
+    league.active = True
+    active_leagues.append(league)
+    wins_in_series = {}
+    losses_in_series = {}
+
+    while league.active:
+        queued_games = []
+        while len(games_list) > 0:
+            try:
+                for i in range(0, len(games_list)):
+                    game, key = games_list[i]
+                    if game.over and main_controller.master_games_dic[key][1]["end_delay"] <= 8:
+                        if game.teams['home'].name not in wins_in_series.keys():
+                            wins_in_series[game.teams["home"].name] = 0
+                        if game.teams['home'].name not in losses_in_series.keys():
+                            losses_in_series[game.teams["home"].name] = 0
+                        if game.teams['away'].name not in wins_in_series.keys():
+                            wins_in_series[game.teams["away"].name] = 0
+                        if game.teams['away'].name not in losses_in_series.keys():
+                            losses_in_series[game.teams["away"].name] = 0
+
+                        winner_name = game.teams['home'].name if game.teams['home'].score > game.teams['away'].score else game.teams['away'].name
+                        loser_name = game.teams['away'].name if game.teams['home'].score > game.teams['away'].score else game.teams['home'].name
+
+                        wins_in_series[winner_name] += 1
+                        losses_in_series[loser_name] += 1
+
+                        final_embed = game_over_embed(game)
+                        await channel.send(f"A {league.name} game just ended!")                
+                        await channel.send(embed=final_embed)
+                        if wins_in_series[winner_name] + losses_in_series[winner_name] < league.series_length:
+                            queued_games.append(game)                           
+                        games_list.pop(i)
+                        break
+            except:
+                print("something went wrong in league_day_watcher")
+            await asyncio.sleep(4)
+
+        
+        if len(queued_games) > 0:
+
+            now = datetime.datetime.now()
+
+            validminutes = [int((60 * div)/league.games_per_hour) for div in range(0,league.games_per_hour)]
+            for i in range(0, len(validminutes)):
+                if now.minute > validminutes[i]:
+                    if i < len(validminutes)-1:
+                        delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
+                    else:
+                        delta = datetime.timedelta(minutes= (60 - now.minute))           
+
+            next_start = (now + delta).replace(seconds=0, microsecond=0)
+            wait_seconds = (next_start - now).seconds
+                
+
+            await channel.send(f"The next batch of games for the {league.name} will start in {int(wait_seconds/60)} minutes.")
+            await asyncio.sleep(wait_seconds)
+            await channel.send(f"A {league.name} series is continuing now at {filter_url}")
+            games_list = await continue_league_series(league, queued_games, games_list, wins_in_series)
+        else:
+            league.active = False
+
+    if last: #if this series was the last
+        #needs some kind of notification that it's over here
+        active_leagues.pop(active_leagues.index(league))
+        return
+
+    now = datetime.datetime.now()
+
+    validminutes = [int((60 * div)/league.games_per_hour) for div in range(0,league.games_per_hour)]
+    for i in range(0, len(validminutes)):
+        if now.minute > validminutes[i]:
+            if i < len(validminutes)-1:
+                delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
+            else:
+                delta = datetime.timedelta(minutes= (60 - now.minute))           
+
+    next_start = (now + delta).replace(seconds=0, microsecond=0)
+    wait_seconds = (next_start - now).seconds
+
+    await channel.send(f"""This {league.name} series is now complete! The next series will be starting in {int(wait_seconds/60)} minutes.""")
+    await asyncio.sleep(wait_seconds)
+    league.day += 1
+    await start_league_day(channel, league)
+
+async def continue_league_series(tourney, queue, games_list, wins_in_series):
+    for oldgame in queue:
+        away_team = games.get_team(oldgame.teams["away"].name)
+        home_team = games.get_team(oldgame.teams["home"].name)
+        this_game = games.game(away_team.finalize(), home_team.finalize(), length = tourney.game_length)
+        this_game, state_init = prepare_game(this_game)
+
+        state_init["is_league"] = True
+        series_string = f"Series score:"
+        state_init["title"] = f"{series_string} {wins_in_series[away_team.name]} - {wins_in_series[home_team.name]}"
+        discrim_string = league.name
+
+        id = str(uuid4())
+        games_list.append((this_game, id))
+        main_controller.master_games_dic[id] = (this_game, state_init, discrim_string)
+
+    return games_list
+
+
+league = leagues.league_structure("test", {
+    "nL" : { 
+        "nL west" : ["a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1"],
+        "nL east" : ["a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2"]
+        },
+    "aL" : {
+        "aL west" : ["A1", "B1", "C1", "D1", "E1", "F1", "G1", "H1"],
+        "aL east" : ["A2", "B2", "C2", "D2", "E2", "F2", "G2", "H2"]
+        }
+}, division_games=6, inter_division_games=3, inter_league_games=3)
+league.generate_schedule()
+#print(league.schedule[2])
+
 
 client.run(config()["token"])
