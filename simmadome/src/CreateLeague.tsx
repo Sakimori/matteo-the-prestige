@@ -51,14 +51,6 @@ let getUID = function() { // does NOT generate UUIDs. Meant to create list keys 
 	return function() { return id++ }
 }()
 
-let initLeagueStructure = {
-	subleagues: [0, 1].map((val) => 
-		new SubleagueState([0, 1].map((val) => 
-			new DivisionState()
-		))
-	)
-};
-
 // STRUCTURE REDUCER
 
 type StructureReducerActions = 
@@ -132,6 +124,50 @@ function replaceDivision(state: LeagueStructureState, si: number, di: number, fu
 	});
 }
 
+// OPTIONS REDUCER
+
+class LeagueOptionsState {
+	games_series = "3"
+	intra_division_series = "8"
+	inter_division_series = "16"
+	inter_league_series = "8"
+	top_postseason = "1"
+	wildcards = "0"
+}
+
+type OptionsReducerActions =
+	{type: 'set_games_series', value: string} |
+	{type: 'set_intra_division_series', value: string} |
+	{type: 'set_inter_division_series', value: string} |
+	{type: 'set_inter_league_series', value: string} |
+	{type: 'set_top_postseason', value: string} |
+	{type: 'set_wildcards', value: string}
+
+function LeagueOptionsReducer(state: LeagueOptionsState, action: OptionsReducerActions) {
+	let newState = shallowClone(state);
+	switch (action.type) {
+	case 'set_games_series':
+		newState.games_series = action.value;
+		break;
+	case 'set_intra_division_series':
+		newState.intra_division_series = action.value;
+		break;
+	case 'set_inter_division_series':
+		newState.inter_division_series = action.value;
+		break;
+	case 'set_inter_league_series':
+		newState.inter_league_series = action.value;
+		break;
+	case 'set_top_postseason':
+		newState.top_postseason = action.value;
+		break;
+	case 'set_wildcards':
+		newState.wildcards = action.value;
+		break;
+	}
+	return newState
+}
+
 // UTIL
 
 function removeIndex(arr: any[], index: number) {
@@ -159,17 +195,23 @@ function shallowClone<T>(obj: T): T {
 }
 
 type DistributiveOmit<T, K extends keyof any> = T extends any ? Omit<T, K> : never;
+type DistributivePick<T, K extends keyof T> = T extends any ? Pick<T, K> : never;
 
 // CREATE LEAGUE
+
+let initLeagueStructure = {
+	subleagues: [0, 1].map((val) => 
+		new SubleagueState([0, 1].map((val) => 
+			new DivisionState()
+		))
+	)
+};
 
 function CreateLeague() {
 	let [name, setName] = useState("");
 	let [showError, setShowError] = useState(false);
-	let [structure, dispatch] = useReducer(leagueStructureReducer, initLeagueStructure);
-	let gamesSeries = useState('3');
-	let seriesDivisionOpp = useState('8');
-	let seriesInterDivision = useState('16');
-	let seriesInterLeague = useState('8');
+	let [structure, structureDispatch] = useReducer(leagueStructureReducer, initLeagueStructure);
+	let [options, optionsDispatch] = useReducer(LeagueOptionsReducer, new LeagueOptionsState());
 
 	let self = useRef<HTMLDivElement | null>(null)
 
@@ -183,25 +225,19 @@ function CreateLeague() {
 		<div className="cl_league_main" ref={self}>
 			<input type="text" className="cl_league_name" placeholder="League Name" value={name} onChange={(e) => setName(e.target.value)}/>
 			<div className="cl_structure_err">{name === "" && showError ? "A name is required." : ""}</div>
-			<LeagueStructre state={structure} dispatch={dispatch} showError={showError}/>
+			<LeagueStructre state={structure} dispatch={structureDispatch} showError={showError}/>
 			<div className="cl_league_options">
-				<LeagueOptions 
-					gamesSeries={gamesSeries} 
-					seriesDivisionOpp={seriesDivisionOpp} 
-					seriesInterDivision={seriesInterDivision} 
-					seriesInterLeague={seriesInterLeague}
-					showError={showError}
-				/>
+				<LeagueOptions state={options} dispatch={optionsDispatch} showError={showError}/>
 				<div className="cl_option_submit_box">
 					<button className="cl_option_submit" onClick={e => {
 						//make network call, once leagues are merged
-						if (!validRequest(name, structure, gamesSeries[0], seriesDivisionOpp[0], seriesInterDivision[0], seriesInterLeague[0])) {
+						if (!validRequest(name, structure, options)) {
 							setShowError(true);
 						}
 					}}>Submit</button>
 					<div className="cl_option_err">{
-						!validRequest(name, structure, gamesSeries[0], seriesDivisionOpp[0], seriesInterDivision[0], seriesInterLeague[0]) && showError ?
-						"Cannot create league. Some information is invalid." : ""
+						!validRequest(name, structure, options) && showError ?
+						"Cannot create league. Some information is missing or invalid." : ""
 					}</div>
 				</div>
 			</div>
@@ -209,16 +245,9 @@ function CreateLeague() {
 	);
 }
 
-function makeRequest(
-		name:string, 
-		structure: LeagueStructureState, 
-		gamesPerSeries: string, 
-		divisionSeries: string, 
-		interDivisionSeries: string, 
-		interLeagueSeries: string
-	) {
+function makeRequest(name:string, structure: LeagueStructureState, options:LeagueOptionsState) {
 
-	if (!validRequest(name, structure, gamesPerSeries, divisionSeries, interDivisionSeries, interLeagueSeries)) { 
+	if (!validRequest(name, structure, options)) { 
 		return null 
 	}
 	
@@ -233,28 +262,25 @@ function makeRequest(
 				}))
 			}))
 		},
-		games_per_series: Number(gamesPerSeries),
-		division_series: Number(divisionSeries),
-		inter_division_series: Number(interDivisionSeries),
-		inter_league_series: Number(interLeagueSeries) 
+		games_per_series: Number(options.games_series),
+		division_series: Number(options.intra_division_series),
+		inter_division_series: Number(options.inter_division_series),
+		inter_league_series: Number(options.inter_league_series),
+		top_postseason: Number(options.top_postseason),
+		wildcards: Number(options.wildcards)
 	});
 }
 
-function validRequest(
-		name:string, 
-		structure: LeagueStructureState, 
-		gamesPerSeries: string, 
-		divisionSeries: string, 
-		interDivisionSeries: string, 
-		interLeagueSeries: string
-	) {
+function validRequest(name:string, structure: LeagueStructureState, options:LeagueOptionsState) {
 
 	return (
 		name !== "" && 
-		validNumber(gamesPerSeries) && 
-		validNumber(divisionSeries) && 
-		validNumber(interDivisionSeries) && 
-		validNumber(interLeagueSeries) &&
+		validNumber(options.games_series) && 
+		validNumber(options.intra_division_series) && 
+		validNumber(options.inter_division_series) && 
+		validNumber(options.inter_league_series) &&
+		validNumber(options.top_postseason) &&
+		validNumber(options.wildcards) &&
 		structure.subleagues.length % 2 === 0 &&
 		structure.subleagues.every(subleague => 
 			subleague.name !== "" &&
@@ -402,28 +428,24 @@ function Division(props: {state: DivisionState, dispatch:(action: DistributiveOm
 
 type StateBundle<T> = [T, React.Dispatch<React.SetStateAction<T>>]
 
-function LeagueOptions(props: {
-		gamesSeries: StateBundle<string>, 
-		seriesDivisionOpp: StateBundle<string>, 
-		seriesInterDivision: StateBundle<string>, 
-		seriesInterLeague: StateBundle<string>,
-		showError: boolean
-	}) {
-
-	let [nGamesSeries, setGamesSeries] = props.gamesSeries;
-	let [nSeriesDivisionOpp, setSeriesDivisionOpp] = props.seriesDivisionOpp;
-	let [nSeriesInterDivision, setSeriesInterDivision] = props.seriesInterDivision;
-	let [nSeriesInterLeague, setSeriesInterLeague] = props.seriesInterLeague;
-
+function LeagueOptions(props: {state: LeagueOptionsState, dispatch: React.Dispatch<OptionsReducerActions>, showError: boolean}) {
 	return (
 		<div className="cl_option_main">
 			<div className="cl_option_column">
-				<NumberInput title="Number of games per series" value={nGamesSeries} setValue={setGamesSeries} showError={props.showError}/>
-				<NumberInput title="Number of series with each division opponent" value={nSeriesDivisionOpp} setValue={setSeriesDivisionOpp} showError={props.showError}/>
+				<NumberInput title="Number of games per series" value={props.state.games_series} setValue={(value: string) => 
+					props.dispatch({type: 'set_games_series', value: value})} showError={props.showError}/>
+				<NumberInput title="Number of teams from top of division to postseason" value={props.state.top_postseason} setValue={(value: string) => 
+					props.dispatch({type: 'set_top_postseason', value: value})} showError={props.showError}/>
+				<NumberInput title="Number of wildcards" value={props.state.wildcards} setValue={(value: string) => 
+					props.dispatch({type: 'set_wildcards', value: value})} showError={props.showError}/>
 			</div>
 			<div className="cl_option_column">
-				<NumberInput title="Number of inter-divisional series" value={nSeriesInterDivision} setValue={setSeriesInterDivision} showError={props.showError}/>
-				<NumberInput title="Number of inter-league series" value={nSeriesInterLeague} setValue={setSeriesInterLeague} showError={props.showError}/>
+				<NumberInput title="Number of series with each division opponent" value={props.state.intra_division_series} setValue={(value: string) => 
+					props.dispatch({type: 'set_intra_division_series', value: value})} showError={props.showError}/>
+				<NumberInput title="Number of inter-divisional series" value={props.state.inter_division_series} setValue={(value: string) => 
+					props.dispatch({type: 'set_inter_division_series', value: value})} showError={props.showError}/>
+				<NumberInput title="Number of inter-league series" value={props.state.inter_league_series} setValue={(value: string) => 
+					props.dispatch({type: 'set_inter_league_series', value: value})} showError={props.showError}/>
 			</div>
 		</div>
 	);
