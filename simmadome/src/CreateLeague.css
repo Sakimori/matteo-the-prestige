@@ -27,6 +27,16 @@ input:focus {
 	outline: none;
 }
 
+input[type="number"] {
+  -webkit-appearance: textfield;
+     -moz-appearance: textfield;
+          appearance: textfield;
+}
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none;
+}
+
 .cl_league_main {
 	display: flex;
 	flex-direction: column;
@@ -36,7 +46,7 @@ input:focus {
 }
 
 .cl_league_name {
-	margin: 1rem;
+	margin-top: 1rem;
 }
 
 .cl_league_options, .cl_league_structure {
@@ -48,11 +58,19 @@ input:focus {
 	padding-top: 1.5rem;
 }
 
+.cl_league_options {
+	align-items: center;
+}
+
 .cl_league_structure, .cl_subleague_add_align {
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	width: min-content;
+}
+
+.cl_league_structure {
+	margin-top: 1rem;
 }
 
 .cl_league_structure_table {
@@ -106,14 +124,18 @@ input:focus {
 	background: var(--background-main);
 	padding: 0.5rem 1rem;
 	margin: 0rem 0.5rem;
-	width: 22rem;
-	height:100%;
+	min-width: 22rem;
+	height: 100%;
 	box-sizing: border-box;
 }
 
 .cl_subleague_name {
 	flex-grow: 1;
 	margin-right: 0.5rem;
+}
+
+.cl_division_name_box {
+	width: 100%;
 }
 
 .cl_division_name {
@@ -145,7 +167,7 @@ input:focus {
 
 .cl_team_name {
 	font-size: 14pt;
-	padding-right: 0.5rem;
+	padding: 0 0.5rem;
 	overflow: hidden;
 	text-overflow: ellipsis;
 }
@@ -171,6 +193,58 @@ input:focus {
 
 .cl_search_result:hover {
 	background: var(--background-main);
+}
+
+.cl_league_options {
+	padding: 1rem;
+	margin-top: 1.5rem;
+	width: 55rem;
+	box-sizing: border-box;
+}
+
+.cl_option_main {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-around;
+	width: 100%;
+}
+
+.cl_option_submit_box {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
+.cl_option_box {
+	margin: 1rem;
+	width: max-content;
+}
+
+.cl_option_label, .cl_option_err, .cl_structure_err {
+	margin: 0.25rem;
+}
+
+.cl_option_err, .cl_structure_err {
+	color: var(--accent-red);
+}
+
+.cl_option_err {
+	min-height: 1.5rem;
+	margin-bottom: -0.5rem;
+	margin-top: 0.5rem;
+}
+
+.cl_structure_err {
+	margin-bottom: -0.5rem;
+}
+
+.cl_structure_err_div {
+	margin-top: -0.5rem;
+	margin-bottom: 0;
+}
+
+.cl_structure_err_teams {
+	width: 98%;
 }
 
 /* button styles */
@@ -212,4 +286,16 @@ button > .emoji {
 
 .cl_delete_filler {
 	min-width: 3rem;
+}
+
+.cl_option_submit {
+	padding: 1rem 2rem;
+	height: 2rem;
+	border: none;
+	border-radius: 0.75rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--accent-green);
+	font-size: 14pt;
 }
