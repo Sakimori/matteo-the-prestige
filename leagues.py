@@ -25,15 +25,18 @@ class league_structure(object):
         self.active = False
         self.games_per_hour = games_per_hour
 
-    def add_stats_from_game(self, players_list):
-        league_db.add_stats(players_list)
+    def add_stats_from_game(self, players_dic):
+        league_db.add_stats(self.name, players_dic)
 
     def update_standings(self, results_dic):
         league_db.update_standings(self.name, results_dic)
 
 
     def last_series_check(self):
-        return self.day + 1 in self.schedule.keys()
+        return str(math.ceil((self.day)/self.series_length) + 1) in self.schedule.keys()
+
+    def day_to_series_num(self, day):
+        return math.ceil((self.day)/self.series_length)
 
     def find_team(self, team_name):
         for subleague in iter(self.league.keys()):
@@ -282,7 +285,7 @@ class bracket(object):
 def save_league(this_league):
     if not league_db.league_exists(this_league.name):
         league_db.init_league_db(this_league)
-        with open(os.path.join(data_dir, league_dir, f"{this_league.name}.league"), "w") as league_file:
+        with open(os.path.join(data_dir, league_dir, this_league.name, f"{this_league.name}.league"), "w") as league_file:
             league_json_string = jsonpickle.encode(this_league.league, keys=True)
             json.dump(league_json_string, league_file, indent=4)
         return True
@@ -291,8 +294,8 @@ def load_league_file(league_name):
     if league_db.league_exists(league_name):
         state = league_db.state(league_name)
         this_league = league_structure(league_name)
-        with open(os.path.join(data_dir, league_dir, f"{this_league.name}.league")) as league_file:
+        with open(os.path.join(data_dir, league_dir, league_name, f"{this_league.name}.league")) as league_file:
             this_league.league = jsonpickle.decode(json.load(league_file), keys=True, classes=team)
-        with open(os.path.join(data_dir, league_dir, f"{this_league.name}.state")) as state_file:
+        with open(os.path.join(data_dir, league_dir, league_name, f"{this_league.name}.state")) as state_file:
             state_dic = json.load(state_file)
         return this_league

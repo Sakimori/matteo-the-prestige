@@ -8,7 +8,10 @@ def create_connection(league_name):
     #create connection, create db if doesn't exist
     conn = None
     try:
-        conn = sql.connect(os.path.join(data_dir, league_dir, f"{league_name}.db"))
+        if not os.path.exists(os.path.join(data_dir, league_dir, league_name)):
+        
+            os.makedirs(os.path.join(data_dir, league_dir, league_name))
+        conn = sql.connect(os.path.join(data_dir, league_dir, league_name, f"{league_name}.db"))
 
         # enable write-ahead log for performance and resilience
         conn.execute('pragma journal_mode=wal')
@@ -19,7 +22,9 @@ def create_connection(league_name):
         return conn
 
 def state(league_name):
-    with open(os.path.join(data_dir, league_dir, f"{league_name}.state")) as state_file:
+    if not os.path.exists(os.path.dirname(os.path.join(data_dir, league_dir, league_name, f"{league_name}.state"))):
+            os.makedirs(os.path.dirname(os.path.join(data_dir, league_dir, league_name, f"{league_name}.state")))
+    with open(os.path.join(data_dir, league_dir, league_name, f"{league_name}.state")) as state_file:
         return json.load(state_file)
 
 def init_league_db(league):
@@ -75,7 +80,9 @@ def init_league_db(league):
                 "games_per_hour" : league.games_per_hour,
                 "historic" : False
             }
-        with open(os.path.join(data_dir, league_dir, f"{league.name}.state"), "w") as state_file:
+        if not os.path.exists(os.path.dirname(os.path.join(data_dir, league_dir, league.name, f"{league.name}.state"))):
+            os.makedirs(os.path.dirname(os.path.join(data_dir, league_dir, league.name, f"{league.name}.state")))
+        with open(os.path.join(data_dir, league_dir, league.name, f"{league.name}.state"), "w") as state_file:
             json.dump(state_dic, state_file, indent=4)
 
     conn.commit()
@@ -85,18 +92,19 @@ def add_stats(league_name, player_game_stats_list):
     conn = create_connection(league_name)
     if conn is not None:
         c=conn.cursor()
-        for (name, player_stats_dic) in player_game_stats_list:
-            c.execute("SELECT * FROM stats WHERE name=?",(name,))
-            this_player = c.fetchone()
-            if this_player is not None:
-                for stat in player_stats_dic.keys():
-                    c.execute(f"SELECT {stat} FROM stats WHERE name=?",(name,))
-                    old_value = int(c.fetchone()[0])
-                    c.execute(f"UPDATE stats SET {stat} = ? WHERE name=?",(player_stats_dic[stat]+old_value,name))
-            else:
-                c.execute("INSERT INTO stats(name) VALUES (?)",(name,))
-                for stat in player_stats_dic.keys():
-                    c.execute(f"UPDATE stats SET {stat} = ? WHERE name=?",(player_stats_dic[stat],name))
+        for team_name in player_game_stats_list.keys():
+            for (name, player_stats_dic) in player_game_stats_list[team_name]:
+                c.execute("SELECT * FROM stats WHERE name=? AND team_name=?",(name, team_name))
+                this_player = c.fetchone()
+                if this_player is not None:
+                    for stat in player_stats_dic.keys():
+                        c.execute(f"SELECT {stat} FROM stats WHERE name=? AND team_name=?",(name, team_name))
+                        old_value = int(c.fetchone()[0])
+                        c.execute(f"UPDATE stats SET {stat} = ? WHERE name=? AND team_name=?",(player_stats_dic[stat]+old_value, name, team_name))
+                else:
+                    c.execute("INSERT INTO stats(name) VALUES (?)",(name,))
+                    for stat in player_stats_dic.keys():
+                        c.execute(f"UPDATE stats SET {stat} = ? WHERE name=? AND team_name=?",(player_stats_dic[stat], name, team_name))
         conn.commit()
     conn.close()
 
@@ -118,7 +126,7 @@ def update_standings(league_name, update_dic):
 
 def league_exists(league_name):
     with os.scandir(os.path.join(data_dir, league_dir)) as folder:
-        for file in folder:
-            if file.name == f"{league_name}.state":
+        for subfolder in folder:
+            if league_name in subfolder.name:
                 return not state(league_name)["historic"]
     return False
