@@ -199,7 +199,8 @@ class team(object):
 
     def finalize(self):
         if self.is_ready():
-            self.set_pitcher()
+            if self.pitcher == None:
+                self.set_pitcher()
             while len(self.lineup) <= 4:
                 self.lineup.append(random.choice(self.lineup))       
             return self
@@ -363,6 +364,7 @@ class game(object):
                 run_roll = run_roll * .9 #stealing third is harder
             if run_roll < 1:
                 outcome["steals"].append(f"{baserunner} was caught stealing {base_string(start_base+1)} base by {defender}!")
+                self.get_pitcher().game_stats["outs_pitched"] += 1
                 self.outs += 1
             else:
                 outcome["steals"].append(f"{baserunner} steals {base_string(start_base+1)} base!")
@@ -674,6 +676,10 @@ class game(object):
                 return "Game not started."
 
     def add_stats(self):
+        players = self.get_stats()
+        db.add_stats(players)
+
+    def get_stats(self):
         players = []
         for this_player in self.teams["away"].lineup:
             players.append((this_player.name, this_player.game_stats))
@@ -681,7 +687,20 @@ class game(object):
             players.append((this_player.name, this_player.game_stats))
         players.append((self.teams["home"].pitcher.name, self.teams["home"].pitcher.game_stats))
         players.append((self.teams["away"].pitcher.name, self.teams["away"].pitcher.game_stats))
-        db.add_stats(players)
+        return players
+
+    def get_team_specific_stats(self):
+        players = {
+            self.teams["away"].name : [],
+            self.teams["home"].name : []
+            }
+        for this_player in self.teams["away"].lineup:
+            players[self.teams["away"].name].append((this_player.name, this_player.game_stats))
+        for this_player in self.teams["home"].lineup:
+            players[self.teams["home"].name].append((this_player.name, this_player.game_stats))
+        players[self.teams["home"].name].append((self.teams["home"].pitcher.name, self.teams["home"].pitcher.game_stats))
+        players[self.teams["away"].name].append((self.teams["away"].pitcher.name, self.teams["away"].pitcher.game_stats))
+        return players
         
 
 

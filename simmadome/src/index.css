@@ -1,11 +1,22 @@
 @import url('https://fonts.googleapis.com/css2?family=Alegreya&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Goldman:wght@700&display=swap');
+
+:root {
+    --background-main: #2f3136;
+    --background-secondary: #4f545c;
+    --background-tertiary: #202225;
+    --background-accent: #40444b;
+    --highlight: rgb(113, 54, 138); /*matteo purple™*/
+    --accent-red: #f04747;
+    --accent-green: rgb(67, 181, 129);
+}
+
 body {
-    background-image: url("naturalblack.png");
+    background-image: url("img/naturalblack.png");
 }
 /* Background pattern from Toptal Subtle Patterns */
 
-div, button, h1, h2, a {
+* {
     font-family: 'Alegreya', serif;
     color: white;
 }
@@ -65,5 +76,8 @@ h2 {
 }
 
 img.emoji {
-    height: 14px;
+   height: 1em;
+   width: 1em;
+   margin: 0 .05em 0 .1em;
+   vertical-align: -0.1em;
 }
