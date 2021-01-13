@@ -1,39 +1,39 @@
-import time, asyncio, jsonpickle, random, math
+import time, asyncio, json, jsonpickle, random, math, os
+import league_storage as league_db
 from itertools import chain
 from games import team, game
 from discord import Embed, Color
-import database as db
 
-
-
-
+data_dir = "data"
+league_dir = "leagues"
 
 class league_structure(object):
-    def __init__(self, name, league_dic, division_games = 1, inter_division_games = 1, inter_league_games = 1, games_per_hour = 2):
-        self.league = league_dic #key: subleague, value: {division : teams}
+    def __init__(self, name):
+        self.name = name
+
+    def setup(self, league_dic, division_games = 1, inter_division_games = 1, inter_league_games = 1, games_per_hour = 2):
+        self.league = league_dic #key: subleague, value: {division : team_name}
         self.constraints = {
             "division_games" : division_games,
             "inter_div_games" : inter_division_games,
             "inter_league_games" : inter_league_games
             }
         self.day = 1
-        self.name = name
         self.schedule = {}
         self.series_length = 3 #can be changed
         self.game_length = None
         self.active = False
         self.games_per_hour = games_per_hour
-        self.standings = {}
 
-        for this_team in self.teams_in_league():
-            self.standings[this_team.name] = {
-                "wins" : 0,
-                "losses" : 0,
-                "run differential" : 0,
-                }
+    def add_stats_from_game(self, players_list):
+        league_db.add_stats(players_list)
+
+    def update_standings(self, results_dic):
+        league_db.update_standings(self.name, results_dic)
+
 
     def last_series_check(self):
-        return day + 1 in self.schedule.keys()
+        return self.day + 1 in self.schedule.keys()
 
     def find_team(self, team_name):
         for subleague in iter(self.league.keys()):
@@ -93,9 +93,9 @@ class league_structure(object):
                     a_home = True
                     for team_a, team_b in zip(league_a, league_b):
                         if a_home:
-                            matchups.append([team_b, team_a])
+                            matchups.append([team_b.name, team_a.name])
                         else:
-                            matchups.append([team_a, team_b])
+                            matchups.append([team_a.name, team_b.name])
                         a_home != a_home
                     
         for i in range(0, self.constraints["inter_div_games"]): #inter-division matchups
@@ -127,9 +127,9 @@ class league_structure(object):
                 a_home = True
                 for team_a, team_b in zip(divs_a, divs_b):
                     if a_home:
-                        matchups.append([team_b, team_a])
+                        matchups.append([team_b.name, team_a.name])
                     else:
-                        matchups.append([team_a, team_b])
+                        matchups.append([team_a.name, team_b.name])
                     a_home != a_home
 
 
@@ -146,9 +146,9 @@ class league_structure(object):
                     for team_a, team_b in zip(teams_a, teams_b):
                         for j in range(0, self.constraints["division_games"]):
                             if i % 2 == 0:
-                                matchups.append([team_b, team_a])
+                                matchups.append([team_b.name, team_a.name])
                             else:
-                                matchups.append([team_a, team_b])
+                                matchups.append([team_a.name, team_b.name])
 
                         division.insert(1, division.pop())
         return matchups       
@@ -278,3 +278,21 @@ class bracket(object):
         if parent is None:
             self.this_bracket = branch
             return branch
+
+def save_league(this_league):
+    if not league_db.league_exists(this_league.name):
+        league_db.init_league_db(this_league)
+        with open(os.path.join(data_dir, league_dir, f"{this_league.name}.league"), "w") as league_file:
+            league_json_string = jsonpickle.encode(this_league.league, keys=True)
+            json.dump(league_json_string, league_file, indent=4)
+        return True
+
+def load_league_file(league_name):
+    if league_db.league_exists(league_name):
+        state = league_db.state(league_name)
+        this_league = league_structure(league_name)
+        with open(os.path.join(data_dir, league_dir, f"{this_league.name}.league")) as league_file:
+            this_league.league = jsonpickle.decode(json.load(league_file), keys=True, classes=team)
+        with open(os.path.join(data_dir, league_dir, f"{this_league.name}.state")) as state_file:
+            state_dic = json.load(state_file)
+        return this_league

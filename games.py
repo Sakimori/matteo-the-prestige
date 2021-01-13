@@ -674,6 +674,10 @@ class game(object):
                 return "Game not started."
 
     def add_stats(self):
+        players = self.get_stats()
+        db.add_stats(players)
+
+    def get_stats(self):
         players = []
         for this_player in self.teams["away"].lineup:
             players.append((this_player.name, this_player.game_stats))
@@ -681,7 +685,7 @@ class game(object):
             players.append((this_player.name, this_player.game_stats))
         players.append((self.teams["home"].pitcher.name, self.teams["home"].pitcher.game_stats))
         players.append((self.teams["away"].pitcher.name, self.teams["away"].pitcher.game_stats))
-        db.add_stats(players)
+        return players
         
 
 
