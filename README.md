@@ -23,26 +23,26 @@ accepting pull requests, check the issues for to-dos.
 	- then another blank line seperating your batters and your pitchers.
 	- the final lines are the names of the pitchers in your rotation, rotations can contain any number of pitchers between 1 and 8.
   - if you did it correctly, you'll get a team embed with a prompt to confirm. hit the 👍 and your team will be saved!
-- m;deleteteam [teamname] (requires team ownership)
+- m;deleteteam [teamname] \(requires team ownership)
   - allows you to delete the team with the provided name. you'll get an embed with a confirmation to prevent accidental deletions. hit the 👍 and your team will be deleted.
 - m;import
   - imports an onomancer collection as a new team. you can use the new onomancer simsim setting to ensure compatibility. similarly to saveteam, you'll get a team embed with a prompt to confirm, hit the 👍 and your team will be saved!
 
 #### editing (all of these commands require ownership and exact spelling of the team name):
-- m;addplayer batter/pitcher [team name] [player name]
+- m;addplayer batter/pitcher [team name] \[player name]
   - adds a new player to the end of your team, either in the lineup or the rotation depending on which version you use. use addplayer batter or addplayer pitcher at the top of a list with entries separated by new lines:
     - the name of the team you want to add the player to.
 	- the name of the player you want to add to the team.
-- m;moveplayer [team name] [player name] [new lineup/rotation position number]
+- m;moveplayer [team name] \[player name] [new lineup/rotation position number]
   - moves a player within your lineup or rotation. if you want to instead move a player from your rotation to your lineup or vice versa, use m;swapsection instead. use this command at the top of a list with entries separated by new lines:
     - the name of the team you want to move the player on.
 	- the name of the player you want to move.
 	- the position you want to move them too, indexed with 1 being the first position of the lineup or rotation. all players below the specified position in the lineup or rotation will be pushed down.
-- m;swapsection [team name] [player name]
+- m;swapsection [team name] \[player name]
   - swaps a player from your lineup to the end of your rotation or your rotation to the end of your lineup. use this command at the top of a list with entries separated by new lines:
     - the name of the team you want to swap the player on.
 	- the name of the player you want to swap.
-- m;removeplayer [team name] [player name]	
+- m;removeplayer [team name] \[player name]	
   - removes a player from your team. if there are multiple copies of the same player on a team this will only delete the first one. use this command at the top of a list with entries separated by new lines:
 	- the name of the team you want to remove the player from.
 	- the name of the player you want to remove.
@@ -99,3 +99,7 @@ these folks are helping me a *ton* via patreon, and i cannot possibly thank them
 - Ryan Littleton
 - Evie Diver
 - iliana etaoin
+
+## Attribution
+
+Twemoji is copyright 2020 Twitter, Inc and other contributors; code licensed under [the MIT License](http://opensource.org/licenses/MIT), graphics licensed under [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/)
