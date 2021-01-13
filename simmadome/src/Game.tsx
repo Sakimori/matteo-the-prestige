@@ -20,7 +20,7 @@ function Game(props: {gameId: string, state : GameState}) {
 	return (
 		<div className="game" ref={self}>
 			<div className="header">
-			    <div className="inning">Inning: {state.display_top_of_inning ? "🔼" : "🔽"} {state.display_inning}/{state.max_innings}</div>
+			    <div className="inning">Inning: <span>{state.display_top_of_inning ? "🔼" : "🔽"}</span> {state.display_inning}/{state.max_innings}</div>
 			    <div className="title">{state.title}</div>
 			    <div className="weather">{state.weather_emoji} {state.weather_text}</div>
 			</div>
