@@ -125,10 +125,10 @@ def update_loop():
                         
                         if "veil" in this_game.last_update[0].keys():
                             state["update_emoji"] = "🌌"                            
-                            state["update_text"] += " {this_game.last_update[0]['batter']}'s will manifests on {games.base_string(this_game.last_update[1])} base!"
+                            state["update_text"] += f" {this_game.last_update[0]['batter']}'s will manifests on {games.base_string(this_game.last_update[1])} base."
                         elif "error" in this_game.last_update[0].keys():
-                            state["update_emoji"] = "🌃"
-                            state["update_text"] = f"{this_game.last_update[0]['defender']} lost sight of the ball! {this_game.last_update[0]['batter']} reaches {games.base_string(this_game.last_update[1])} on the error."
+                            state["update_emoji"] = "👻"
+                            state["update_text"] = f"{this_game.last_update[0]['batter']}'s hit goes ethereal, and {this_game.last_update[0]['defender']} can't catch it! {this_game.last_update[0]['batter']} reaches base safely."
 
             state["bases"] = this_game.named_bases()
 
@@ -150,4 +150,4 @@ def update_loop():
             state["update_pause"] -= 1
 
         socketio.emit("states_update", game_states)
-        time.sleep(1)
+        time.sleep(4)

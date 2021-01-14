@@ -34,7 +34,7 @@ def all_weathers():
         #"Midnight": weather("Midnight", "🕶"),
         "Slight Tailwind": weather("Slight Tailwind", "🏌️‍♀️"),
         "Heavy Snow": weather("Heavy Snow", "❄"),
-        "Twilight" : weather("Twilight", "🌃"),
+        "Twilight" : weather("Twilight", "👻"),
         "Thinned Veil" : weather("Thinned Veil", "🌌")
         }
     return weathers_dic
@@ -270,11 +270,11 @@ class game(object):
         pb_system_stat = (random.gauss(1*math.erf((bat_stat - pitch_stat)*1.5)-1.8,2.2))
         hitnum = random.gauss(2*math.erf(bat_stat/4)-1,3)
 
-        if weather.name == "Twilight":
+        if self.weather.name == "Twilight":
             error_line = - (math.log(defender.stlats["defense_stars"] + 1)/50) + 1
             error_roll = random.random()
             if error_roll > error_line:
-                outcome["error"] == True
+                outcome["error"] = True
                 outcome["defender"] = defender
                 pb_system_stat = 0.1
 

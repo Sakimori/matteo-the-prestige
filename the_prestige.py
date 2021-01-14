@@ -202,7 +202,7 @@ class StartRandomGameCommand(Command):
 
         channel = msg.channel
         await msg.delete()
-        await channel.send("Rolling the bones...")
+        await channel.send("Rolling the bones... This might take a while.")
         teamslist = games.get_all_teams()
 
         game = games.game(random.choice(teamslist).finalize(), random.choice(teamslist).finalize())
