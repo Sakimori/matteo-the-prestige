@@ -6,4 +6,4 @@ SELECT name,
 	ROUND(strikeouts_given*27.0/(outs_pitched*1.0),3) as kper9,
 	ROUND(strikeouts_given*1.0/walks_allowed*1.0,3) as kperbb
 FROM stats WHERE outs_pitched > 150
-ORDER BY bbper9 ASC;
+ORDER BY era ASC;

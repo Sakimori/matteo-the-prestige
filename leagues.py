@@ -19,7 +19,9 @@ class league_structure(object):
         self.constraints = {
             "division_games" : division_games,
             "inter_div_games" : inter_division_games,
-            "inter_league_games" : inter_league_games
+            "inter_league_games" : inter_league_games,
+            "division_leaders" : 0,
+            "wild_cards" : 0
             }
         self.day = 1
         self.schedule = {}

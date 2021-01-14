@@ -62,6 +62,8 @@ def create_league():
         inter_division_games=config['inter_division_series'],
         inter_league_games=config['inter_league_series'],
     )
+    new_league.constraints["division_leaders"] = config["top_postseason"]
+    new_league.constraints["wild_cards"] = config["wildcards"]
     new_league.generate_schedule()
     leagues.save_league(new_league)
 
