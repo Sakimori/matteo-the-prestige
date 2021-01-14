@@ -1555,7 +1555,7 @@ async def league_day_watcher(channel, league, games_list, filter_url, autoplay, 
             validminutes = [int((60 * div)/league.games_per_hour) for div in range(0,league.games_per_hour)]
             for i in range(0, len(validminutes)):
                 if now.minute > validminutes[i]:
-                    if i <= len(validminutes)-1:
+                    if i <= len(validminutes)-2:
                         delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
                     else:
                         delta = datetime.timedelta(minutes= (60 - now.minute))           
@@ -1588,7 +1588,7 @@ async def league_day_watcher(channel, league, games_list, filter_url, autoplay, 
     validminutes = [int((60 * div)/league.games_per_hour) for div in range(0,league.games_per_hour)]
     for i in range(0, len(validminutes)):
         if now.minute > validminutes[i]:
-            if i < len(validminutes)-1:
+            if i < len(validminutes)-2:
                 delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
             else:
                 delta = datetime.timedelta(minutes= (60 - now.minute))           
