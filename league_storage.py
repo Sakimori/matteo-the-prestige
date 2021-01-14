@@ -64,6 +64,7 @@ def init_league_db(league):
         c.execute(teams_table_check_string)
 
         for team in league.teams_in_league():
+            print(team)
             c.execute("INSERT INTO teams (name) VALUES (?)", (team.name,))
 
             player_string = "INSERT INTO stats (name, team_name) VALUES (?,?)"

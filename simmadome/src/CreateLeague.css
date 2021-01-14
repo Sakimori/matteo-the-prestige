@@ -49,13 +49,22 @@ input[type=number]::-webkit-outer-spin-button {
 	margin-top: 1rem;
 }
 
-.cl_league_options, .cl_league_structure {
+.cl_league_options, .cl_league_structure, .cl_confirm_box {
 	display: flex;
 	background: var(--background-tertiary);
 	flex-direction: column;
 	max-width: 100%;
 	border-radius: 1rem;
 	padding-top: 1.5rem;
+}
+
+.cl_confirm_box {
+	min-width: 55rem;
+	padding: 2.5rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 20pt;
 }
 
 .cl_league_options {

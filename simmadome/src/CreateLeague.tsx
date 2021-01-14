@@ -210,6 +210,8 @@ let initLeagueStructure = {
 function CreateLeague() {
 	let [name, setName] = useState("");
 	let [showError, setShowError] = useState(false);
+	let [nameExists, setNameExists] = useState(false);
+	let [createSuccess, setCreateSuccess] = useState(false);
 	let [structure, structureDispatch] = useReducer(leagueStructureReducer, initLeagueStructure);
 	let [options, optionsDispatch] = useReducer(LeagueOptionsReducer, new LeagueOptionsState());
 
@@ -221,18 +223,52 @@ function CreateLeague() {
 		}
 	})
 
+	if (createSuccess) {
+		return( 
+			<div className="cl_league_main" ref={self}>
+				<div className="cl_confirm_box">
+					League created succesfully!
+				</div>
+			</div>
+		);
+	}
+
 	return (
 		<div className="cl_league_main" ref={self}>
-			<input type="text" className="cl_league_name" placeholder="League Name" value={name} onChange={(e) => setName(e.target.value)}/>
-			<div className="cl_structure_err">{name === "" && showError ? "A name is required." : ""}</div>
+			<input type="text" className="cl_league_name" placeholder="League Name" value={name} onChange={(e) => {
+				setName(e.target.value);
+				setNameExists(false);
+			}}/>
+			<div className="cl_structure_err">{
+				name === "" && showError ? "A name is required." : 
+				nameExists && showError ? "A league by that name already exists" : 
+				""
+			}</div>
 			<LeagueStructre state={structure} dispatch={structureDispatch} showError={showError}/>
 			<div className="cl_league_options">
 				<LeagueOptions state={options} dispatch={optionsDispatch} showError={showError}/>
 				<div className="cl_option_submit_box">
 					<button className="cl_option_submit" onClick={e => {
-						//make network call, once leagues are merged
 						if (!validRequest(name, structure, options)) {
 							setShowError(true);
+						} else {
+							let req = new XMLHttpRequest();
+							let data = makeRequest(name, structure, options);
+							req.open("POST", "/api/leagues", true);
+							req.setRequestHeader("Content-type", "application/json");
+							req.onreadystatechange = () => {
+								if(req.readyState === 4) {
+									if (req.status === 200) {
+										setCreateSuccess(true);
+									}
+									if (req.status === 400) {
+										setNameExists(true);
+										setShowError(true);
+									}
+								}
+							}
+							req.send(data);
+
 						}
 					}}>Submit</button>
 					<div className="cl_option_err">{
@@ -246,19 +282,14 @@ function CreateLeague() {
 }
 
 function makeRequest(name:string, structure: LeagueStructureState, options:LeagueOptionsState) {
-
-	if (!validRequest(name, structure, options)) { 
-		return null 
-	}
-	
-	return ({
+	return JSON.stringify({
+		name: name,
 		structure: {
-			name: name,
 			subleagues: structure.subleagues.map(subleague => ({
 				name: subleague.name,
 				divisions: subleague.divisions.map(division => ({
 					name: division.name,
-					teams: division.teams
+					teams: division.teams.map(team => team.name)
 				}))
 			}))
 		},
@@ -272,7 +303,6 @@ function makeRequest(name:string, structure: LeagueStructureState, options:Leagu
 }
 
 function validRequest(name:string, structure: LeagueStructureState, options:LeagueOptionsState) {
-
 	return (
 		name !== "" && 
 		validNumber(options.games_series) && 
@@ -280,7 +310,7 @@ function validRequest(name:string, structure: LeagueStructureState, options:Leag
 		validNumber(options.inter_division_series) && 
 		validNumber(options.inter_league_series) &&
 		validNumber(options.top_postseason) &&
-		validNumber(options.wildcards) &&
+		validNumber(options.wildcards, 0) &&
 		structure.subleagues.length % 2 === 0 &&
 		structure.subleagues.every(subleague => 
 			subleague.name !== "" &&
@@ -292,8 +322,8 @@ function validRequest(name:string, structure: LeagueStructureState, options:Leag
 	)
 }
 
-function validNumber(value: string) {
-	return Number(value) !== NaN && Number(value) > 0
+function validNumber(value: string, min = 1) {
+	return Number(value) !== NaN && Number(value) >= min
 }
 
 // LEAGUE STRUCUTRE
@@ -425,8 +455,6 @@ function Division(props: {state: DivisionState, dispatch:(action: DistributiveOm
 }
 
 // LEAGUE OPTIONS
-
-type StateBundle<T> = [T, React.Dispatch<React.SetStateAction<T>>]
 
 function LeagueOptions(props: {state: LeagueOptionsState, dispatch: React.Dispatch<OptionsReducerActions>, showError: boolean}) {
 	return (
