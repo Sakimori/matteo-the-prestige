@@ -195,7 +195,7 @@ function shallowClone<T>(obj: T): T {
 }
 
 type DistributiveOmit<T, K extends keyof any> = T extends any ? Omit<T, K> : never;
-type DistributivePick<T, K extends keyof T> = T extends any ? Pick<T, K> : never;
+//type DistributivePick<T, K extends keyof T> = T extends any ? Pick<T, K> : never;
 
 // CREATE LEAGUE
 
@@ -323,7 +323,7 @@ function validRequest(name:string, structure: LeagueStructureState, options:Leag
 }
 
 function validNumber(value: string, min = 1) {
-	return Number(value) !== NaN && Number(value) >= min
+	return !isNaN(Number(value)) && Number(value) >= min
 }
 
 // LEAGUE STRUCUTRE
@@ -464,7 +464,7 @@ function LeagueOptions(props: {state: LeagueOptionsState, dispatch: React.Dispat
 					props.dispatch({type: 'set_games_series', value: value})} showError={props.showError}/>
 				<NumberInput title="Number of teams from top of division to postseason" value={props.state.top_postseason} setValue={(value: string) => 
 					props.dispatch({type: 'set_top_postseason', value: value})} showError={props.showError}/>
-				<NumberInput title="Number of wildcards" value={props.state.wildcards} setValue={(value: string) => 
+				<NumberInput title="Number of wildcards" value={props.state.wildcards} minValue={0} setValue={(value: string) => 
 					props.dispatch({type: 'set_wildcards', value: value})} showError={props.showError}/>
 			</div>
 			<div className="cl_option_column">
@@ -479,12 +479,16 @@ function LeagueOptions(props: {state: LeagueOptionsState, dispatch: React.Dispat
 	);
 }
 
-function NumberInput(props: {title: string, value: string, setValue: (newVal: string) => void, showError: boolean}) {
+function NumberInput(props: {title: string, value: string, setValue: (newVal: string) => void, showError: boolean, minValue?:number}) {
+	let minValue = 1;
+	if (props.minValue !== undefined) { 
+		minValue = props.minValue
+	}
 	return (
 		<div className="cl_option_box">
 			<div className="cl_option_label">{props.title}</div>
-			<input className="cl_option_input" type="number" min="0" value={props.value} onChange={e => props.setValue(e.target.value)}/>
-			<div className="cl_option_err">{(Number(props.value) === NaN || Number(props.value) < 0) && props.showError ? "Must be a number greater than 0" : ""}</div>
+			<input className="cl_option_input" type="number" min={minValue} value={props.value} onChange={e => props.setValue(e.target.value)}/>
+			<div className="cl_option_err">{(!isNaN(Number(props.value)) || Number(props.value) < minValue) && props.showError ? "Must be a number greater than "+minValue : ""}</div>
 		</div>
 	);
 }

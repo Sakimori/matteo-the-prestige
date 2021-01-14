@@ -32,6 +32,7 @@ const useListener = (onUpdate: (update: [string, GameState][]) => void, url: str
     socket.on('connect', () => socket.emit('recieved', {}));
     socket.on('states_update', onUpdate);
     return () => {socket.disconnect()};
+    //eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url])
 }
 

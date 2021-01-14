@@ -32,14 +32,14 @@ function Header() {
         <div id="link_div">
           <a href="https://www.patreon.com/sixteen" className="patreon_link" target="_blank" rel="noopener noreferrer">
             <div className="patreon_container">
-              <img className="patreon_logo" src={patreonLogo} />
+              <img className="patreon_logo" src={patreonLogo} alt="Patreon"/>
             </div>
           </a>
           <a href="https://github.com/Sakimori/matteo-the-prestige" className="github_link" target="_blank" rel="noopener noreferrer">
-            <img className="github_logo" src={githubLogo} />
+            <img className="github_logo" src={githubLogo} alt="Github"/>
           </a>
           <a href="https://twitter.com/intent/follow?screen_name=SIBR_XVI" className="twitter_link" target="_blank" rel="noopener noreferrer">
-            <img className="twitter_logo" src={twitterLogo} />
+            <img className="twitter_logo" src={twitterLogo} alt="Twitter"/>
           </a>
         </div>
         <div id="utility_links">
