@@ -98,7 +98,8 @@ def save_league(league):
                 "series_length" : league.series_length,
                 "games_per_hour" : league.games_per_hour,
                 "owner" : league.owner,
-                "historic" : league.historic
+                "historic" : league.historic,
+                "season" : league.season
             }
         with open(os.path.join(data_dir, league_dir, league.name, f"{league.name}.state"), "w") as state_file:
             json.dump(state_dic, state_file, indent=4)
@@ -154,5 +155,5 @@ def league_exists(league_name):
     with os.scandir(os.path.join(data_dir, league_dir)) as folder:
         for subfolder in folder:
             if league_name in subfolder.name:
-                return not state(league_name)["historic"]
+                return True
     return False

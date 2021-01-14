@@ -726,7 +726,7 @@ class StartDraftCommand(Command):
         return draft_message
 
 class DebugLeagueStart(Command):
-    name = "startleague"
+    name = "startdebugleague"
 
     async def execute(self, msg, command):
         if not league_exists("test2"):
@@ -743,19 +743,50 @@ class DebugLeagueStart(Command):
             }, division_games=6, inter_division_games=3, inter_league_games=3, games_per_hour = 12)
             league.generate_schedule()
             leagues.save_league(league)
-        else:
-            league = leagues.load_league_file("test2")
-        await start_league_day(msg.channel, league, autoplay = 2)
 
 class DebugLeagueDisplay(Command):
-    name = "displayleague"
+    name = "displaydebugleague"
 
     async def execute(self, msg, command):
         if league_exists("test2"):
             league = leagues.load_league_file("test2")
             await msg.channel.send(embed=league.standings_embed())
             
+class StartLeagueCommand(Command):
+    name = "startleague"
+    template = "m;startleague [league name]"
+    description = """Optional flag: `--queue X` or `-q X` to play X number of series before stopping.
+Plays a league with a given name, provided that league has been saved on the website."""
 
+    async def execute(self, msg, command):
+        league_name = command.split("-").strip()
+        autoplay = None
+
+        try:
+            if "--queue " in command:
+                autoplay = int(command.split("--queue ")[1])
+            elif "-q " in command:
+                autoplay = int(command.split("--queue ")[1])
+            if autoplay is not None and autoplay <= 0:
+                raise ValueError
+            elif autoplay is None:
+                autoplay = -1
+        except:
+            await msg.channel.send("Sorry boss, the queue flag needs a natural number. Any whole number over 0 will do just fine.")
+            return
+
+        if league_exists(league_name):
+            league = leagues.load_league_file(league_name)
+            if league.historic:
+                await msg.channel.send("That league is done and dusted, chief. Sorry.")
+                return
+            for active_league in active_leagues:
+                if active_league.name == league.name:
+                    await msg.channel.send("That league is already running, boss. Patience is a virtue, you know.")
+                    return
+            await start_league_day(msg.channel, league, autoplay = autoplay)
+        else:
+            await msg.channel.send("Couldn't find that league, boss. Did you save it on the website?")
 
 commands = [
     IntroduceCommand(),
@@ -1464,7 +1495,8 @@ async def start_league_day(channel, league, autoplay = 1):
 async def league_day_watcher(channel, league, games_list, filter_url, autoplay, last = False):
     league.active = True
     autoplay -= 1
-    active_leagues.append(league)
+    if league not in active_leagues:
+        active_leagues.append(league)
     series_results = {}
 
     while league.active:

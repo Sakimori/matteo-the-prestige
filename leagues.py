@@ -12,6 +12,7 @@ class league_structure(object):
         self.name = name
         self.historic = False
         self.owner = None
+        self.season = 1
 
     def setup(self, league_dic, division_games = 1, inter_division_games = 1, inter_league_games = 1, games_per_hour = 2):
         self.league = league_dic #key: subleague, value: {division : team_name}
@@ -332,4 +333,7 @@ def load_league_file(league_name):
         this_league.game_length = state_dic["game_length"]
         this_league.series_length = state_dic["series_length"]
         this_league.owner = state_dic["owner"]
+        this_league.games_per_hour = state_dic["games_per_hour"]
+        this_league.historic = state_dic["historic"]
+        this_league.season = state_dic["season"]
         return this_league
