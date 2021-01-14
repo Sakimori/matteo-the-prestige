@@ -1579,6 +1579,7 @@ async def league_day_watcher(channel, league, games_list, filter_url, autoplay, 
     if last or autoplay == 0: #if this series was the last of the season OR number of series to autoplay has been reached
         await channel.send(embed=league.standings_embed())
         await channel.send(f"The {league.name} is no longer autoplaying.")
+        leagues.save_league(league)
         active_leagues.pop(active_leagues.index(league))
         return
 
