@@ -1394,7 +1394,6 @@ def game_over_embed(game):
         title_string += f" with {game.inning - (game.max_innings+1)} extra innings.\n"
     else:
         title_string += ".\n"
-    title_string += game.weather.emoji + game.weather.name
 
     winning_team = game.teams['home'].name if game.teams['home'].score > game.teams['away'].score else game.teams['away'].name
     winstring = f"{game.teams['away'].score} to {game.teams['home'].score}\n"
@@ -1406,7 +1405,10 @@ def game_over_embed(game):
         winstring += f"{winning_team} wins!"
 
     embed = discord.Embed(color=discord.Color.dark_purple(), title=title_string)
-    embed.add_field(name="Final score:", value=winstring)
+    embed.add_field(name="Final score:", value=winstring, inline=False)
+    embed.add_field(name=f"{game.teams['away'].name} pitcher:", value=game.teams['away'].pitcher.name)
+    embed.add_field(name=f"{game.teams['home'].name} pitcher:", value=game.teams['home'].pitcher.name)
+    embed.set_footer(text=game.weather.emoji + game.weather.name)
     return embed
 
 def get_team_fuzzy_search(team_name):
