@@ -1134,6 +1134,7 @@ async def tourney_round_watcher(channel, tourney, games_list, filter_url, finals
                             wins_in_series[winner_name] = 1
 
                         final_embed = game_over_embed(game)
+                        final_embed.add_field(name="Series score:", value=f"{wins_in_series[game.teams['away'].name]} - {wins_in_series[game.teams['home'].name]}")
                         await channel.send(f"A {tourney.name} game just ended!")                
                         await channel.send(embed=final_embed)
                         if wins_in_series[winner_name] >= int((tourney.series_length+1)/2) and not finals:
@@ -1502,6 +1503,7 @@ async def league_day_watcher(channel, league, games_list, filter_url, autoplay, 
                     league.update_standings({winner_name : winner_dic, loser_name : loser_dic})
                     leagues.save_league(league)
                     final_embed = game_over_embed(game)
+                    final_embed.add_field(name="Series score:", value=f"{series_results[game.teams['away'].name]['wins']} - {series_results[game.teams['home'].name]['wins']}")
                     await channel.send(f"A {league.name} game just ended!")                
                     await channel.send(embed=final_embed)
                     if series_results[winner_name]["wins"] + series_results[winner_name]["losses"] < league.series_length:

@@ -31,12 +31,13 @@ def config():
 def all_weathers():
     weathers_dic = {
         #"Supernova" : weather("Supernova", "🌟"),
-        "Midnight": weather("Midnight", "🕶"),
+        #"Midnight": weather("Midnight", "🕶"),
         "Slight Tailwind": weather("Slight Tailwind", "🏌️‍♀️"),
-        "Heavy Snow": weather("Heavy Snow", "❄")
+        "Heavy Snow": weather("Heavy Snow", "❄"),
+        "Twilight" : weather("Twilight", "🌃"),
+        "Thinned Veil" : weather("Thinned Veil", "🌌")
         }
     return weathers_dic
-
 
 class appearance_outcomes(Enum):
     strikeoutlooking = "strikes out looking."
@@ -269,6 +270,13 @@ class game(object):
         pb_system_stat = (random.gauss(1*math.erf((bat_stat - pitch_stat)*1.5)-1.8,2.2))
         hitnum = random.gauss(2*math.erf(bat_stat/4)-1,3)
 
+        if weather.name == "Twilight":
+            error_line = - (math.log(defender.stlats["defense_stars"] + 1)/50) + 1
+            error_roll = random.random()
+            if error_roll > error_line:
+                outcome["error"] == True
+                outcome["defender"] = defender
+                pb_system_stat = 0.1
 
         
         if pb_system_stat <= 0:
@@ -313,7 +321,7 @@ class game(object):
             outcome["ishit"] = True
             if hitnum < 1:
                 outcome["text"] = appearance_outcomes.single
-            elif hitnum < 2.85:
+            elif hitnum < 2.85 or "error" in outcome.keys():
                 outcome["text"] = appearance_outcomes.double
             elif hitnum < 3.1:
                 outcome["text"] = appearance_outcomes.triple
@@ -384,6 +392,11 @@ class game(object):
                 if base is not None:
                     runs += 1
             self.bases = {1 : None, 2 : None, 3 : None}
+            if "veil" in outcome.keys():
+                if runs < 4:
+                    self.bases[runs] = self.get_batter()
+                else:
+                    runs += 1
             return runs
 
         elif "advance" in outcome.keys():
@@ -535,6 +548,10 @@ class game(object):
             elif result["text"] == appearance_outcomes.homerun or result["text"] == appearance_outcomes.grandslam:
                 self.get_batter().game_stats["total_bases"] += 4
                 self.get_batter().game_stats["home_runs"] += 1
+                if self.weather.name == "Thinned Veil":
+                    result["veil"] = True
+
+
 
             scores_to_add += self.baserunner_check(defender, result)
 

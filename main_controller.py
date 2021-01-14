@@ -110,6 +110,8 @@ def update_loop():
                         if this_game.last_update[0]["defender"] != "":
                             punc = ". "
 
+                        
+
                         if "fc_out" in this_game.last_update[0].keys():
                             name, base_string = this_game.last_update[0]['fc_out']
                             updatestring = f"{this_game.last_update[0]['batter']} {this_game.last_update[0]['text'].value.format(name, base_string)} {this_game.last_update[0]['defender']}{punc}"
@@ -120,6 +122,13 @@ def update_loop():
 
                         state["update_emoji"] = "🏏"
                         state["update_text"] = updatestring
+                        
+                        if "veil" in this_game.last_update[0].keys():
+                            state["update_emoji"] = "🌌"                            
+                            state["update_text"] += " {this_game.last_update[0]['batter']}'s will manifests on {games.base_string(this_game.last_update[1])} base!"
+                        elif "error" in this_game.last_update[0].keys():
+                            state["update_emoji"] = "🌃"
+                            state["update_text"] = f"{this_game.last_update[0]['defender']} lost sight of the ball! {this_game.last_update[0]['batter']} reaches {games.base_string(this_game.last_update[1])} on the error."
 
             state["bases"] = this_game.named_bases()
 
