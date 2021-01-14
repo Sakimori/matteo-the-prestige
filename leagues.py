@@ -15,7 +15,7 @@ class league_structure(object):
         self.season = 1
 
     def setup(self, league_dic, division_games = 1, inter_division_games = 1, inter_league_games = 1, games_per_hour = 2):
-        self.league = league_dic #key: subleague, value: {division : team_name}
+        self.league = league_dic # { subleague name : { division name : [team object] } }
         self.constraints = {
             "division_games" : division_games,
             "inter_div_games" : inter_division_games,

@@ -1,6 +1,9 @@
-import asyncio, time, datetime, games, json, threading, jinja2, leagues, os
-from flask import Flask, url_for, Response, render_template, request, jsonify, send_from_directory
+import asyncio, time, datetime, games, json, threading, jinja2, leagues, os, leagues
+from leagues import league_structure
+from league_storage import league_exists
+from flask import Flask, url_for, Response, render_template, request, jsonify, send_from_directory, abort
 from flask_socketio import SocketIO, emit
+import database as db
 
 app = Flask("the-prestige", static_folder='simmadome/build')
 app.config['SECRET KEY'] = 'dev'
@@ -16,6 +19,57 @@ def serve(path):
     else:
         return send_from_directory(app.static_folder, 'index.html')
 
+### API
+
+@app.route('/api/teams/search')
+def search_teams():
+    query = request.args.get('query')
+    page_len = int(request.args.get('page_len'))
+    page_num = int(request.args.get('page_num'))
+
+    if query is None:
+        abort(400, "A query term is required")
+
+    result = db.search_teams(query)
+    if page_len is not None: #pagination should probably be done in the sqlite query but this will do for now
+        if page_num is None:
+            abort(400, "A page_len argument must be accompanied by a page_num argument")
+        result = result[page_num*page_len : (page_num + 1)*page_len]
+
+    return jsonify([json.loads(x[0])['name'] for x in result]) #currently all we need is the name but that can change
+
+
+@app.route('/api/leagues', methods=['POST'])
+def create_league():
+    config = json.loads(request.data)
+
+    if (league_exists(config['name'])):
+        abort(400, "A league by that name already exists")
+
+    print(config)
+    league_dic = {
+        subleague['name'] : { 
+            division['name'] : [games.get_team(team_name) for team_name in division['teams']] 
+            for division in subleague['divisions']
+        } 
+        for subleague in config['structure']['subleagues']
+    }
+
+    new_league = league_structure(config['name'])
+    new_league.setup(
+        league_dic, 
+        division_games=config['division_series'], 
+        inter_division_games=config['inter_division_series'],
+        inter_league_games=config['inter_league_series'],
+    )
+    new_league.generate_schedule()
+    leagues.save_league(new_league)
+
+    return "League created successfully"
+
+
+
+### SOCKETS
 
 thread2 = threading.Thread(target=socketio.run,args=(app,'0.0.0.0'))
 thread2.start()
