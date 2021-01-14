@@ -759,14 +759,14 @@ class StartLeagueCommand(Command):
 Plays a league with a given name, provided that league has been saved on the website."""
 
     async def execute(self, msg, command):
-        league_name = command.split("-").strip()
+        league_name = command.split("-")[0].strip()
         autoplay = None
 
         try:
             if "--queue " in command:
                 autoplay = int(command.split("--queue ")[1])
             elif "-q " in command:
-                autoplay = int(command.split("--queue ")[1])
+                autoplay = int(command.split("-q ")[1])
             if autoplay is not None and autoplay <= 0:
                 raise ValueError
             elif autoplay is None:
@@ -808,6 +808,7 @@ commands = [
     SearchTeamsCommand(),
     StartGameCommand(),
     StartTournamentCommand(),
+    StartLeagueCommand(),
     StartRandomGameCommand(),
     CreditCommand(),
     RomanCommand(),

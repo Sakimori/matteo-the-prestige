@@ -72,34 +72,20 @@ def init_league_db(league):
             for pitcher in team.rotation:
                 c.execute(player_string, (pitcher.name, team.name))
 
-        state_dic = {
-                "day" : league.day,
-                "schedule" : league.schedule,
-                "game_length" : league.game_length,
-                "series_length" : league.series_length,
-                "games_per_hour" : league.games_per_hour,
-                "owner" : None,
-                "historic" : False
-            }
-        if not os.path.exists(os.path.dirname(os.path.join(data_dir, league_dir, league.name, f"{league.name}.state"))):
-            os.makedirs(os.path.dirname(os.path.join(data_dir, league_dir, league.name, f"{league.name}.state")))
-        with open(os.path.join(data_dir, league_dir, league.name, f"{league.name}.state"), "w") as state_file:
-            json.dump(state_dic, state_file, indent=4)
-
     conn.commit()
     conn.close()
 
 def save_league(league):
     if league_exists(league.name):
         state_dic = {
+                "season" : league.season,
                 "day" : league.day,
                 "schedule" : league.schedule,
                 "game_length" : league.game_length,
                 "series_length" : league.series_length,
                 "games_per_hour" : league.games_per_hour,
                 "owner" : league.owner,
-                "historic" : league.historic,
-                "season" : league.season
+                "historic" : league.historic               
             }
         with open(os.path.join(data_dir, league_dir, league.name, f"{league.name}.state"), "w") as state_file:
             json.dump(state_dic, state_file, indent=4)

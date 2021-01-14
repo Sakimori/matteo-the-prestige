@@ -315,9 +315,7 @@ def save_league(this_league):
         with open(os.path.join(data_dir, league_dir, this_league.name, f"{this_league.name}.league"), "w") as league_file:
             league_json_string = jsonpickle.encode(this_league.league, keys=True)
             json.dump(league_json_string, league_file, indent=4)
-        return True
-    else:
-        league_db.save_league(this_league)
+    league_db.save_league(this_league)
 
 def load_league_file(league_name):
     if league_db.league_exists(league_name):
