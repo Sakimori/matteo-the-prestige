@@ -10,6 +10,8 @@ league_dir = "leagues"
 class league_structure(object):
     def __init__(self, name):
         self.name = name
+        self.historic = False
+        self.owner = None
 
     def setup(self, league_dic, division_games = 1, inter_division_games = 1, inter_league_games = 1, games_per_hour = 2):
         self.league = league_dic #key: subleague, value: {division : team_name}
@@ -33,7 +35,7 @@ class league_structure(object):
 
 
     def last_series_check(self):
-        return str(math.ceil((self.day)/self.series_length) + 1) in self.schedule.keys()
+        return str(math.ceil((self.day)/self.series_length) + 1) not in self.schedule.keys()
 
     def day_to_series_num(self, day):
         return math.ceil((self.day)/self.series_length)
@@ -164,18 +166,42 @@ class league_structure(object):
             day = 1
             while not scheduled:
                 found = False
-                if day in self.schedule.keys():
-                    for game_on_day in self.schedule[day]:
+                if str(day) in self.schedule.keys():
+                    for game_on_day in self.schedule[str(day)]:
                         for team in game:
                             if team in game_on_day:
                                 found = True
                     if not found:
-                        self.schedule[day].append(game)
+                        self.schedule[str(day)].append(game)
                         scheduled = True
                 else:
-                    self.schedule[day] = [game]
+                    self.schedule[str(day)] = [game]
                     scheduled = True
                 day += 1
+
+    def standings_embed(self):
+        this_embed = Embed(color=Color.purple(), title=self.name)
+        standings = {}
+        for team_name, wins, losses, run_diff in league_db.get_standings(self.name):
+            standings[team_name] = {"wins" : wins, "losses" : losses, "run_diff" : run_diff}
+        for subleague in iter(self.league.keys()):
+            this_embed.add_field(name="Subleague:", value=f"**{subleague}**", inline = False)
+            for division in iter(self.league[subleague].keys()):
+                this_embed.add_field(name="Division:", value=f"**{division}**", inline = False)
+                teams = self.league[subleague][division].copy()
+                for index in range(0, len(teams)):
+                    this_team = teams[index]
+                    teams[index] = (this_team, standings[teams[index].name]["wins"], standings[teams[index].name]["losses"], standings[teams[index].name]["run_diff"],)
+
+                def sorter(team_in_list):
+                    return (team_in_list[1], team_in_list[3])
+                teams.sort(key=sorter, reverse=True)
+
+                for this_team in teams:
+                    this_embed.add_field(name=this_team[0].name, value=f"{this_team[1]} - {this_team[2]} Diff: {this_team[3]}", inline = False)
+
+        this_embed.set_footer(text=f"Standings as of day {self.day-1}")
+        return this_embed
 
 class tournament(object):
     def __init__(self, name, team_dic, series_length = 5, finals_series_length = 7, max_innings = 9, id = None, secs_between_games = 300, secs_between_rounds = 600): 
@@ -289,6 +315,8 @@ def save_league(this_league):
             league_json_string = jsonpickle.encode(this_league.league, keys=True)
             json.dump(league_json_string, league_file, indent=4)
         return True
+    else:
+        league_db.save_league(this_league)
 
 def load_league_file(league_name):
     if league_db.league_exists(league_name):
@@ -298,4 +326,10 @@ def load_league_file(league_name):
             this_league.league = jsonpickle.decode(json.load(league_file), keys=True, classes=team)
         with open(os.path.join(data_dir, league_dir, league_name, f"{this_league.name}.state")) as state_file:
             state_dic = json.load(state_file)
+
+        this_league.day = state_dic["day"]
+        this_league.schedule = state_dic["schedule"]
+        this_league.game_length = state_dic["game_length"]
+        this_league.series_length = state_dic["series_length"]
+        this_league.owner = state_dic["owner"]
         return this_league

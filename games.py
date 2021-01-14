@@ -173,7 +173,7 @@ class team(object):
         if rotation_slot is None:
             self.pitcher = random.choice(temp_rotation)
         else:
-            self.pitcher = temp_rotation[rotation_slot % len(temp_rotation)]
+            self.pitcher = temp_rotation[(rotation_slot-1) % len(temp_rotation)]
 
     def is_ready(self):
         try:

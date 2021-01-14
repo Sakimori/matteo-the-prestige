@@ -78,6 +78,7 @@ def init_league_db(league):
                 "game_length" : league.game_length,
                 "series_length" : league.series_length,
                 "games_per_hour" : league.games_per_hour,
+                "owner" : None,
                 "historic" : False
             }
         if not os.path.exists(os.path.dirname(os.path.join(data_dir, league_dir, league.name, f"{league.name}.state"))):
@@ -87,6 +88,20 @@ def init_league_db(league):
 
     conn.commit()
     conn.close()
+
+def save_league(league):
+    if league_exists(league.name):
+        state_dic = {
+                "day" : league.day,
+                "schedule" : league.schedule,
+                "game_length" : league.game_length,
+                "series_length" : league.series_length,
+                "games_per_hour" : league.games_per_hour,
+                "owner" : league.owner,
+                "historic" : league.historic
+            }
+        with open(os.path.join(data_dir, league_dir, league.name, f"{league.name}.state"), "w") as state_file:
+            json.dump(state_dic, state_file, indent=4)
 
 def add_stats(league_name, player_game_stats_list):
     conn = create_connection(league_name)
@@ -121,6 +136,17 @@ def update_standings(league_name, update_dic):
                     c.execute(f"UPDATE teams SET {stat_type} = ? WHERE name = ?", (update_dic[team_name][stat_type]+old_value, team_name))
             conn.commit()
         conn.close()
+
+def get_standings(league_name):
+    if league_exists(league_name):
+        conn = create_connection(league_name)
+        if conn is not None:
+            c = conn.cursor()
+
+            c.execute("SELECT name, wins, losses, run_diff FROM teams",)
+            standings_array = c.fetchall()
+            conn.close()
+            return standings_array
 
 
 
