@@ -1,6 +1,7 @@
 import asyncio, time, datetime, games, json, threading, jinja2, leagues, os
-from flask import Flask, url_for, Response, render_template, request, jsonify, send_from_directory
+from flask import Flask, url_for, Response, render_template, request, jsonify, send_from_directory, abort
 from flask_socketio import SocketIO, emit
+import database as db
 
 app = Flask("the-prestige", static_folder='simmadome/build')
 app.config['SECRET KEY'] = 'dev'
@@ -16,6 +17,27 @@ def serve(path):
     else:
         return send_from_directory(app.static_folder, 'index.html')
 
+### API
+
+@app.route('/api/teams/search')
+def searchteams():
+    query = request.args.get('query')
+    page_len = int(request.args.get('page_len'))
+    page_num = int(request.args.get('page_num'))
+
+    if query is None:
+        abort(400, "A query term is required")
+
+    result = db.search_teams(query)
+    if page_len is not None: #pagination should probably be doen in the sqlite query but this will do for now
+        if page_num is None:
+            abort(400, "A page_len argument must be accompanied by a page_num argument")
+        result = result[page_num*page_len : (page_num + 1)*page_len]
+
+    return jsonify([json.loads(x[0])['name'] for x in result]) #currently all we need is the name but that can change
+
+
+### SOCKETS
 
 thread2 = threading.Thread(target=socketio.run,args=(app,'0.0.0.0'))
 thread2.start()
