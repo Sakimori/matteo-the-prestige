@@ -58,21 +58,49 @@ h2 {
 #link_div {
     text-align: right;
     position: absolute;
-    top: 0px;
-    right: 30px;
+    top: 1rem;
+    right: 2rem;
+    display: flex;
 }
 
-#link_div > a {
+.github_logo, .twitter_logo, .patreon_container {
+    height: 2rem;
+    width: 2rem;
+    margin-left: 0.75rem;
+}
+
+.patreon_container {
+    border-radius: 1rem;
+    background: #FF424D;
+}
+
+.patreon_logo {
+    box-sizing: border-box;
+    padding: 0.35rem;
+    height: 2rem;
+    width: 2rem;
+    position: relative;
+    left: 0.1rem;
+    bottom: 0.05rem;
+}
+
+a {
     background-color: transparent;
     text-decoration: underline;
 }
 
-#link_div > a:link, #link_div > a:visited {
+a:link, a:visited {
     color: lightblue;
 }
 
-#link_div > a:hover {
+a:hover {
     color: white;
+}
+
+#utility_links {
+    position: absolute;
+    top: 1rem;
+    left: 2rem;
 }
 
 img.emoji {
