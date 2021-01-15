@@ -764,6 +764,10 @@ class StartLeagueCommand(Command):
 Plays a league with a given name, provided that league has been saved on the website. The games per hour sets how often the games will start. (e.g. GPH 2 will start games at X:00 and X:30)"""
 
     async def execute(self, msg, command):
+        if config()["game_freeze"]:
+            await msg.channel.send("Patch incoming. We're not allowing new games right now.")
+            return
+
         league_name = command.split("-")[0].split("\n")[0].strip()
         autoplay = None
 
@@ -851,6 +855,33 @@ class LeaguePauseCommand(Command):
             if active_league.name == league_name:
                 active_league.autoplay = 0
                 await msg.channel.send(f"Loud and clear, chief. {league_name} will stop after this series is over.")
+
+class LeagueScheduleCommand(Command):
+    name = "leagueschedule"
+    template = "m;leagueschedule [league name]"
+    description = "Sends an embed with the given league's schedule for the next 4 series."
+
+    async def execute(self, msg, command):
+        league_name = command.strip()
+        if league_exists(league_name):
+            league = leagues.load_league_file(league_name)
+            current_series = league.day_to_series_num(league.day)
+            if str(current_series+1) in league.schedule.keys():
+                sched_embed = discord.Embed(title=f"{league.name}'s Schedule:")
+                days = [0,1,2,3]
+                for day in days:
+                    if str(current_series+day) in league.schedule.keys():
+                        schedule_text = ""
+                        for game in league.schedule[str(current_series+day)]:
+                            schedule_text += f"**{game[0]}** @ **{game[1]}**\n"
+                        sched_embed.add_field(name=f"Days {((current_series+day-1)*league.series_length) + 1} - {(current_series+day)*(league.series_length)}", value=schedule_text, inline = False)
+                await msg.channel.send(embed=sched_embed)
+            else:
+                await msg.channel.send("That league's already finished with this season, boss.")
+        else:
+            await msg.channel.send("We can't find that league. Typo?")
+            
+
 commands = [
     IntroduceCommand(),
     CountActiveGamesCommand(),
@@ -875,6 +906,7 @@ commands = [
     LeaguePauseCommand(),
     LeagueDisplayCommand(),
     LeagueWildcardCommand(),
+    LeagueScheduleCommand(),
     StartRandomGameCommand(),
     CreditCommand(),
     RomanCommand(),
@@ -1162,7 +1194,6 @@ async def start_tournament_round(channel, tourney, seeding = None):
             if tourney.league is not None:
                 team_a.set_pitcher(rotation_slot = tourney.league.day)
                 team_b.set_pitcher(rotation_slot = tourney.league.day)
-                league.day += 1
 
             this_game = games.game(team_a.finalize(), team_b.finalize(), length = tourney.game_length)
             this_game, state_init = prepare_game(this_game)
@@ -1199,7 +1230,7 @@ async def continue_tournament_series(tourney, queue, games_list, wins_in_series)
         if tourney.league is not None:
             away_team.set_pitcher(rotation_slot = tourney.league.day)
             home_team.set_pitcher(rotation_slot = tourney.league.day)
-            league.day += 1
+            
 
         this_game = games.game(away_team.finalize(), home_team.finalize(), length = tourney.game_length)
         this_game, state_init = prepare_game(this_game)
@@ -1261,7 +1292,8 @@ async def tourney_round_watcher(channel, tourney, games_list, filter_url, finals
             except:
                 print("something went wrong in tourney_watcher")
             await asyncio.sleep(4)
-
+        if tourney.league is not None:
+            tourney.league.day += 1
         
         if len(queued_games) > 0:
             
@@ -1751,9 +1783,11 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
 
 
 
-    if league.autoplay == 0: #if number of series to autoplay has been reached
+    if league.autoplay == 0 or config()["game_freeze"]: #if number of series to autoplay has been reached
         await channel.send(embed=league.standings_embed())
         await channel.send(f"The {league.name} is no longer autoplaying.")
+        if config()["game_freeze"]:
+            await channel.send("Patch incoming.")
         leagues.save_league(league)
         active_leagues.pop(active_leagues.index(league))
         return
