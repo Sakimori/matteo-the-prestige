@@ -878,10 +878,12 @@ class LeagueClaimCommand(Command):
             if league.owner is None:
                 league.owner = [msg.author.id]
                 leagues.save_league(league)
-                await msg.channel.send(f"The {league} commissioner is doing a great job. That's you, by the way.")
+                await msg.channel.send(f"The {league.name} commissioner is doing a great job. That's you, by the way.")
+                return
             else:
                 await msg.channel.send("That league has already been claimed!")
-        await msg.channel.send("Can't find that league, boss.")
+        else:
+            await msg.channel.send("Can't find that league, boss.")
 
 class LeagueAddOwnersCommand(Command):
     name = "addleagueowner"
