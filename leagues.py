@@ -235,7 +235,7 @@ class league_structure(object):
         return teams
 
     def season_length(self):
-        return self.constraints["division_games"]*(len(random.choice(random.choice(league))-1)) + self.constraints["inter_div_games"] + self.constraints["inter_league_games"]
+        return self.constraints["division_games"]*(len(random.choice(random.choice(self.league))-1)) + self.constraints["inter_div_games"] + self.constraints["inter_league_games"]
 
     def standings_embed(self):
         this_embed = Embed(color=Color.purple(), title=self.name)
