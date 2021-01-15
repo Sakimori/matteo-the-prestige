@@ -318,12 +318,11 @@ class league_structure(object):
             for this_team, wins, losses, diff, gb in division_leaders + wildcard_leaders:
                 team_dic[this_team] = {"wins" : wins}
             
-            subleague_tournament = tournament(f"{self.name} {subleague} Championship Series", team_dic, series_length=3, finals_series_length=5, secs_between_games=int(3600/self.games_per_hour), secs_between_rounds=int(7200/self.games_per_hour))
+            subleague_tournament = tournament(f"{self.name} {subleague} Subleague Series", team_dic, series_length=3, finals_series_length=5, secs_between_games=int(3600/self.games_per_hour), secs_between_rounds=int(7200/self.games_per_hour))
             subleague_tournament.build_bracket(by_wins = True)
             subleague_tournament.league = self
             tournaments.append(subleague_tournament)
 
-        tournaments[0].increment = True
         return tournaments
 
 
@@ -343,7 +342,7 @@ class tournament(object):
         self.id = id
         self.league = None
         self.winner = None
-        self.increment = False
+        self.day = None
 
         if id is None:
             self.id = random.randint(1111,9999)

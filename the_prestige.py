@@ -1192,8 +1192,10 @@ async def start_tournament_round(channel, tourney, seeding = None):
             team_b = get_team_fuzzy_search(pair[1].name)
 
             if tourney.league is not None:
-                team_a.set_pitcher(rotation_slot = tourney.league.day)
-                team_b.set_pitcher(rotation_slot = tourney.league.day)
+                if tourney.day is None:
+                    tourney.day = tourney.league.day
+                team_a.set_pitcher(rotation_slot = tourney.day)
+                team_b.set_pitcher(rotation_slot = tourney.day)
 
             this_game = games.game(team_a.finalize(), team_b.finalize(), length = tourney.game_length)
             this_game, state_init = prepare_game(this_game)
@@ -1228,6 +1230,8 @@ async def continue_tournament_series(tourney, queue, games_list, wins_in_series)
         home_team = games.get_team(oldgame.teams["home"].name)
 
         if tourney.league is not None:
+            if tourney.day is None:
+                tourney.day = tourney.league.day
             away_team.set_pitcher(rotation_slot = tourney.league.day)
             home_team.set_pitcher(rotation_slot = tourney.league.day)
             
@@ -1292,8 +1296,8 @@ async def tourney_round_watcher(channel, tourney, games_list, filter_url, finals
             except:
                 print("something went wrong in tourney_watcher")
             await asyncio.sleep(4)
-        if tourney.league is not None and tourney.increment:
-            tourney.league.day += 1
+        if tourney.league is not None:
+            tourney.day += 1
         
         if len(queued_games) > 0:
             
@@ -1329,6 +1333,8 @@ async def tourney_round_watcher(channel, tourney, games_list, filter_url, finals
 
     if finals: #if this last round was finals
         embed = discord.Embed(color = discord.Color.dark_purple(), title = f"{winner_list[0]} win the {tourney.name} finals!")
+        if tourney.day > tourney.league.day:
+            tourney.league.day = tourney.day
         await channel.send(embed=embed)
         tourney.winner = get_team_fuzzy_search(winner_list[0])
         active_tournaments.pop(active_tournaments.index(tourney))
@@ -1856,7 +1862,6 @@ async def league_postseason(channel, league):
     tiebreakers = league.tiebreaker_required()       
     if tiebreakers != []:
         await channel.send("Tiebreakers required!")
-        tiebreakers[0].increment = True
         await asyncio.gather(*[start_tournament_round(channel, tourney) for tourney in tiebreakers])
         for tourney in tiebreakers:
             league.update_standings({tourney.winner.name : {"wins" : 1}})
@@ -1886,7 +1891,6 @@ async def league_postseason(channel, league):
             
 
     tourneys = league.champ_series()
-    tourneys[0].increment = True
     await asyncio.gather(*[start_tournament_round(channel, tourney) for tourney in tourneys])
     champs = {}
     for tourney in tourneys:
