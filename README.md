@@ -12,7 +12,6 @@ accepting pull requests, check the issues for to-dos.
 
 ## commands: (everything here is case sensitive, and can be prefixed with either m; or m!)
 ### team commands:
-
 #### creation and deletion:
 - m;saveteam
   - saves a team to the database allowing it to be used for games. use this command at the top of a list with entries separated by new lines:
@@ -27,7 +26,6 @@ accepting pull requests, check the issues for to-dos.
   - allows you to delete the team with the provided name. you'll get an embed with a confirmation to prevent accidental deletions. hit the 👍 and your team will be deleted.
 - m;import
   - imports an onomancer collection as a new team. you can use the new onomancer simsim setting to ensure compatibility. similarly to saveteam, you'll get a team embed with a prompt to confirm, hit the 👍 and your team will be saved!
-
 #### editing (all of these commands require ownership and exact spelling of the team name):
 - m;addplayer batter/pitcher [team name] \[player name]
   - adds a new player to the end of your team, either in the lineup or the rotation depending on which version you use. use addplayer batter or addplayer pitcher at the top of a list with entries separated by new lines:
@@ -46,7 +44,6 @@ accepting pull requests, check the issues for to-dos.
   - removes a player from your team. if there are multiple copies of the same player on a team this will only delete the first one. use this command at the top of a list with entries separated by new lines:
 	- the name of the team you want to remove the player from.
 	- the name of the player you want to remove.
-
 #### viewing and searching:  
 - m;showteam [name]
   - shows the lineup, rotation, and slogan of any saved team in a discord embed with primary stat star ratings for all of the players. this command has fuzzy search so you don't need to type the full name of the team as long as you give enough to identify the team you're looking for.
@@ -54,14 +51,6 @@ accepting pull requests, check the issues for to-dos.
   - shows a paginated list of all teams whose names contain the given search term.
 - m;showallteams
   - shows a paginated list of all teams available for games which can be scrolled through.	
-  
-### player commands:	 
-- m;showplayer [name]
-  - displays any name's stars, there's a limit of 70 characters. that should be *plenty*. note: if you want to lookup a lot of different players you can do it on onomancer instead of spamming this command a bunch and clogging up discord: https://onomancer.sibr.dev/reflect
-- m;idolize [name]
-  - records any name as your idol, mostly for fun.
-- m;showidol 
-  - displays your idol's name and stars in a discord embed.
   
 ### game commands:
 - m;startgame --day # or -d #
@@ -90,7 +79,6 @@ accepting pull requests, check the issues for to-dos.
 	  - their team slogan
 	- post this with all three of these things for all participants and the draft will begin.
   - the draft will begin once all participants have given a 👍 and will proceed in the order that participants were entered. each participant will select 12 hitters and 1 pitcher from a pool of 20 random players which will refresh automatically when it becomes small.
-
 - m;draft [name]
   - use this on your turn during a draft to pick your player.
   - you can also just use a 'd' instead of the full command.
@@ -114,6 +102,14 @@ accepting pull requests, check the issues for to-dos.
     - displays the wild card standings for the specified league. if the league doesn't have wild cards, it will instead tell you that.
   - m;leagueschedule [leaguename]
     - displays the upcoming schedule for the specified league. shows the current series and the next three series after that for every team.
+
+### player commands:	 
+- m;showplayer [name]
+  - displays any name's stars, there's a limit of 70 characters. that should be *plenty*. note: if you want to lookup a lot of different players you can do it on onomancer instead of spamming this command a bunch and clogging up discord: https://onomancer.sibr.dev/reflect
+- m;idolize [name]
+  - records any name as your idol, mostly for fun.
+- m;showidol 
+  - displays your idol's name and stars in a discord embed.
   
 ### other commands:
 - m;help [command]
