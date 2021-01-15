@@ -14,6 +14,7 @@ class league_structure(object):
         self.owner = None
         self.season = 1
         self.autoplay = -1
+        self.champions = {}
 
     def setup(self, league_dic, division_games = 1, inter_division_games = 1, inter_league_games = 1, games_per_hour = 2):
         self.league = league_dic # { subleague name : { division name : [team object] } }
@@ -460,4 +461,8 @@ def load_league_file(league_name):
         this_league.games_per_hour = state_dic["games_per_hour"]
         this_league.historic = state_dic["historic"]
         this_league.season = state_dic["season"]
+        try:
+            this_league.champions = state_dic["champions"]
+        except:
+            this_league.champions = {}
         return this_league

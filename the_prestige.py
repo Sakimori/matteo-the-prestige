@@ -1914,6 +1914,7 @@ async def league_postseason(channel, league):
     await channel.send(f"The {league.name} Championship Series is starting in {math.ceil(wait_seconds/60)} minutes!")
     await asyncio.sleep(wait_seconds)
     await start_tournament_round(channel, world_series)
+    league.champions[str(league.season)] = world_series.winner.name
 
 
 
