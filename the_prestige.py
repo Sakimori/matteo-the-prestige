@@ -760,7 +760,7 @@ class DebugLeagueDisplay(Command):
 class StartLeagueCommand(Command):
     name = "startleague"
     template = "m;startleague [league name]\n[games per hour]"
-    description = """Optional flag for the first line: `--queue X` or `-q X` to play X number of series before stopping.
+    description = """Optional flags for the first line: `--queue X` or `-q X` to play X number of series before stopping; `--noautopostseason` will pause the league before starting postseason.
 Plays a league with a given name, provided that league has been saved on the website. The games per hour sets how often the games will start. (e.g. GPH 2 will start games at X:00 and X:30)"""
 
     async def execute(self, msg, command):
@@ -789,6 +789,8 @@ Plays a league with a given name, provided that league has been saved on the web
             await msg.channel.send("We need a games per hour number in the second line.")
             return
 
+        
+
         try:
             gph = int(command.strip())
             if gph < 1 or gph > 12:
@@ -799,6 +801,9 @@ Plays a league with a given name, provided that league has been saved on the web
 
         if league_exists(league_name):
             league = leagues.load_league_file(league_name)
+            if "--noautopostseason" in command:
+                autoplay = int(list(league.schedule.keys())[-1]) - league.day_to_series_num(league.day) + 1
+
             if league.historic:
                 await msg.channel.send("That league is done and dusted, chief. Sorry.")
                 return
