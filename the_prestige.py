@@ -806,14 +806,18 @@ Plays a league with a given name, provided that league has been saved on the web
                 if active_league.name == league.name:
                     await msg.channel.send("That league is already running, boss. Patience is a virtue, you know.")
                     return
-            league.autoplay = autoplay
-            league.games_per_hour = gph
-            if str(league.day_to_series_num(league.day)) not in league.schedule.keys():
-                await league_postseason(msg.channel, league)
-            elif league.day % league.series_length == 1:
-                await start_league_day(msg.channel, league)
+            if (league.owner is not None and msg.author.id in league.owner) or msg.author.id in config()["owners"]:
+                league.autoplay = autoplay
+                league.games_per_hour = gph
+                if str(league.day_to_series_num(league.day)) not in league.schedule.keys():
+                    await league_postseason(msg.channel, league)
+                elif league.day % league.series_length == 1:
+                    await start_league_day(msg.channel, league)
+                else:
+                    await start_league_day(msg.channel, league, partial = True)
             else:
-                await start_league_day(msg.channel, league, partial = True)
+                await msg.channel.send("You don't have permission to manage that league.")
+                return
         else:
             await msg.channel.send("Couldn't find that league, boss. Did you save it on the website?")
 
@@ -853,9 +857,53 @@ class LeaguePauseCommand(Command):
         league_name = command.strip()
         for active_league in active_leagues:
             if active_league.name == league_name:
-                active_league.autoplay = 0
-                await msg.channel.send(f"Loud and clear, chief. {league_name} will stop after this series is over.")
+                if (active_league.owner is not None and msg.author.id in active_league.owner) or msg.author.id in config()["owners"]:
+                    active_league.autoplay = 0
+                    await msg.channel.send(f"Loud and clear, chief. {league_name} will stop after this series is over.")
+                    return
+                else:
+                    await msg.channel.send("You don't have permission to manage that league.")
+                    return
+        await msg.channel.send("That league either doesn't exist or isn't running.")
 
+class LeagueClaimCommand(Command):
+    name = "claimleague"
+    template = "m;claimleague [league name]"
+    description = "Claims an unclaimed league. Do this as soon as possible after creating the league, or it will remain unclaimed."
+
+    async def execute(self, msg, command):
+        league_name = command.strip()
+        if league_exists(league_name):
+            league = leagues.load_league_file(league_name)
+            if league.owner is None:
+                league.owner = [msg.author.id]
+                leagues.save_league(league)
+                await msg.channel.send(f"The {league} commissioner is doing a great job. That's you, by the way.")
+            else:
+                await msg.channel.send("That league has already been claimed!")
+        await msg.channel.send("Can't find that league, boss.")
+
+class LeagueAddOwnersCommand(Command):
+    name = "addleagueowner"
+    template = "m;addleagueowner [league name]\n[user mentions]"
+    description = "Adds additional owners to a league."
+
+    async def execute(self, msg, command):
+        league_name = command.split("\n")[0].strip()
+        if league_exists(league_name):
+            league = leagues.load_league_file(league_name)
+            if league.owner is not None and (msg.author.id in league.owner or msg.author.id in config()["owners"]):
+                for user in msg.mentions:
+                    if user.id not in league.owner:
+                        league.owner.append(user.id)
+                await msg.channel.send(f"The new {league} front office is now up and running.")
+                return
+            else:
+                await msg.channel.send(f"That league hasn't been claimed yet. Try m;claimleague first.")
+                return
+        else:
+            await msg.channel.send("Can't find that league, boss.")
+            
 class LeagueScheduleCommand(Command):
     name = "leagueschedule"
     template = "m;leagueschedule [league name]"
@@ -901,13 +949,15 @@ commands = [
     ShowAllTeamsCommand(),
     SearchTeamsCommand(),
     StartGameCommand(),
+    StartRandomGameCommand(),
     StartTournamentCommand(),
+    LeagueClaimCommand(),
+    LeagueAddOwnersCommand(),
     StartLeagueCommand(),
     LeaguePauseCommand(),
     LeagueDisplayCommand(),
     LeagueWildcardCommand(),
     LeagueScheduleCommand(),
-    StartRandomGameCommand(),
     CreditCommand(),
     RomanCommand(),
     HelpCommand(),
