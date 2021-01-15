@@ -1748,7 +1748,7 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
             leagues.save_league(league)
             await asyncio.sleep(wait_seconds)
             await channel.send(f"A {league.name} series is continuing now at {filter_url}")
-            games_list = await continue_league_series(league, queued_games, games_list, series_results)
+            games_list = await continue_league_series(league, queued_games, games_list, series_results, missed)
         else:
             league.active = False
 
@@ -1822,7 +1822,7 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
 
     await start_league_day(channel, league)
 
-async def continue_league_series(league, queue, games_list, series_results):
+async def continue_league_series(league, queue, games_list, series_results, missed):
     for oldgame in queue:
         away_team = games.get_team(oldgame.teams["away"].name)
         away_team.set_pitcher(rotation_slot=league.day)
@@ -1833,7 +1833,12 @@ async def continue_league_series(league, queue, games_list, series_results):
 
         state_init["is_league"] = True
         series_string = f"Series score:"
-        state_init["title"] = f"{series_string} {series_results[away_team.name]['wins']} - {series_results[home_team.name]['wins']}"
+
+        if missed <= 0:
+            series_string = "Series score:"
+            state_init["title"] = f"{series_string} {series_results[away_team.name]['wins']} - {series_results[home_team.name]['wins']}"
+        else:
+            state_init["title"] = "Interrupted series!"
         discrim_string = league.name
 
         id = str(uuid4())
@@ -1881,7 +1886,7 @@ async def league_postseason(channel, league):
             
 
     tourneys = league.champ_series()
-    tourneys[0].increment = true
+    tourneys[0].increment = True
     await asyncio.gather(*[start_tournament_round(channel, tourney) for tourney in tourneys])
     champs = {}
     for tourney in tourneys:
