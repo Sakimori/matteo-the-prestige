@@ -1854,6 +1854,29 @@ async def league_postseason(channel, league):
                 champs[tourney.winner] = {"wins" : tourney.teams[team]["wins"]}
     world_series = leagues.tournament(f"{league.name} Championship Series", champs, series_length=7, secs_between_games=int(3600/league.games_per_hour), secs_between_rounds=int(7200/league.games_per_hour))
     world_series.build_bracket(by_wins = True)
+    world_series.league = league
+    now = datetime.datetime.now()
+
+    validminutes = [int((60 * div)/league.games_per_hour) for div in range(0,league.games_per_hour)]
+    for i in range(0, len(validminutes)):
+        if now.minute > validminutes[i]:
+            if i <= len(validminutes)-3:
+                if validminutes[i+1] == now.minute:
+                    delta = datetime.timedelta(minutes= (validminutes[i+2] - now.minute))
+                else:
+                    delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
+            elif i <= len(validminutes)-2:
+                if validminutes[i+1] == now.minute:
+                    delta = datetime.timedelta(minutes= (60 - now.minute))
+                else:
+                    delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
+            else:
+                delta = datetime.timedelta(minutes= (60 - now.minute))           
+
+    next_start = (now + delta).replace(microsecond=0)
+    wait_seconds = (next_start - now).seconds
+    await channel.send(f"The {league.name} Championship Series is starting in {math.ceil(wait_seconds/60)} minutes!")
+    await asyncio.sleep(wait_seconds)
     await start_tournament_round(channel, world_series)
 
 
