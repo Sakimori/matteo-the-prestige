@@ -1315,7 +1315,7 @@ async def tourney_round_watcher(channel, tourney, games_list, filter_url, finals
                         else:
                             delta = datetime.timedelta(minutes= (60 - now.minute))           
 
-                next_start = (now + delta).replace(microsecond=0)
+                next_start = (now + delta).replace(second=0, microsecond=0)
                 wait_seconds = (next_start - now).seconds
                 await channel.send(f"The next batch of games for {tourney.name} will start in {math.ceil(wait_seconds/60)} minutes.")
                 await asyncio.sleep(wait_seconds)
@@ -1358,7 +1358,7 @@ async def tourney_round_watcher(channel, tourney, games_list, filter_url, finals
                 else:
                     delta = datetime.timedelta(minutes= (60 - now.minute))           
 
-        next_start = (now + delta).replace(microsecond=0)
+        next_start = (now + delta).replace(second=0, microsecond=0)
         wait_seconds = (next_start - now).seconds
         await channel.send(f"""This round of games for {tourney.name} is now complete! The next round will start in {math.ceil(wait_seconds/60)} minutes.
 Advancing teams:
@@ -1771,7 +1771,7 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
                 else:
                     delta = datetime.timedelta(minutes= (60 - now.minute))           
 
-        next_start = (now + delta).replace(microsecond=0)
+        next_start = (now + delta).replace(second=0, microsecond=0)
         wait_seconds = (next_start - now).seconds
         await channel.send(f"This {league.name} season is now over! The postseason (with any necessary tiebreakers) will be starting in {math.ceil(wait_seconds/60)} minutes.")
         await asyncio.sleep(wait_seconds)
@@ -1812,7 +1812,7 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
             else:
                 delta = datetime.timedelta(minutes= (60 - now.minute))           
 
-    next_start = (now + delta).replace(microsecond=0)
+    next_start = (now + delta).replace(second=0, microsecond=0)
     wait_seconds = (next_start - now).seconds
 
     leagues.save_league(league)
@@ -1873,7 +1873,7 @@ async def league_postseason(channel, league):
                 else:
                     delta = datetime.timedelta(minutes= (60 - now.minute))           
 
-        next_start = (now + delta).replace(microsecond=0)
+        next_start = (now + delta).replace(second=0, microsecond=0)
         wait_seconds = (next_start - now).seconds
         await channel.send(f"Tiebreakers complete! Postseason starting in {math.ceil(wait_seconds/60)} minutes.")
         await asyncio.sleep(wait_seconds)
@@ -1907,7 +1907,7 @@ async def league_postseason(channel, league):
             else:
                 delta = datetime.timedelta(minutes= (60 - now.minute))           
 
-    next_start = (now + delta).replace(microsecond=0)
+    next_start = (now + delta).replace(second=0, microsecond=0)
     wait_seconds = (next_start - now).seconds
     await channel.send(f"The {league.name} Championship Series is starting in {math.ceil(wait_seconds/60)} minutes!")
     await asyncio.sleep(wait_seconds)
