@@ -562,7 +562,12 @@ class StartTournamentCommand(Command):
             if team == None:
                 await msg.channel.send(f"We couldn't find {name}. Try again?")
                 return
-            team_dic[team] = {"wins": 0}
+            add = True
+            for extant_team in team_dic.keys():
+                if extant_team.name == team.name:
+                    add = False
+            if add:
+                team_dic[team] = {"wins": 0}
 
         channel = msg.channel
         await msg.delete()
@@ -754,25 +759,38 @@ class DebugLeagueDisplay(Command):
             
 class StartLeagueCommand(Command):
     name = "startleague"
-    template = "m;startleague [league name]"
-    description = """Optional flag: `--queue X` or `-q X` to play X number of series before stopping.
-Plays a league with a given name, provided that league has been saved on the website."""
+    template = "m;startleague [league name]\n[games per hour]"
+    description = """Optional flag for the first line: `--queue X` or `-q X` to play X number of series before stopping.
+Plays a league with a given name, provided that league has been saved on the website. The games per hour sets how often the games will start. (e.g. GPH 2 will start games at X:00 and X:30)"""
 
     async def execute(self, msg, command):
-        league_name = command.split("-")[0].strip()
+        league_name = command.split("-")[0].split("\n")[0].strip()
         autoplay = None
 
-        try:
+        
+        try:          
             if "--queue " in command:
-                autoplay = int(command.split("--queue ")[1])
+                autoplay = int(command.split("--queue ")[1].split("\n")[0])
             elif "-q " in command:
-                autoplay = int(command.split("-q ")[1])
+                autoplay = int(command.split("-q ")[1].split("\n")[0])
             if autoplay is not None and autoplay <= 0:
                 raise ValueError
             elif autoplay is None:
                 autoplay = -1
-        except:
+            command = command.split("\n")[1]
+        except ValueError:
             await msg.channel.send("Sorry boss, the queue flag needs a natural number. Any whole number over 0 will do just fine.")
+            return
+        except IndexError:
+            await msg.channel.send("We need a games per hour number in the second line.")
+            return
+
+        try:
+            gph = int(command.strip())
+            if gph < 1 or gph > 12:
+                raise ValueError
+        except ValueError:
+            await msg.channel.send("Chief, we need a games per hour number between 1 and 12. We think that's reasonable.")
             return
 
         if league_exists(league_name):
@@ -784,10 +802,50 @@ Plays a league with a given name, provided that league has been saved on the web
                 if active_league.name == league.name:
                     await msg.channel.send("That league is already running, boss. Patience is a virtue, you know.")
                     return
-            await start_league_day(msg.channel, league, autoplay = autoplay)
+            league.autoplay = autoplay
+            league.games_per_hour = gph
+            await start_league_day(msg.channel, league)
         else:
             await msg.channel.send("Couldn't find that league, boss. Did you save it on the website?")
 
+class LeagueDisplayCommand(Command):
+    name = "leaguestandings"
+    template = "m;leaguestandings [league name]"
+    description = "Displays the current standings for the given league."
+
+    async def execute(self, msg, command):
+        if league_exists(command.strip()):
+            league = leagues.load_league_file(command.strip())
+            await msg.channel.send(embed=league.standings_embed())
+        else:
+            await msg.channel.send("Can't find that league, boss.")
+
+class LeagueWildcardCommand(Command):
+    name = "leaguewildcard"
+    template = "m;leaguewildcard [league name]"
+    description = "Displays the current wildcard race for the given league, if the league has wildcard slots."
+
+    async def execute(self, msg, command):
+        if league_exists(command.strip()):
+            league = leagues.load_league_file(command.strip())
+            if league.constraints["wild_cards"] > 0:
+                await msg.channel.send(embed=league.wildcard_embed())
+            else:
+                await msg.channel.send("That league doesn't have wildcards, boss.")
+        else:
+            await msg.channel.send("Can't find that league, boss.")
+
+class LeaguePauseCommand(Command):
+    name = "pauseleague"
+    template = "m;pauseleague [league name]"
+    descripton = "Tells a currently running league to stop running automatically after the current series."
+
+    async def execute(self, msg, command):
+        league_name = command.strip()
+        for active_league in active_leagues:
+            if active_league.name == league_name:
+                active_league.autoplay = 0
+                await msg.channel.send(f"Loud and clear, chief. {league_name} will stop after this series is over.")
 commands = [
     IntroduceCommand(),
     CountActiveGamesCommand(),
@@ -809,6 +867,9 @@ commands = [
     StartGameCommand(),
     StartTournamentCommand(),
     StartLeagueCommand(),
+    LeaguePauseCommand(),
+    LeagueDisplayCommand(),
+    LeagueWildcardCommand(),
     StartRandomGameCommand(),
     CreditCommand(),
     RomanCommand(),
@@ -1152,7 +1213,7 @@ async def tourney_round_watcher(channel, tourney, games_list, filter_url, finals
             try:
                 for i in range(0, len(games_list)):
                     game, key = games_list[i]
-                    if game.over and main_controller.master_games_dic[key][1]["end_delay"] <= 8:
+                    if game.over and ((key in main_controller.master_games_dic.keys() and main_controller.master_games_dic[key][1]["end_delay"] <= 8) or not key in main_controller.master_games_dic.keys()):
                         if game.teams['home'].name not in wins_in_series.keys():
                             wins_in_series[game.teams["home"].name] = 0
                         if game.teams['away'].name not in wins_in_series.keys():
@@ -1406,7 +1467,7 @@ async def game_watcher():
             this_array = gamesarray.copy()
             for i in range(0,len(this_array)):
                 game, channel, user, key = this_array[i]
-                if game.over and main_controller.master_games_dic[key][1]["end_delay"] <= 8:                   
+                if game.over and ((key in main_controller.master_games_dic.keys() and main_controller.master_games_dic[key][1]["end_delay"] <= 8) or not key in main_controller.master_games_dic.keys()):                   
                     final_embed = game_over_embed(game)
                     if isinstance(user, str):
                         await channel.send(f"A game started by {user} just ended.")
@@ -1452,7 +1513,7 @@ def get_team_fuzzy_search(team_name):
             team = teams[0]
     return team
 
-async def start_league_day(channel, league, autoplay = 1):
+async def start_league_day(channel, league):
     current_games = []
         
     games_to_start = league.schedule[str(league.day_to_series_num(league.day))]
@@ -1490,12 +1551,12 @@ async def start_league_day(channel, league, autoplay = 1):
         await channel.send(f"The day {league.day} series of the {league.name} is starting now, at {config()['simmadome_url']+ext}")
         last = False
 
-    await league_day_watcher(channel, league, current_games, config()['simmadome_url']+ext, autoplay, last)
+    await league_day_watcher(channel, league, current_games, config()['simmadome_url']+ext, last)
 
 
-async def league_day_watcher(channel, league, games_list, filter_url, autoplay, last = False):
+async def league_day_watcher(channel, league, games_list, filter_url, last = False):
     league.active = True
-    autoplay -= 1
+    league.autoplay -= 1
     if league not in active_leagues:
         active_leagues.append(league)
     series_results = {}
@@ -1503,49 +1564,50 @@ async def league_day_watcher(channel, league, games_list, filter_url, autoplay, 
     while league.active:
         queued_games = []
         while len(games_list) > 0:
-            #try:
-            for i in range(0, len(games_list)):
-                game, key = games_list[i]
-                if game.over and main_controller.master_games_dic[key][1]["end_delay"] <= 8:
-                    if game.teams['home'].name not in series_results.keys():
-                        series_results[game.teams["home"].name] = {}
-                        series_results[game.teams["home"].name]["wins"] = 0
-                        series_results[game.teams["home"].name]["losses"] = 0
-                        series_results[game.teams["home"].name]["run_diff"] = 0
-                    if game.teams['away'].name not in series_results.keys():
-                        series_results[game.teams["away"].name] = {}
-                        series_results[game.teams["away"].name]["wins"] = 0
-                        series_results[game.teams["away"].name]["losses"] = 0
-                        series_results[game.teams["away"].name]["run_diff"] = 0
+            try:
+                for i in range(0, len(games_list)):
+                    game, key = games_list[i]
+                    if game.over and ((key in main_controller.master_games_dic.keys() and main_controller.master_games_dic[key][1]["end_delay"] <= 8) or not key in main_controller.master_games_dic.keys()):
+                        if game.teams['home'].name not in series_results.keys():
+                            series_results[game.teams["home"].name] = {}
+                            series_results[game.teams["home"].name]["wins"] = 0
+                            series_results[game.teams["home"].name]["losses"] = 0
+                            series_results[game.teams["home"].name]["run_diff"] = 0
+                        if game.teams['away'].name not in series_results.keys():
+                            series_results[game.teams["away"].name] = {}
+                            series_results[game.teams["away"].name]["wins"] = 0
+                            series_results[game.teams["away"].name]["losses"] = 0
+                            series_results[game.teams["away"].name]["run_diff"] = 0
 
-                    winner_name = game.teams['home'].name if game.teams['home'].score > game.teams['away'].score else game.teams['away'].name
-                    loser_name = game.teams['away'].name if game.teams['home'].score > game.teams['away'].score else game.teams['home'].name
-                    rd = int(math.fabs(game.teams['home'].score - game.teams['away'].score))
+                        winner_name = game.teams['home'].name if game.teams['home'].score > game.teams['away'].score else game.teams['away'].name
+                        loser_name = game.teams['away'].name if game.teams['home'].score > game.teams['away'].score else game.teams['home'].name
+                        rd = int(math.fabs(game.teams['home'].score - game.teams['away'].score))
 
-                    series_results[winner_name]["wins"] += 1
-                    series_results[winner_name]["run_diff"] += rd
+                        series_results[winner_name]["wins"] += 1
+                        series_results[winner_name]["run_diff"] += rd
 
-                    winner_dic = {"wins" : 1, "run_diff" : rd}
+                        winner_dic = {"wins" : 1, "run_diff" : rd}
 
-                    series_results[loser_name]["losses"] += 1
-                    series_results[loser_name]["run_diff"] -= rd
+                        series_results[loser_name]["losses"] += 1
+                        series_results[loser_name]["run_diff"] -= rd
 
-                    loser_dic = {"losses" : 1, "run_diff" : -rd}
+                        loser_dic = {"losses" : 1, "run_diff" : -rd}
 
-                    league.add_stats_from_game(game.get_team_specific_stats())
-                    league.update_standings({winner_name : winner_dic, loser_name : loser_dic})
-                    leagues.save_league(league)
-                    final_embed = game_over_embed(game)
-                    final_embed.add_field(name="Series score:", value=f"{series_results[game.teams['away'].name]['wins']} - {series_results[game.teams['home'].name]['wins']}")
-                    await channel.send(f"A {league.name} game just ended!")                
-                    await channel.send(embed=final_embed)
-                    if series_results[winner_name]["wins"] + series_results[winner_name]["losses"] < league.series_length:
-                        queued_games.append(game)                           
-                    games_list.pop(i)
-                    break
-            #except:
-                #print("something went wrong in league_day_watcher")
-            await asyncio.sleep(1)
+                        league.add_stats_from_game(game.get_team_specific_stats())
+                        league.update_standings({winner_name : winner_dic, loser_name : loser_dic})
+                        leagues.save_league(league)
+                        final_embed = game_over_embed(game)
+                        final_embed.add_field(name="Day:", value=league.day)
+                        final_embed.add_field(name="Series score:", value=f"{series_results[game.teams['away'].name]['wins']} - {series_results[game.teams['home'].name]['wins']}")
+                        await channel.send(f"A {league.name} game just ended!")                
+                        await channel.send(embed=final_embed)
+                        if series_results[winner_name]["wins"] + series_results[winner_name]["losses"] < league.series_length:
+                            queued_games.append(game)                           
+                        games_list.pop(i)
+                        break
+            except:
+                print("something went wrong in league_day_watcher")
+            await asyncio.sleep(2)
         league.day += 1
         
         if len(queued_games) > 0:
@@ -1555,8 +1617,16 @@ async def league_day_watcher(channel, league, games_list, filter_url, autoplay, 
             validminutes = [int((60 * div)/league.games_per_hour) for div in range(0,league.games_per_hour)]
             for i in range(0, len(validminutes)):
                 if now.minute > validminutes[i]:
-                    if i <= len(validminutes)-2:
-                        delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
+                    if i <= len(validminutes)-3:
+                        if validminutes[i+1] == now.minute:
+                            delta = datetime.timedelta(minutes= (validminutes[i+2] - now.minute))
+                        else:
+                            delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
+                    elif i <= len(validminutes)-2:
+                        if validminutes[i+1] == now.minute:
+                            delta = datetime.timedelta(minutes= (60 - now.minute))
+                        else:
+                            delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
                     else:
                         delta = datetime.timedelta(minutes= (60 - now.minute))           
 
@@ -1576,7 +1646,7 @@ async def league_day_watcher(channel, league, games_list, filter_url, autoplay, 
 
 
 
-    if last or autoplay == 0: #if this series was the last of the season OR number of series to autoplay has been reached
+    if last or league.autoplay == 0: #if this series was the last of the season OR number of series to autoplay has been reached
         await channel.send(embed=league.standings_embed())
         await channel.send(f"The {league.name} is no longer autoplaying.")
         leagues.save_league(league)
@@ -1588,8 +1658,16 @@ async def league_day_watcher(channel, league, games_list, filter_url, autoplay, 
     validminutes = [int((60 * div)/league.games_per_hour) for div in range(0,league.games_per_hour)]
     for i in range(0, len(validminutes)):
         if now.minute > validminutes[i]:
-            if i < len(validminutes)-2:
-                delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
+            if i <= len(validminutes)-3:
+                if validminutes[i+1] == now.minute:
+                    delta = datetime.timedelta(minutes= (validminutes[i+2] - now.minute))
+                else:
+                    delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
+            elif i <= len(validminutes)-2:
+                if validminutes[i+1] == now.minute:
+                    delta = datetime.timedelta(minutes= (60 - now.minute))
+                else:
+                    delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
             else:
                 delta = datetime.timedelta(minutes= (60 - now.minute))           
 
@@ -1601,7 +1679,7 @@ async def league_day_watcher(channel, league, games_list, filter_url, autoplay, 
     await channel.send(f"""This {league.name} series is now complete! The next series will be starting in {int(wait_seconds/60)} minutes.""")
     await asyncio.sleep(wait_seconds)
 
-    await start_league_day(channel, league, autoplay)
+    await start_league_day(channel, league)
 
 async def continue_league_series(league, queue, games_list, series_results):
     for oldgame in queue:
