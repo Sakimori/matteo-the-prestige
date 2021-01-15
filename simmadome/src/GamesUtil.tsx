@@ -20,6 +20,8 @@ interface GameState {
   update_text: string
   is_league: boolean
   leagueoruser: string
+  start_delay: number
+  end_delay: number
 }
 
 type GameList = ([id: string, game: GameState] | null)[];
@@ -32,6 +34,7 @@ const useListener = (onUpdate: (update: [string, GameState][]) => void, url: str
     socket.on('connect', () => socket.emit('recieved', {}));
     socket.on('states_update', onUpdate);
     return () => {socket.disconnect()};
+    //eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url])
 }
 
