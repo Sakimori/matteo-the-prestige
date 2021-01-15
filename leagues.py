@@ -44,6 +44,41 @@ class league_structure(object):
     def day_to_series_num(self, day):
         return math.ceil((self.day)/self.series_length)
 
+    def tiebreaker_required(self):
+        standings = {}
+        matchups = []
+        tournaments = []
+        for team_name, wins, losses, run_diff in league_db.get_standings(self.name):
+            standings[team_name] = {"wins" : wins, "losses" : losses, "run_diff" : run_diff}
+
+        for subleague in iter(self.league.keys()):
+            team_dic = {}
+            division_leaders = []
+            subleague_array = []
+            wildcard_leaders = []
+            for division in iter(self.league[subleague].keys()):
+                division_standings += self.division_standings(self.league[subleague][division], standings)
+                for division_team in division_standings:
+                    if division_team.name != division_standings[self.constraints["division_leaders"]-1].name and standings[division_team.name]["wins"] == standings[division_standings[self.constraints["division_leaders"]-1].name]["wins"]:
+                        matchups.append((division_team, division_standings[self.constraints["division_leaders"]-1]), f"{division} Tiebreaker")
+
+                this_div_wildcard = [this_team for this_team, wins, losses, diff, gb in self.division_standings(self.league[subleague][division], standings)[self.constraints["division_leaders"]:]]
+                subleague_array += this_div_wildcard
+            if self.constraints["wild_cards"] > 0:
+                wildcard_standings = self.division_standings(subleague_array, standings)
+                for wildcard_team in wildcard_standings:
+                    if wildcard_team.name != wildcard_standings[self.constraints["wild_cards"]-1].name and standings[wildcard_team.name]["wins"] == standings[wildcard_standings[self.constraints["wild_cards"]-1].name]["wins"]:
+                        matchups.append((wildcard_team, wildcard_standings[self.constraints["wild_cards"]-1]), f"{subleague} Wildcard Tiebreaker")
+
+            for this_team, wins, losses, diff, gb in divison_leaders + wildcard_leaders:
+                team_dic[this_team] = {"wins" : wins}
+        
+        for team_a, team_b, type in matchups:
+            tourney = tournament(f"{league.name} {type}",{team_a : {"wins" : 1}, team_b : {"wins" : 0}}, secs_between_games=int(3600/self.games_per_hour), secs_between_rounds=int(7200/self.games_per_hour))
+            tourney.build_bracket(by_wins = True)
+            tournaments.append(tourney)
+        return tournaments
+
     def find_team(self, team_name):
         for subleague in iter(self.league.keys()):
             for division in iter(self.league[subleague].keys()):
@@ -256,6 +291,35 @@ class league_structure(object):
         this_embed.set_footer(text=f"Wildcard standings as of day {self.day-1}")
         return this_embed
 
+    def champ_series(self):
+        tournaments = []
+        standings = {}
+        
+        for team_name, wins, losses, run_diff in league_db.get_standings(self.name):
+            standings[team_name] = {"wins" : wins, "losses" : losses, "run_diff" : run_diff}
+
+        for subleague in iter(self.league.keys()):
+            team_dic = {}
+            division_leaders = []
+            subleague_array = []
+            wildcard_leaders = []
+            for division in iter(self.league[subleague].keys()):
+                division_leaders += self.division_standings(self.league[subleague][division], standings)[:self.constraints["division_leaders"]]                
+                this_div_wildcard = [this_team for this_team, wins, losses, diff, gb in self.division_standings(self.league[subleague][division], standings)[self.constraints["division_leaders"]:]]
+                subleague_array += this_div_wildcard
+            if self.constraints["wild_cards"] > 0:
+                wildcard_leaders = self.division_standings(subleague_array, standings)[:self.constraints["wild_cards"]]
+
+            for this_team, wins, losses, diff, gb in divison_leaders + wildcard_leaders:
+                team_dic[this_team] = {"wins" : wins}
+            
+            subleague_tournament = tournament(f"{self.name} {subleague} Championship Series", team_dic, secs_between_games=int(3600/self.games_per_hour), secs_between_rounds=int(7200/self.games_per_hour))
+            subleague_tournament.build_bracket(by_wins = True)
+            tournaments.append(subleague_tournament)
+
+        return tournaments
+
+
 class tournament(object):
     def __init__(self, name, team_dic, series_length = 5, finals_series_length = 7, max_innings = 9, id = None, secs_between_games = 300, secs_between_rounds = 600): 
         self.name = name
@@ -270,6 +334,7 @@ class tournament(object):
         self.round_delay = secs_between_rounds
         self.finals = False
         self.id = id
+        self.winner = None
 
         if id is None:
             self.id = random.randint(1111,9999)

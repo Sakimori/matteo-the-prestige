@@ -1255,6 +1255,7 @@ async def tourney_round_watcher(channel, tourney, games_list, filter_url, finals
     if finals: #if this last round was finals
         embed = discord.Embed(color = discord.Color.dark_purple(), title = f"{winner_list[0]} win the {tourney.name} finals!")
         await channel.send(embed=embed)
+        tourney.winner = get_team_fuzzy_search(winner_list[0])
         active_tournaments.pop(active_tournaments.index(tourney))
         return
 
@@ -1644,14 +1645,43 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
             league.active = False
 
 
+    if last: #if last game of the season
+        embed = league.standings_embed()
+        embed.set_footer(text="Final Standings")
+        await channel.send(embed=embed)
+        
+
+        tiebreakers = league.tiebreaker_required()       
+        if tiebreakers != []:
+            await channel.send("Tiebreakers required!")
+            await asyncio.gather(*[start_tournament_round(tourney) for tourney in tiebreakers])
+            for tourney in tiebreakers:
+                league.update_standings({tourney.winner.name : {"wins" : 1}})
+                leagues.save_league(league)
+            
+        await channel.send("Setting up postseason...")
+        tourneys = league.champ_series()
+        await asyncio.gather(*[start_tournament_round(tourney) for tourney in tourneys])
+        champs = {}
+        for tourney in tourneys:
+            for team in tourney.teams.keys():
+                if team.name == tourney.winner.name:
+                    champs[tourney.winner] = {"wins" : tourney.teams[team]["wins"]}
+        world_series = leagues.tournament(f"{league.name} Championship Series", champs, series_length=7, secs_between_games=int(3600/league.games_per_hour), secs_between_rounds=int(7200/league.games_per_hour))
+        world_series.build_bracket(by_wins = True)
+        await start_tournament_round(channel, world_series)
+        return
 
 
-    if last or league.autoplay == 0: #if this series was the last of the season OR number of series to autoplay has been reached
+
+    if league.autoplay == 0: #if number of series to autoplay has been reached
         await channel.send(embed=league.standings_embed())
         await channel.send(f"The {league.name} is no longer autoplaying.")
         leagues.save_league(league)
         active_leagues.pop(active_leagues.index(league))
         return
+
+    
 
     now = datetime.datetime.now()
 
@@ -1700,8 +1730,6 @@ async def continue_league_series(league, queue, games_list, series_results):
         main_controller.master_games_dic[id] = (this_game, state_init, discrim_string)
 
     return games_list
-
-
 
 
 
