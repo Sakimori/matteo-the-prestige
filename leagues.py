@@ -262,7 +262,7 @@ class league_structure(object):
 
                 this_embed.add_field(name=f"{division} Division:", value=teams_string, inline = False)
         
-        this_embed.set_footer(text=f"Standings as of day {self.day-1} / {self.season_length()")
+        this_embed.set_footer(text=f"Standings as of day {self.day-1} / {self.season_length()}")
         return this_embed
 
     def wildcard_embed(self):
