@@ -81,6 +81,40 @@ accepting pull requests, check the issues for to-dos.
     - the name of the tournament.
 	- the name of each participating team on its own line.
 
+### draft commands
+- m;startdraft
+  - starts a draft with an arbitrary number of participants. use this command at the top of a list with entries separated by new lines:
+	- for each participant's entry you need three lines:
+	  - their discord @
+	  - their team name
+	  - their team slogan
+	- post this with all three of these things for all participants and the draft will begin.
+  - the draft will begin once all participants have given a 👍 and will proceed in the order that participants were entered. each participant will select 12 hitters and 1 pitcher from a pool of 20 random players which will refresh automatically when it becomes small.
+
+- m;draft [name]
+  - use this on your turn during a draft to pick your player.
+  - you can also just use a 'd' instead of the full command.
+
+### league commands
+- all of these commands are for leagues that have already been started. to start a league, click the 'create a league' button on the website and fill out the info for your league there, then use the m;claimleague command in discord to set yourself as the owner.
+- commissioner commands (all of these except for m;claimleague require ownership of the specified league):
+  - m;claimleague [leaguename]
+    - sets yourself as the owner of an unclaimed league created on the website. make sure to do this as soon as possible since if someone does this before you, you will not have access to the league.
+  - m;addleagueowner [leaguename]
+    - use this command at the top of a list of @mentions, with entries separated by new lines, of people you want to have owner powers in your league.
+  - m;startleague [leaguename] --queue #/-q #
+    - send this command with the number of games per hour you want on the next line, minimum 1 (one game every hour), maximum 12 (one game every 5 minutes, uses spillover rules).
+	- starts the playing of league games at the pace specified, by default will play the entire season unless paused with the m;pauseleague command. you can use the --queue #/-q # flag to only play # series at a time before automatically pausing until you use this command again.
+  - m;pauseleague [leaguename]
+    - pauses the specified league after the current series finishes until the league is started again with m;startleague.
+- general commands (all of these can be used by anyone):
+  - m;leaguestandings [leaguename]
+    - displays the current standings for the specified league.
+  - m;leaguewildcard [leaguename]
+    - displays the wild card standings for the specified league. if the league doesn't have wild cards, it will instead tell you that.
+  - m;leagueschedule [leaguename]
+    - displays the upcoming schedule for the specified league. shows the current series and the next three series after that for every team.
+  
 ### other commands:
 - m;help [command]
   - shows instructions for a given command. if no command is provided, it will instead provide a list of all of the commands that instructions can be provided for.    
