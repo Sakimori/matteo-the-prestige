@@ -1232,8 +1232,8 @@ async def continue_tournament_series(tourney, queue, games_list, wins_in_series)
         if tourney.league is not None:
             if tourney.day is None:
                 tourney.day = tourney.league.day
-            away_team.set_pitcher(rotation_slot = tourney.league.day)
-            home_team.set_pitcher(rotation_slot = tourney.league.day)
+            away_team.set_pitcher(rotation_slot = tourney.day)
+            home_team.set_pitcher(rotation_slot = tourney.day)
             
 
         this_game = games.game(away_team.finalize(), home_team.finalize(), length = tourney.game_length)
