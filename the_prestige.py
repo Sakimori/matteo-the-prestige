@@ -894,14 +894,15 @@ class LeagueAddOwnersCommand(Command):
         league_name = command.split("\n")[0].strip()
         if league_exists(league_name):
             league = leagues.load_league_file(league_name)
-            if league.owner is not None and (msg.author.id in league.owner or msg.author.id in config()["owners"]):
+            if (league.owner is not None and msg.author.id in league.owner) or (league.owner is not None and msg.author.id in config()["owners"]):
                 for user in msg.mentions:
                     if user.id not in league.owner:
                         league.owner.append(user.id)
-                await msg.channel.send(f"The new {league} front office is now up and running.")
+                leagues.save_league(league)
+                await msg.channel.send(f"The new {league.name} front office is now up and running.")
                 return
             else:
-                await msg.channel.send(f"That league hasn't been claimed yet. Try m;claimleague first.")
+                await msg.channel.send(f"That league isn't yours, boss.")
                 return
         else:
             await msg.channel.send("Can't find that league, boss.")
