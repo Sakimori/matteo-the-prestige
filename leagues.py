@@ -322,6 +322,7 @@ class league_structure(object):
             subleague_tournament.league = self
             tournaments.append(subleague_tournament)
 
+        tournaments[0].increment = True
         return tournaments
 
 
@@ -341,6 +342,7 @@ class tournament(object):
         self.id = id
         self.league = None
         self.winner = None
+        self.increment = False
 
         if id is None:
             self.id = random.randint(1111,9999)

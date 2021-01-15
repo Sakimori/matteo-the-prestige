@@ -1292,7 +1292,7 @@ async def tourney_round_watcher(channel, tourney, games_list, filter_url, finals
             except:
                 print("something went wrong in tourney_watcher")
             await asyncio.sleep(4)
-        if tourney.league is not None:
+        if tourney.league is not None and tourney.league.increment:
             tourney.league.day += 1
         
         if len(queued_games) > 0:
@@ -1851,6 +1851,7 @@ async def league_postseason(channel, league):
     tiebreakers = league.tiebreaker_required()       
     if tiebreakers != []:
         await channel.send("Tiebreakers required!")
+        tiebreakers[0].increment = True
         await asyncio.gather(*[start_tournament_round(channel, tourney) for tourney in tiebreakers])
         for tourney in tiebreakers:
             league.update_standings({tourney.winner.name : {"wins" : 1}})
@@ -1880,6 +1881,7 @@ async def league_postseason(channel, league):
             
 
     tourneys = league.champ_series()
+    tourneys[0].increment = true
     await asyncio.gather(*[start_tournament_round(channel, tourney) for tourney in tourneys])
     champs = {}
     for tourney in tourneys:
