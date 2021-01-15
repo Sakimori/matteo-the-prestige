@@ -90,9 +90,11 @@ accepting pull requests, check the issues for to-dos.
     - sets yourself as the owner of an unclaimed league created on the website. make sure to do this as soon as possible since if someone does this before you, you will not have access to the league.
   - m;addleagueowner [leaguename]
     - use this command at the top of a list of @mentions, with entries separated by new lines, of people you want to have owner powers in your league.
-  - m;startleague [leaguename] --queue #/-q #
+  - m;startleague [leaguename] --queue #/-q # --noautopostseason
     - send this command with the number of games per hour you want on the next line, minimum 1 (one game every hour), maximum 12 (one game every 5 minutes, uses spillover rules).
-	- starts the playing of league games at the pace specified, by default will play the entire season unless paused with the m;pauseleague command. you can use the --queue #/-q # flag to only play # series at a time before automatically pausing until you use this command again.
+	- starts the playing of league games at the pace specified, by default will play the entire season and the postseason unless an owner pauses the league with the m;pauseleague command. 
+	- if you use the --queue #/-q # flag, the league will only play # series' at a time before automatically pausing until you use this command again.
+	- if you use the --noautopostseason flag, instead of starting automatically, the league will pause at the end of the regular season and not start the postseason until you use this command again.
   - m;pauseleague [leaguename]
     - pauses the specified league after the current series finishes until the league is started again with m;startleague.
 - general commands (all of these can be used by anyone):
