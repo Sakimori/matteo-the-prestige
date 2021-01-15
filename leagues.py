@@ -10,13 +10,20 @@ league_dir = "leagues"
 class league_structure(object):
     def __init__(self, name):
         self.name = name
+        self.historic = False
+        self.owner = None
+        self.season = 1
+        self.autoplay = -1
+        self.champions = {}
 
     def setup(self, league_dic, division_games = 1, inter_division_games = 1, inter_league_games = 1, games_per_hour = 2):
-        self.league = league_dic #key: subleague, value: {division : team_name}
+        self.league = league_dic # { subleague name : { division name : [team object] } }
         self.constraints = {
             "division_games" : division_games,
             "inter_div_games" : inter_division_games,
-            "inter_league_games" : inter_league_games
+            "inter_league_games" : inter_league_games,
+            "division_leaders" : 0,
+            "wild_cards" : 0
             }
         self.day = 1
         self.schedule = {}
@@ -33,10 +40,45 @@ class league_structure(object):
 
 
     def last_series_check(self):
-        return str(math.ceil((self.day)/self.series_length) + 1) in self.schedule.keys()
+        return str(math.ceil((self.day)/self.series_length) + 1) not in self.schedule.keys()
 
     def day_to_series_num(self, day):
         return math.ceil((self.day)/self.series_length)
+
+    def tiebreaker_required(self):
+        standings = {}
+        matchups = []
+        tournaments = []
+        for team_name, wins, losses, run_diff in league_db.get_standings(self.name):
+            standings[team_name] = {"wins" : wins, "losses" : losses, "run_diff" : run_diff}
+
+        for subleague in iter(self.league.keys()):
+            team_dic = {}          
+            subleague_array = []
+            wildcard_leaders = []
+            for division in iter(self.league[subleague].keys()):
+                division_standings = []
+                division_standings += self.division_standings(self.league[subleague][division], standings)
+                division_leaders = division_standings[:self.constraints["division_leaders"]]
+                for division_team, wins, losses, diff, gb in division_standings[self.constraints["division_leaders"]:]:
+                    if division_team.name != division_leaders[-1][0].name and standings[division_team.name]["wins"] == standings[division_leaders[-1][0].name]["wins"]:
+                        matchups.append((division_team, division_standings[self.constraints["division_leaders"]-1][0], f"{division} Tiebreaker"))
+
+                this_div_wildcard = [this_team for this_team, wins, losses, diff, gb in self.division_standings(self.league[subleague][division], standings)[self.constraints["division_leaders"]:]]
+                subleague_array += this_div_wildcard
+            if self.constraints["wild_cards"] > 0:
+                wildcard_standings = self.division_standings(subleague_array, standings)
+                wildcard_leaders = wildcard_standings[:self.constraints["wild_cards"]]
+                for wildcard_team, wins, losses, diff, gb in wildcard_standings[self.constraints["wild_cards"]:]:
+                    if wildcard_team.name != wildcard_leaders[-1][0].name and standings[wildcard_team.name]["wins"] == standings[wildcard_leaders[-1][0].name]["wins"]:
+                        matchups.append((wildcard_team, wildcard_standings[self.constraints["wild_cards"]-1][0], f"{subleague} Wildcard Tiebreaker"))
+        
+        for team_a, team_b, type in matchups:
+            tourney = tournament(f"{self.name} {type}",{team_a : {"wins" : 1}, team_b : {"wins" : 0}}, finals_series_length=1, secs_between_games=int(3600/self.games_per_hour), secs_between_rounds=int(7200/self.games_per_hour))
+            tourney.build_bracket(by_wins = True)
+            tourney.league = self
+            tournaments.append(tourney)
+        return tournaments
 
     def find_team(self, team_name):
         for subleague in iter(self.league.keys()):
@@ -164,18 +206,125 @@ class league_structure(object):
             day = 1
             while not scheduled:
                 found = False
-                if day in self.schedule.keys():
-                    for game_on_day in self.schedule[day]:
+                if str(day) in self.schedule.keys():
+                    for game_on_day in self.schedule[str(day)]:
                         for team in game:
                             if team in game_on_day:
                                 found = True
                     if not found:
-                        self.schedule[day].append(game)
+                        self.schedule[str(day)].append(game)
                         scheduled = True
                 else:
-                    self.schedule[day] = [game]
+                    self.schedule[str(day)] = [game]
                     scheduled = True
                 day += 1
+
+    def division_standings(self, division, standings):
+        def sorter(team_in_list):
+            if team_in_list[2] == 0 and team_in_list[1] == 0:
+                return (0, team_in_list[3])
+            return (team_in_list[1]/(team_in_list[1]+team_in_list[2]), team_in_list[3])
+
+        teams = division.copy()
+        
+        for index in range(0, len(teams)):
+            this_team = teams[index]
+            teams[index] = [this_team, standings[teams[index].name]["wins"], standings[teams[index].name]["losses"], standings[teams[index].name]["run_diff"], 0]
+
+        teams.sort(key=sorter, reverse=True)
+        return teams
+
+    def season_length(self):
+        return int(list(self.schedule.keys())[-1]) * self.series_length
+    
+    def standings_embed(self):
+        this_embed = Embed(color=Color.purple(), title=self.name)
+        standings = {}
+        for team_name, wins, losses, run_diff in league_db.get_standings(self.name):
+            standings[team_name] = {"wins" : wins, "losses" : losses, "run_diff" : run_diff}
+        for subleague in iter(self.league.keys()):
+            this_embed.add_field(name="Subleague:", value=f"**{subleague}**", inline = False)
+            for division in iter(self.league[subleague].keys()):
+                teams = self.division_standings(self.league[subleague][division], standings)
+
+                for index in range(0, len(teams)):
+                    if index == self.constraints["division_leaders"] - 1:
+                        teams[index][4] = "-"
+                    else:
+                        games_behind = ((teams[self.constraints["division_leaders"] - 1][1] - teams[index][1]) + (teams[index][2] - teams[self.constraints["division_leaders"] - 1][2]))/2
+                        teams[index][4] = games_behind
+                teams_string = ""
+                for this_team in teams:
+                    if this_team[2] != 0 or this_team[1] != 0:
+                        teams_string += f"**{this_team[0].name}\n**{this_team[1]} - {this_team[2]} WR: {round(this_team[1]/(this_team[1]+this_team[2]), 3)} GB: {this_team[4]}\n\n"
+                    else:
+                        teams_string += f"**{this_team[0].name}\n**{this_team[1]} - {this_team[2]} WR: - GB: {this_team[4]}\n\n"
+
+                this_embed.add_field(name=f"{division} Division:", value=teams_string, inline = False)
+        
+        this_embed.set_footer(text=f"Standings as of day {self.day-1} / {self.season_length()}")
+        return this_embed
+
+    def wildcard_embed(self):
+        this_embed = Embed(color=Color.purple(), title=f"{self.name} Wildcard Race")
+        standings = {}
+        for team_name, wins, losses, run_diff in league_db.get_standings(self.name):
+            standings[team_name] = {"wins" : wins, "losses" : losses, "run_diff" : run_diff}
+        for subleague in iter(self.league.keys()):
+            subleague_array = []
+            for division in iter(self.league[subleague].keys()):
+                this_div = [this_team for this_team, wins, losses, diff, gb in self.division_standings(self.league[subleague][division], standings)[self.constraints["division_leaders"]:]]
+                subleague_array += this_div
+
+            teams = self.division_standings(subleague_array, standings)
+            teams_string = ""
+            for index in range(0, len(teams)):
+                if index == self.constraints["wild_cards"] - 1:
+                    teams[index][4] = "-"
+                else:
+                    games_behind = ((teams[self.constraints["wild_cards"] - 1][1] - teams[index][1]) + (teams[index][2] - teams[self.constraints["wild_cards"] - 1][2]))/2
+                    teams[index][4] = games_behind
+
+            for this_team in teams:
+                if this_team[2] != 0 or this_team[1] != 0:
+                    teams_string += f"**{this_team[0].name}\n**{this_team[1]} - {this_team[2]} WR: {round(this_team[1]/(this_team[1]+this_team[2]), 3)} GB: {this_team[4]}\n\n"
+                else:
+                    teams_string += f"**{this_team[0].name}\n**{this_team[1]} - {this_team[2]} WR: - GB: {this_team[4]}\n\n"
+
+            this_embed.add_field(name=f"{subleague} League:", value=teams_string, inline = False)
+        
+        this_embed.set_footer(text=f"Wildcard standings as of day {self.day-1}")
+        return this_embed
+
+    def champ_series(self):
+        tournaments = []
+        standings = {}
+        
+        for team_name, wins, losses, run_diff in league_db.get_standings(self.name):
+            standings[team_name] = {"wins" : wins, "losses" : losses, "run_diff" : run_diff}
+
+        for subleague in iter(self.league.keys()):
+            team_dic = {}
+            division_leaders = []
+            subleague_array = []
+            wildcard_leaders = []
+            for division in iter(self.league[subleague].keys()):
+                division_leaders += self.division_standings(self.league[subleague][division], standings)[:self.constraints["division_leaders"]]                
+                this_div_wildcard = [this_team for this_team, wins, losses, diff, gb in self.division_standings(self.league[subleague][division], standings)[self.constraints["division_leaders"]:]]
+                subleague_array += this_div_wildcard
+            if self.constraints["wild_cards"] > 0:
+                wildcard_leaders = self.division_standings(subleague_array, standings)[:self.constraints["wild_cards"]]
+
+            for this_team, wins, losses, diff, gb in division_leaders + wildcard_leaders:
+                team_dic[this_team] = {"wins" : wins}
+            
+            subleague_tournament = tournament(f"{self.name} {subleague} Subleague Series", team_dic, series_length=3, finals_series_length=5, secs_between_games=int(3600/self.games_per_hour), secs_between_rounds=int(7200/self.games_per_hour))
+            subleague_tournament.build_bracket(by_wins = True)
+            subleague_tournament.league = self
+            tournaments.append(subleague_tournament)
+
+        return tournaments
+
 
 class tournament(object):
     def __init__(self, name, team_dic, series_length = 5, finals_series_length = 7, max_innings = 9, id = None, secs_between_games = 300, secs_between_rounds = 600): 
@@ -191,6 +340,9 @@ class tournament(object):
         self.round_delay = secs_between_rounds
         self.finals = False
         self.id = id
+        self.league = None
+        self.winner = None
+        self.day = None
 
         if id is None:
             self.id = random.randint(1111,9999)
@@ -288,7 +440,7 @@ def save_league(this_league):
         with open(os.path.join(data_dir, league_dir, this_league.name, f"{this_league.name}.league"), "w") as league_file:
             league_json_string = jsonpickle.encode(this_league.league, keys=True)
             json.dump(league_json_string, league_file, indent=4)
-        return True
+    league_db.save_league(this_league)
 
 def load_league_file(league_name):
     if league_db.league_exists(league_name):
@@ -298,4 +450,18 @@ def load_league_file(league_name):
             this_league.league = jsonpickle.decode(json.load(league_file), keys=True, classes=team)
         with open(os.path.join(data_dir, league_dir, league_name, f"{this_league.name}.state")) as state_file:
             state_dic = json.load(state_file)
+
+        this_league.day = state_dic["day"]
+        this_league.schedule = state_dic["schedule"]
+        this_league.constraints = state_dic["constraints"]
+        this_league.game_length = state_dic["game_length"]
+        this_league.series_length = state_dic["series_length"]
+        this_league.owner = state_dic["owner"]
+        this_league.games_per_hour = state_dic["games_per_hour"]
+        this_league.historic = state_dic["historic"]
+        this_league.season = state_dic["season"]
+        try:
+            this_league.champions = state_dic["champions"]
+        except:
+            this_league.champions = {}
         return this_league

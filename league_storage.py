@@ -64,6 +64,7 @@ def init_league_db(league):
         c.execute(teams_table_check_string)
 
         for team in league.teams_in_league():
+            print(team)
             c.execute("INSERT INTO teams (name) VALUES (?)", (team.name,))
 
             player_string = "INSERT INTO stats (name, team_name) VALUES (?,?)"
@@ -72,21 +73,25 @@ def init_league_db(league):
             for pitcher in team.rotation:
                 c.execute(player_string, (pitcher.name, team.name))
 
+    conn.commit()
+    conn.close()
+
+def save_league(league):
+    if league_exists(league.name):
         state_dic = {
+                "season" : league.season,
                 "day" : league.day,
+                "constraints" : league.constraints,
                 "schedule" : league.schedule,
                 "game_length" : league.game_length,
                 "series_length" : league.series_length,
                 "games_per_hour" : league.games_per_hour,
-                "historic" : False
+                "owner" : league.owner,
+                "champions" : league.champions,
+                "historic" : league.historic               
             }
-        if not os.path.exists(os.path.dirname(os.path.join(data_dir, league_dir, league.name, f"{league.name}.state"))):
-            os.makedirs(os.path.dirname(os.path.join(data_dir, league_dir, league.name, f"{league.name}.state")))
         with open(os.path.join(data_dir, league_dir, league.name, f"{league.name}.state"), "w") as state_file:
             json.dump(state_dic, state_file, indent=4)
-
-    conn.commit()
-    conn.close()
 
 def add_stats(league_name, player_game_stats_list):
     conn = create_connection(league_name)
@@ -122,11 +127,22 @@ def update_standings(league_name, update_dic):
             conn.commit()
         conn.close()
 
+def get_standings(league_name):
+    if league_exists(league_name):
+        conn = create_connection(league_name)
+        if conn is not None:
+            c = conn.cursor()
+
+            c.execute("SELECT name, wins, losses, run_diff FROM teams",)
+            standings_array = c.fetchall()
+            conn.close()
+            return standings_array
+
 
 
 def league_exists(league_name):
     with os.scandir(os.path.join(data_dir, league_dir)) as folder:
         for subfolder in folder:
             if league_name in subfolder.name:
-                return not state(league_name)["historic"]
+                return True
     return False

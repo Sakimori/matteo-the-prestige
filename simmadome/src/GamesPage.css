@@ -76,9 +76,4 @@
         left: 50%;
         transform: translate(-50%, 0);
     }
-
-    .emptyslot {
-        border: none;
-        min-height: 0px;
-    }
 }

@@ -8,6 +8,7 @@ function GamesPage() {
   let [search, setSearch] = useState(window.location.search);
   useEffect(() => {
     setSearch(window.location.search);
+    //eslint-disable-next-line react-hooks/exhaustive-deps
   }, [window.location.search])
 
   let searchparams = new URLSearchParams(search);
