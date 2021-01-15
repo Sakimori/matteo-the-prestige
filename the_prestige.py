@@ -1292,7 +1292,7 @@ async def tourney_round_watcher(channel, tourney, games_list, filter_url, finals
             except:
                 print("something went wrong in tourney_watcher")
             await asyncio.sleep(4)
-        if tourney.league is not None and tourney.league.increment:
+        if tourney.league is not None and tourney.increment:
             tourney.league.day += 1
         
         if len(queued_games) > 0:
