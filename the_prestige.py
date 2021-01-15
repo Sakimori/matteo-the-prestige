@@ -809,7 +809,7 @@ Plays a league with a given name, provided that league has been saved on the web
             elif league.day % league.series_length == 1:
                 await start_league_day(msg.channel, league)
             else:
-
+                await start_league_day(msg.channel, league, partial = True)
         else:
             await msg.channel.send("Couldn't find that league, boss. Did you save it on the website?")
 
@@ -1156,7 +1156,15 @@ async def start_tournament_round(channel, tourney, seeding = None):
 
     for pair in games_to_start:
         if pair[0] is not None and pair[1] is not None:
-            this_game = games.game(pair[0].prepare_for_save().finalize(), pair[1].prepare_for_save().finalize(), length = tourney.game_length)
+            team_a = get_team_fuzzy_search(pair[0].name)
+            team_b = get_team_fuzzy_search(pair[1].name)
+
+            if tourney.league is not None:
+                team_a.set_pitcher(rotation_slot = tourney.league.day)
+                team_b.set_pitcher(rotation_slot = tourney.league.day)
+                league.day += 1
+
+            this_game = games.game(team_a.finalize(), team_b.finalize(), length = tourney.game_length)
             this_game, state_init = prepare_game(this_game)
 
             state_init["is_league"] = True
@@ -1187,6 +1195,12 @@ async def continue_tournament_series(tourney, queue, games_list, wins_in_series)
     for oldgame in queue:
         away_team = games.get_team(oldgame.teams["away"].name)
         home_team = games.get_team(oldgame.teams["home"].name)
+
+        if tourney.league is not None:
+            away_team.set_pitcher(rotation_slot = tourney.league.day)
+            home_team.set_pitcher(rotation_slot = tourney.league.day)
+            league.day += 1
+
         this_game = games.game(away_team.finalize(), home_team.finalize(), length = tourney.game_length)
         this_game, state_init = prepare_game(this_game)
 
@@ -1250,8 +1264,32 @@ async def tourney_round_watcher(channel, tourney, games_list, filter_url, finals
 
         
         if len(queued_games) > 0:
-            await channel.send(f"The next batch of games for {tourney.name} will start in {int(tourney.delay/60)} minutes.")
-            await asyncio.sleep(tourney.delay)
+            
+            if tourney.league is not None:
+                now = datetime.datetime.now()
+                validminutes = [int((60 * div)/tourney.league.games_per_hour) for div in range(0,tourney.league.games_per_hour)]
+                for i in range(0, len(validminutes)):
+                    if now.minute > validminutes[i]:
+                        if i <= len(validminutes)-3:
+                            if validminutes[i+1] == now.minute:
+                                delta = datetime.timedelta(minutes= (validminutes[i+2] - now.minute))
+                            else:
+                                delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
+                        elif i <= len(validminutes)-2:
+                            if validminutes[i+1] == now.minute:
+                                delta = datetime.timedelta(minutes= (60 - now.minute))
+                            else:
+                                delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
+                        else:
+                            delta = datetime.timedelta(minutes= (60 - now.minute))           
+
+                next_start = (now + delta).replace(microsecond=0)
+                wait_seconds = (next_start - now).seconds
+                await channel.send(f"The next batch of games for {tourney.name} will start in {math.ceil(wait_seconds/60)} minutes.")
+                await asyncio.sleep(wait_seconds)
+            else:
+                await channel.send(f"The next batch of games for {tourney.name} will start in {int(tourney.delay/60)} minutes.")
+                await asyncio.sleep(tourney.delay)
             await channel.send(f"{len(queued_games)} games for {tourney.name}, starting at {filter_url}")
             games_list = await continue_tournament_series(tourney, queued_games, games_list, wins_in_series)
         else:
@@ -1269,11 +1307,37 @@ async def tourney_round_watcher(channel, tourney, games_list, filter_url, finals
     winners_string = ""
     for game in tourney.bracket.get_bottom_row():
         winners_string += f"{game[0].name}\n{game[1].name}\n"
-    await channel.send(f"""
+
+    if tourney.league is not None:
+        now = datetime.datetime.now()
+        validminutes = [int((60 * div)/tourney.league.games_per_hour) for div in range(0,tourney.league.games_per_hour)]
+        for i in range(0, len(validminutes)):
+            if now.minute > validminutes[i]:
+                if i <= len(validminutes)-3:
+                    if validminutes[i+1] == now.minute:
+                        delta = datetime.timedelta(minutes= (validminutes[i+2] - now.minute))
+                    else:
+                        delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
+                elif i <= len(validminutes)-2:
+                    if validminutes[i+1] == now.minute:
+                        delta = datetime.timedelta(minutes= (60 - now.minute))
+                    else:
+                        delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
+                else:
+                    delta = datetime.timedelta(minutes= (60 - now.minute))           
+
+        next_start = (now + delta).replace(microsecond=0)
+        wait_seconds = (next_start - now).seconds
+        await channel.send(f"""This round of games for {tourney.name} is now complete! The next round will start in {math.ceil(wait_seconds/60)} minutes.
+Advancing teams:
+{winners_string}""")
+        await asyncio.sleep(wait_seconds)
+    else:
+        await channel.send(f"""
 This round of games for {tourney.name} is now complete! The next round will be starting in {int(tourney.round_delay/60)} minutes.
 Advancing teams:
 {winners_string}""")
-    await asyncio.sleep(tourney.round_delay)
+        await asyncio.sleep(tourney.round_delay)
     await start_tournament_round(channel, tourney)
 
 
@@ -1658,6 +1722,27 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
 
 
     if last: #if last game of the season
+        now = datetime.datetime.now()
+        validminutes = [int((60 * div)/league.games_per_hour) for div in range(0,league.games_per_hour)]
+        for i in range(0, len(validminutes)):
+            if now.minute > validminutes[i]:
+                if i <= len(validminutes)-3:
+                    if validminutes[i+1] == now.minute:
+                        delta = datetime.timedelta(minutes= (validminutes[i+2] - now.minute))
+                    else:
+                        delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
+                elif i <= len(validminutes)-2:
+                    if validminutes[i+1] == now.minute:
+                        delta = datetime.timedelta(minutes= (60 - now.minute))
+                    else:
+                        delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
+                else:
+                    delta = datetime.timedelta(minutes= (60 - now.minute))           
+
+        next_start = (now + delta).replace(microsecond=0)
+        wait_seconds = (next_start - now).seconds
+        await channel.send(f"This {league.name} season is now over! The postseason (with any necessary tiebreakers) will be starting in {math.ceil(wait_seconds/60)} minutes.")
+        await asyncio.sleep(wait_seconds)
         await league_postseason(channel, league)
 
         #need to reset league to new season here
@@ -1732,14 +1817,36 @@ async def league_postseason(channel, league):
     tiebreakers = league.tiebreaker_required()       
     if tiebreakers != []:
         await channel.send("Tiebreakers required!")
-        await asyncio.gather(*[start_tournament_round(tourney) for tourney in tiebreakers])
+        await asyncio.gather(*[start_tournament_round(channel, tourney) for tourney in tiebreakers])
         for tourney in tiebreakers:
             league.update_standings({tourney.winner.name : {"wins" : 1}})
             leagues.save_league(league)
+        now = datetime.datetime.now()
+
+        validminutes = [int((60 * div)/league.games_per_hour) for div in range(0,league.games_per_hour)]
+        for i in range(0, len(validminutes)):
+            if now.minute > validminutes[i]:
+                if i <= len(validminutes)-3:
+                    if validminutes[i+1] == now.minute:
+                        delta = datetime.timedelta(minutes= (validminutes[i+2] - now.minute))
+                    else:
+                        delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
+                elif i <= len(validminutes)-2:
+                    if validminutes[i+1] == now.minute:
+                        delta = datetime.timedelta(minutes= (60 - now.minute))
+                    else:
+                        delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
+                else:
+                    delta = datetime.timedelta(minutes= (60 - now.minute))           
+
+        next_start = (now + delta).replace(microsecond=0)
+        wait_seconds = (next_start - now).seconds
+        await channel.send(f"Tiebreakers complete! Postseason starting in {math.ceil(wait_seconds/60)} minutes.")
+        await asyncio.sleep(wait_seconds)
             
-    await channel.send("Setting up postseason...")
+
     tourneys = league.champ_series()
-    await asyncio.gather(*[start_tournament_round(tourney) for tourney in tourneys])
+    await asyncio.gather(*[start_tournament_round(channel, tourney) for tourney in tourneys])
     champs = {}
     for tourney in tourneys:
         for team in tourney.teams.keys():
