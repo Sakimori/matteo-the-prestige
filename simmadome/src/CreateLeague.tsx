@@ -1,4 +1,5 @@
 import React, {useState, useRef, useLayoutEffect, useReducer} from 'react';
+import {removeIndex, replaceIndex, append, arrayOf, shallowClone, getUID, DistributiveOmit} from './util';
 import './CreateLeague.css';
 import twemoji from 'twemoji';
 
@@ -45,11 +46,6 @@ class TeamState {
 		this.id = getUID();
 	}
 }
-
-let getUID = function() { // does NOT generate UUIDs. Meant to create list keys ONLY
-	let id = 0;
-	return function() { return id++ }
-}()
 
 // STRUCTURE REDUCER
 
@@ -167,35 +163,6 @@ function LeagueOptionsReducer(state: LeagueOptionsState, action: OptionsReducerA
 	}
 	return newState
 }
-
-// UTIL
-
-function removeIndex(arr: any[], index: number) {
-	return arr.slice(0, index).concat(arr.slice(index+1));
-}
-
-function replaceIndex<T>(arr: T[], index: number, val: T) {
-	return arr.slice(0, index).concat([val]).concat(arr.slice(index+1));
-}
-
-function append<T>(arr: T[], val: T) {
-	return arr.concat([val]);
-} 
-
-function arrayOf<T>(length: number, func: (i: number) => T): T[] {
-	var out: T[] = [];
-	for (var i = 0; i < length; i++) {
-		out.push(func(i));
-	}
-	return out;
-}
-
-function shallowClone<T>(obj: T): T {
-	return Object.assign({}, obj);
-}
-
-type DistributiveOmit<T, K extends keyof any> = T extends any ? Omit<T, K> : never;
-//type DistributivePick<T, K extends keyof T> = T extends any ? Pick<T, K> : never;
 
 // CREATE LEAGUE
 

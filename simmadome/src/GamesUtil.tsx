@@ -20,6 +20,8 @@ interface GameState {
   update_text: string
   is_league: boolean
   leagueoruser: string
+  start_delay: number
+  end_delay: number
 }
 
 type GameList = ([id: string, game: GameState] | null)[];

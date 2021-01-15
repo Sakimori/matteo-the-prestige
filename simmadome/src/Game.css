@@ -1,5 +1,4 @@
 .game {
-    align-self: stretch;
     text-align: center;
     display: flex;
     flex-direction: column;
