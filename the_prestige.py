@@ -804,7 +804,12 @@ Plays a league with a given name, provided that league has been saved on the web
                     return
             league.autoplay = autoplay
             league.games_per_hour = gph
-            await start_league_day(msg.channel, league)
+            if str(league.day_to_series_num(league.day)) not in league.schedule.keys():
+                await league_postseason(msg.channel, league)
+            elif league.day % league.series_length == 1:
+                await start_league_day(msg.channel, league)
+            else:
+
         else:
             await msg.channel.send("Couldn't find that league, boss. Did you save it on the website?")
 
@@ -1514,7 +1519,7 @@ def get_team_fuzzy_search(team_name):
             team = teams[0]
     return team
 
-async def start_league_day(channel, league):
+async def start_league_day(channel, league, partial = False):
     current_games = []
         
     games_to_start = league.schedule[str(league.day_to_series_num(league.day))]
@@ -1534,8 +1539,11 @@ async def start_league_day(channel, league):
             this_game, state_init = prepare_game(this_game)
 
             state_init["is_league"] = True
-            series_string = f"Series score:"
-            state_init["title"] = f"{series_string} 0 - 0"
+            if not partial:
+                series_string = "Series score:"
+                state_init["title"] = f"{series_string} 0 - 0"
+            else:
+                state_init["title"] = "Interrupted series!"
             discrim_string = league.name     
 
             id = str(uuid4())
@@ -1545,17 +1553,21 @@ async def start_league_day(channel, league):
     ext = "?league=" + urllib.parse.quote_plus(league.name)
 
     if league.last_series_check(): #if finals
-        await channel.send(f"The final series of the {league.name} is starting now, at {config()['simmadome_url']+ext}")
+        await channel.send(f"The final series of the {league.name} regular season is starting now, at {config()['simmadome_url']+ext}")
         last = True
 
     else:
         await channel.send(f"The day {league.day} series of the {league.name} is starting now, at {config()['simmadome_url']+ext}")
         last = False
 
-    await league_day_watcher(channel, league, current_games, config()['simmadome_url']+ext, last)
+    if partial:
+        missed_games = (league.day % league.series_length) - 2
+        await league_day_watcher(channel, league, current_games, config()['simmadome_url']+ext, last, missed = missed_games)
+    else:
+        await league_day_watcher(channel, league, current_games, config()['simmadome_url']+ext, last)
 
 
-async def league_day_watcher(channel, league, games_list, filter_url, last = False):
+async def league_day_watcher(channel, league, games_list, filter_url, last = False, missed = 0):
     league.active = True
     league.autoplay -= 1
     if league not in active_leagues:
@@ -1602,7 +1614,7 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
                         final_embed.add_field(name="Series score:", value=f"{series_results[game.teams['away'].name]['wins']} - {series_results[game.teams['home'].name]['wins']}")
                         await channel.send(f"A {league.name} game just ended!")                
                         await channel.send(embed=final_embed)
-                        if series_results[winner_name]["wins"] + series_results[winner_name]["losses"] < league.series_length:
+                        if series_results[winner_name]["wins"] + series_results[winner_name]["losses"] + missed < league.series_length:
                             queued_games.append(game)                           
                         games_list.pop(i)
                         break
@@ -1646,30 +1658,10 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
 
 
     if last: #if last game of the season
-        embed = league.standings_embed()
-        embed.set_footer(text="Final Standings")
-        await channel.send(embed=embed)
-        
+        await league_postseason(channel, league)
 
-        tiebreakers = league.tiebreaker_required()       
-        if tiebreakers != []:
-            await channel.send("Tiebreakers required!")
-            await asyncio.gather(*[start_tournament_round(tourney) for tourney in tiebreakers])
-            for tourney in tiebreakers:
-                league.update_standings({tourney.winner.name : {"wins" : 1}})
-                leagues.save_league(league)
-            
-        await channel.send("Setting up postseason...")
-        tourneys = league.champ_series()
-        await asyncio.gather(*[start_tournament_round(tourney) for tourney in tourneys])
-        champs = {}
-        for tourney in tourneys:
-            for team in tourney.teams.keys():
-                if team.name == tourney.winner.name:
-                    champs[tourney.winner] = {"wins" : tourney.teams[team]["wins"]}
-        world_series = leagues.tournament(f"{league.name} Championship Series", champs, series_length=7, secs_between_games=int(3600/league.games_per_hour), secs_between_rounds=int(7200/league.games_per_hour))
-        world_series.build_bracket(by_wins = True)
-        await start_tournament_round(channel, world_series)
+        #need to reset league to new season here
+
         return
 
 
@@ -1731,6 +1723,31 @@ async def continue_league_series(league, queue, games_list, series_results):
 
     return games_list
 
+async def league_postseason(channel, league):
+    embed = league.standings_embed()
+    embed.set_footer(text="Final Standings")
+    await channel.send(embed=embed)
+        
+
+    tiebreakers = league.tiebreaker_required()       
+    if tiebreakers != []:
+        await channel.send("Tiebreakers required!")
+        await asyncio.gather(*[start_tournament_round(tourney) for tourney in tiebreakers])
+        for tourney in tiebreakers:
+            league.update_standings({tourney.winner.name : {"wins" : 1}})
+            leagues.save_league(league)
+            
+    await channel.send("Setting up postseason...")
+    tourneys = league.champ_series()
+    await asyncio.gather(*[start_tournament_round(tourney) for tourney in tourneys])
+    champs = {}
+    for tourney in tourneys:
+        for team in tourney.teams.keys():
+            if team.name == tourney.winner.name:
+                champs[tourney.winner] = {"wins" : tourney.teams[team]["wins"]}
+    world_series = leagues.tournament(f"{league.name} Championship Series", champs, series_length=7, secs_between_games=int(3600/league.games_per_hour), secs_between_rounds=int(7200/league.games_per_hour))
+    world_series.build_bracket(by_wins = True)
+    await start_tournament_round(channel, world_series)
 
 
 
