@@ -252,9 +252,14 @@ input[type=number]::-webkit-outer-spin-button {
 	margin-bottom: 0;
 }
 
-.cl_Structure_err_team {
+.cl_structure_err_team {
 	margin-top: -0.5rem;
+	margin-bottom: 0;
 	width: 85%;
+}
+
+.cl_team_name_err {
+	color: var(--accent-red);
 }
 
 .cl_structure_err_teams {

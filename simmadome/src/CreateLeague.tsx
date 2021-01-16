@@ -442,13 +442,16 @@ function Division(props: {
 				}/>
 				<div className="cl_structure_err cl_structure_err_div">{props.showError ? divisionErr : ""}</div>
 			</div>
-			{props.state.teams.map((team, i) => (<>
-				<div className="cl_team" key={team.id}>
-					<div className="cl_team_name">{team.name}</div>
-					<button className="cl_team_delete" onClick={e => props.dispatch({type:'remove_team', name: team.name})}>➖</button>
-				</div>
-				<div className="cl_structure_err cl_structure_err_team">{props.showError && props.deletedTeams.includes(team.name) ? "This team was deleted" : ""}</div>
-			</>))}
+			{props.state.teams.map((team, i) => {
+				let showDeleted = props.showError && props.deletedTeams.includes(team.name)
+				return (<>
+					<div className="cl_team" key={team.id}>
+						<div className={"cl_team_name" + (showDeleted ? " cl_team_name_err" : "")}>{team.name}</div>
+						<button className="cl_team_delete" onClick={e => props.dispatch({type:'remove_team', name: team.name})}>➖</button>
+					</div>
+					<div className="cl_structure_err cl_structure_err_team">{showDeleted ? "This team was deleted" : ""}</div>
+				</>)
+			})}
 			{ props.state.teams.length < MAX_TEAMS_PER_DIVISION ? <>
 				<div className="cl_team_add">
 					<input type="text" className="cl_newteam_name" placeholder="Add team..." value={newName} ref={newNameInput}
