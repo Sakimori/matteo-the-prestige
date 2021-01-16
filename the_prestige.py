@@ -787,7 +787,6 @@ Plays a league with a given name, provided that league has been saved on the web
                 raise ValueError
             elif autoplay is None:
                 autoplay = -1
-            command = command.split("\n")[1]
         except ValueError:
             await msg.channel.send("Sorry boss, the queue flag needs a natural number. Any whole number over 0 will do just fine.")
             return
@@ -798,7 +797,7 @@ Plays a league with a given name, provided that league has been saved on the web
         
 
         try:
-            gph = int(command.strip())
+            gph = int(command.split("\n")[1].strip())
             if gph < 1 or gph > 12:
                 raise ValueError
         except ValueError:
@@ -1835,6 +1834,14 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
         else:
             league.active = False
 
+    if league.autoplay == 0 or config()["game_freeze"]: #if number of series to autoplay has been reached
+        await channel.send(embed=league.standings_embed())
+        await channel.send(f"The {league.name} is no longer autoplaying.")
+        if config()["game_freeze"]:
+            await channel.send("Patch incoming.")
+        leagues.save_league(league)
+        active_leagues.pop(active_leagues.index(league))
+        return
 
     if last: #if last game of the season
         now = datetime.datetime.now()
@@ -1866,14 +1873,7 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
 
 
 
-    if league.autoplay == 0 or config()["game_freeze"]: #if number of series to autoplay has been reached
-        await channel.send(embed=league.standings_embed())
-        await channel.send(f"The {league.name} is no longer autoplaying.")
-        if config()["game_freeze"]:
-            await channel.send("Patch incoming.")
-        leagues.save_league(league)
-        active_leagues.pop(active_leagues.index(league))
-        return
+
 
     
 
