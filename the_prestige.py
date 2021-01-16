@@ -609,7 +609,7 @@ class StartDraftCommand(Command):
         draft = Draft.make_draft()
         mentions = {f'<@!{m.id}>' for m in msg.mentions}
         content = msg.content.split('\n')[1:]  # drop command out of message
-        if len(content) % 3:
+        if not content or len(content) % 3:
             await msg.channel.send('Invalid list')
             raise ValueError('Invalid length')
 
