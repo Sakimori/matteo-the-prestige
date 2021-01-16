@@ -38,27 +38,62 @@ def search_teams():
 
     return jsonify([json.loads(x[0])['name'] for x in result]) #currently all we need is the name but that can change
 
+MAX_SUBLEAGUE_DIVISION_TOTAL = 22;
+MAX_TEAMS_PER_DIVISION = 12;
 
 @app.route('/api/leagues', methods=['POST'])
 def create_league():
     config = json.loads(request.data)
 
-    if (league_exists(config['name'])):
-        abort(400, "A league by that name already exists")
+    if league_exists(config['name']):
+        return jsonify({'status':'err_league_exists'}), 400
 
-    print(config)
-    league_dic = {
-        subleague['name'] : { 
-            division['name'] : [games.get_team(team_name) for team_name in division['teams']] 
-            for division in subleague['divisions']
-        } 
-        for subleague in config['structure']['subleagues']
-    }
+    num_subleagues = len(config['structure']['subleagues'])
+    if num_subleagues < 1 or num_subleagues % 2 != 0:
+        return jsonify({'status':'err_invalid_subleague_count'}), 400
+
+    num_divisions = len(config['structure']['subleagues'][0]['divisions'])
+    if num_subleagues * (num_divisions + 1) > MAX_SUBLEAGUE_DIVISION_TOTAL:
+        return jsonify({'status':'err_invalid_subleague_division_total'}), 400
+
+    league_dic = {}
+    err_teams = []
+    for subleague in config['structure']['subleagues']:
+        if subleague['name'] in league_dic:
+            return jsonify({'status':'err_duplicate_name', 'cause':subleague['name']})
+
+        subleague_dic = {}
+        for division in subleague['divisions']:
+            if division['name'] in subleague_dic:
+                return jsonify({'status':'err_duplicate_name', 'cause':f"{subleague['name']}/{division['name']}"}), 400
+            elif len(division['teams']) > MAX_TEAMS_PER_DIVISION:
+                return jsonify({'status':'err_too_many_teams', 'cause':f"{subleague['name']}/{division['name']}"})
+
+            teams = []
+            for team_name in division['teams']:
+                team = games.get_team(team_name)
+                if team is None:
+                    err_teams.append(team_name)
+                else:
+                    teams.append(team)
+            subleague_dic[division['name']] = teams
+        league_dic[subleague['name']] = subleague_dic
+
+    if len(err_teams) > 0:
+        return jsonify({'status':'err_no_such_team', 'cause': err_teams}), 400
+
+    for (key, min_val) in [
+        ('division_series', 1), 
+        ('inter_division_series', 1), 
+        ('inter_league_series', 1)
+    ]:
+        if config[key] < min_val:
+            return jsonify({'status':'err_invalid_optiion_value', 'cause':key}), 400
 
     new_league = league_structure(config['name'])
     new_league.setup(
         league_dic, 
-        division_games=config['division_series'], 
+        division_games=config['division_series'], # need to add a check that makes sure these values are ok
         inter_division_games=config['inter_division_series'],
         inter_league_games=config['inter_league_series'],
     )
@@ -67,7 +102,7 @@ def create_league():
     new_league.generate_schedule()
     leagues.save_league(new_league)
 
-    return "League created successfully"
+    return jsonify({'status':'success_league_created'})
 
 
 
