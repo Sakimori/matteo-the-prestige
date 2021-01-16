@@ -78,7 +78,7 @@ class IdolizeCommand(Command):
         else:
             meme = False
 
-        player_name = discord.utils.escape_mentions(command)
+        player_name = discord.utils.escape_mentions(command.strip())
         if len(player_name) >= 70:
             await msg.channel.send("That name is too long. Please keep it below 70 characters, for my sake and yours.")
             return
