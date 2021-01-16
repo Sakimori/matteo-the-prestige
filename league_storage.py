@@ -21,6 +21,23 @@ def create_connection(league_name):
         print("oops, db connection no work")
         return conn
 
+def create_season_connection(league_name, season_num):
+    #create connection, create db if doesn't exist
+    conn = None
+    try:
+        if not os.path.exists(os.path.join(data_dir, league_dir, league_name)):
+        
+            os.makedirs(os.path.join(data_dir, league_dir, league_name))
+        conn = sql.connect(os.path.join(data_dir, league_dir, league_name, season_num, f"{league_name}.db"))
+
+        # enable write-ahead log for performance and resilience
+        conn.execute('pragma journal_mode=wal')
+
+        return conn
+    except:
+        print("oops, db connection no work")
+        return conn
+
 def state(league_name):
     if not os.path.exists(os.path.dirname(os.path.join(data_dir, league_dir, league_name, f"{league_name}.state"))):
             os.makedirs(os.path.dirname(os.path.join(data_dir, league_dir, league_name, f"{league_name}.state")))
@@ -87,7 +104,7 @@ def save_league(league):
                 "series_length" : league.series_length,
                 "games_per_hour" : league.games_per_hour,
                 "owner" : league.owner,
-                "champions" : league.champions,
+                "champion" : league.champion,
                 "historic" : league.historic               
             }
         with open(os.path.join(data_dir, league_dir, league.name, f"{league.name}.state"), "w") as state_file:
@@ -138,11 +155,49 @@ def get_standings(league_name):
             conn.close()
             return standings_array
 
+def season_save(league):
+    if league_exists(league.name):
+        seasons = 1
+        with os.scandir(os.path.join(data_dir, league_dir, league.name)) as folder:
+            for item in folder:
+                if "." not in item.name:
+                    seasons += 1
+            new_dir = os.path.join(data_dir, league_dir, league.name, str(seasons))
+            os.makedirs(new_dir)
+        with os.scandir(os.path.join(data_dir, league_dir, league.name)) as folder:
+            for item in folder:
+                if "." in item.name:
+                    os.rename(os.path.join(data_dir, league_dir, league.name, item.name), os.path.join(new_dir, item.name))
 
+def get_past_standings(league_name, season_num):
+    if league_exists(league_name):
+         with os.scandir(os.path.join(data_dir, league_dir, league_name)) as folder:
+            for item in folder:
+                if item.name == str(season_num):
+                    conn = create_season_connection(league_name, str(item.name))
+                    if conn is not None:
+                        c = conn.cursor()
+
+                        c.execute("SELECT name, wins, losses, run_diff FROM teams",)
+                        standings_array = c.fetchall()
+                        conn.close()
+                        return standings_array
+
+def get_past_champion(league_name, season_num):
+    if league_exists(league_name):
+         with os.scandir(os.path.join(data_dir, league_dir, league_name)) as folder:
+            for item in folder:
+                if item.name == str(season_num):
+                    with open(os.path.join(data_dir, league_dir, league_name, item.name, f"{league_name}.state")) as state_file:
+                        state_dic = json.load(state_file)
+                        return state_dic["champion"]
 
 def league_exists(league_name):
     with os.scandir(os.path.join(data_dir, league_dir)) as folder:
         for subfolder in folder:
-            if league_name in subfolder.name:
-                return True
+            if league_name == subfolder.name:
+                with os.scandir(subfolder.path) as league_folder:
+                    for item in league_folder:
+                        if item.name == f"{league_name}.db":
+                            return True
     return False

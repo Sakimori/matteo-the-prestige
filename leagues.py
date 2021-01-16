@@ -14,7 +14,7 @@ class league_structure(object):
         self.owner = None
         self.season = 1
         self.autoplay = -1
-        self.champions = {}
+        self.champion = None
 
     def setup(self, league_dic, division_games = 1, inter_division_games = 1, inter_league_games = 1, games_per_hour = 2):
         self.league = league_dic # { subleague name : { division name : [team object] } }
@@ -31,6 +31,14 @@ class league_structure(object):
         self.game_length = None
         self.active = False
         self.games_per_hour = games_per_hour
+
+    def season_reset(self):
+        self.season += 1
+        self.day = 1
+        self.champion = None
+        self.schedule = {}
+        self.generate_schedule()
+        save_league(self)
 
     def add_stats_from_game(self, players_dic):
         league_db.add_stats(self.name, players_dic)
@@ -234,11 +242,42 @@ class league_structure(object):
         teams.sort(key=sorter, reverse=True)
         return teams
 
+    def past_standings(self, season_num):
+        this_embed = Embed(color=Color.purple(), title=self.name)
+        standings = {}
+        for team_name, wins, losses, run_diff in league_db.get_past_standings(self.name, season_num):
+            standings[team_name] = {"wins" : wins, "losses" : losses, "run_diff" : run_diff}
+
+        this_embed.add_field(name=league_db.get_past_champion(self.name, season_num), value=f"Season {season_num} champions", inline = False)
+
+        for subleague in iter(self.league.keys()):
+            this_embed.add_field(name="Subleague:", value=f"**{subleague}**", inline = False)
+            for division in iter(self.league[subleague].keys()):
+                teams = self.division_standings(self.league[subleague][division], standings)
+
+                for index in range(0, len(teams)):
+                    if index == self.constraints["division_leaders"] - 1:
+                        teams[index][4] = "-"
+                    else:
+                        games_behind = ((teams[self.constraints["division_leaders"] - 1][1] - teams[index][1]) + (teams[index][2] - teams[self.constraints["division_leaders"] - 1][2]))/2
+                        teams[index][4] = games_behind
+                teams_string = ""
+                for this_team in teams:
+                    if this_team[2] != 0 or this_team[1] != 0:
+                        teams_string += f"**{this_team[0].name}\n**{this_team[1]} - {this_team[2]} WR: {round(this_team[1]/(this_team[1]+this_team[2]), 3)} GB: {this_team[4]}\n\n"
+                    else:
+                        teams_string += f"**{this_team[0].name}\n**{this_team[1]} - {this_team[2]} WR: - GB: {this_team[4]}\n\n"
+
+                this_embed.add_field(name=f"{division} Division:", value=teams_string, inline = False)
+        
+        this_embed.set_footer(text=f"Season {season_num} Final Standings")
+        return this_embed
+
     def season_length(self):
         return int(list(self.schedule.keys())[-1]) * self.series_length
     
     def standings_embed(self):
-        this_embed = Embed(color=Color.purple(), title=self.name)
+        this_embed = Embed(color=Color.purple(), title=f"{self.name} Season {self.season}")
         standings = {}
         for team_name, wins, losses, run_diff in league_db.get_standings(self.name):
             standings[team_name] = {"wins" : wins, "losses" : losses, "run_diff" : run_diff}
@@ -461,7 +500,7 @@ def load_league_file(league_name):
         this_league.historic = state_dic["historic"]
         this_league.season = state_dic["season"]
         try:
-            this_league.champions = state_dic["champions"]
+            this_league.champion = state_dic["champion"]
         except:
-            this_league.champions = {}
+            this_league.champion = None
         return this_league

@@ -1,7 +1,7 @@
 import discord, json, math, os, roman, games, asyncio, random, main_controller, threading, time, urllib, leagues, datetime
 import database as db
 import onomancer as ono
-from league_storage import league_exists
+from league_storage import league_exists, season_save
 from the_draft import Draft, DRAFT_ROUNDS
 from flask import Flask
 from uuid import uuid4
@@ -753,9 +753,15 @@ class DebugLeagueDisplay(Command):
     name = "displaydebugleague"
 
     async def execute(self, msg, command):
-        if league_exists("test2"):
-            league = leagues.load_league_file("test2")
-            await msg.channel.send(embed=league.standings_embed())
+        if league_exists("Midseries"):
+            league = leagues.load_league_file("Midseries")
+            league.champion = "Butts"
+            leagues.save_league(league)
+            season_save(league)
+            league.season_reset()
+
+            await msg.channel.send(embed=league.past_standings(1))
+
             
 class StartLeagueCommand(Command):
     name = "startleague"
@@ -829,12 +835,25 @@ Plays a league with a given name, provided that league has been saved on the web
 class LeagueDisplayCommand(Command):
     name = "leaguestandings"
     template = "m;leaguestandings [league name]"
-    description = "Displays the current standings for the given league."
+    description = "Displays the current standings for the given league. Use `--season X` or `-s X` to get standings from season X of that league."
 
     async def execute(self, msg, command):
-        if league_exists(command.strip()):
-            league = leagues.load_league_file(command.strip())
-            await msg.channel.send(embed=league.standings_embed())
+        if league_exists(command.split("-")[0].strip()):
+            league = leagues.load_league_file(command.split("-")[0].strip())
+
+            try:
+                if "--season " in command:
+                    season_num = int(command.split("--season ")[1])
+                    await msg.channel.send(embed=league.past_standings(season_num))
+                elif "-s " in command:
+                    season_num = int(command.split("-s ")[1])
+                    await msg.channel.send(embed=league.past_standings(season_num))
+                else:
+                    await msg.channel.send(embed=league.standings_embed())
+            except ValueError:
+                await msg.channel.send("Give us a proper number, boss.")
+            except TypeError:
+                await msg.channel.send("That season hasn't been played yet, chief.")
         else:
             await msg.channel.send("Can't find that league, boss.")
 
@@ -1981,8 +2000,10 @@ async def league_postseason(channel, league):
     await channel.send(f"The {league.name} Championship Series is starting in {math.ceil(wait_seconds/60)} minutes!")
     await asyncio.sleep(wait_seconds)
     await start_tournament_round(channel, world_series)
-    league.champions[str(league.season)] = world_series.winner.name
+    league.champion = world_series.winner.name
     leagues.save_league(league)
+    season_save(league)
+    league.season_reset()
 
 
 
