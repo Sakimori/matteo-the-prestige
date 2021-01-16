@@ -240,7 +240,7 @@ input[type=number]::-webkit-outer-spin-button {
 .cl_option_err {
 	min-height: 1.5rem;
 	margin-bottom: -0.5rem;
-	margin-top: 0.5rem;
+	margin-top: 0.25rem;
 }
 
 .cl_structure_err {
@@ -248,12 +248,22 @@ input[type=number]::-webkit-outer-spin-button {
 }
 
 .cl_structure_err_div {
-	margin-top: -0.5rem;
+	margin-top: -0.25rem;
 	margin-bottom: 0;
+}
+
+.cl_Structure_err_team {
+	margin-top: -0.5rem;
+	width: 85%;
 }
 
 .cl_structure_err_teams {
 	width: 98%;
+}
+
+.cl_subleague_add_filler, .cl_division_add_filler {
+	width: 2rem;
+	height: 2rem;
 }
 
 /* button styles */
@@ -283,12 +293,12 @@ button > .emoji {
 	background: var(--accent-green);
 }
 
-.cl_subleague_add {
+.cl_subleague_add, .cl_subleague_add_filler {
 	position: relative;
-	top: 1.6rem;
+	top: 1.5rem;
 }
 
-.cl_division_add {
+.cl_division_add, .cl_division_add_filler {
 	margin-top: 1.25rem;
 	margin-bottom: 1.25rem;
 }

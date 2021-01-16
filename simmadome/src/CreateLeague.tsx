@@ -3,6 +3,11 @@ import {removeIndex, replaceIndex, append, arrayOf, shallowClone, getUID, Distri
 import './CreateLeague.css';
 import twemoji from 'twemoji';
 
+// CONSTS
+
+const MAX_SUBLEAGUE_DIVISION_TOTAL = 22;
+const MAX_TEAMS_PER_DIVISION = 12;
+
 // STATE CLASSES
 
 class LeagueStructureState {
@@ -178,6 +183,7 @@ function CreateLeague() {
 	let [name, setName] = useState("");
 	let [showError, setShowError] = useState(false);
 	let [nameExists, setNameExists] = useState(false);
+	let [deletedTeams, setDeletedTeams] = useState<string[]>([]);
 	let [createSuccess, setCreateSuccess] = useState(false);
 	let [structure, structureDispatch] = useReducer(leagueStructureReducer, initLeagueStructure);
 	let [options, optionsDispatch] = useReducer(LeagueOptionsReducer, new LeagueOptionsState());
@@ -211,7 +217,7 @@ function CreateLeague() {
 				nameExists && showError ? "A league by that name already exists" : 
 				""
 			}</div>
-			<LeagueStructre state={structure} dispatch={structureDispatch} showError={showError}/>
+			<LeagueStructre state={structure} dispatch={structureDispatch} deletedTeams={deletedTeams} showError={showError}/>
 			<div className="cl_league_options">
 				<LeagueOptions state={options} dispatch={optionsDispatch} showError={showError}/>
 				<div className="cl_option_submit_box">
@@ -229,13 +235,20 @@ function CreateLeague() {
 										setCreateSuccess(true);
 									}
 									if (req.status === 400) {
-										setNameExists(true);
+										let err = JSON.parse(req.response);
+										switch (err.status) {
+										case 'err_league_exists':
+											setNameExists(true);
+											break;
+										case 'err_no_such_team':
+											setDeletedTeams(err.cause);
+											break;
+										}
 										setShowError(true);
 									}
 								}
 							}
 							req.send(data);
-
 						}
 					}}>Submit</button>
 					<div className="cl_option_err">{
@@ -270,45 +283,61 @@ function makeRequest(name:string, structure: LeagueStructureState, options:Leagu
 }
 
 function validRequest(name:string, structure: LeagueStructureState, options:LeagueOptionsState) {
+
+
 	return (
 		name !== "" && 
+
 		validNumber(options.games_series) && 
 		validNumber(options.intra_division_series) && 
 		validNumber(options.inter_division_series) && 
 		validNumber(options.inter_league_series) &&
 		validNumber(options.top_postseason) &&
 		validNumber(options.wildcards, 0) &&
+
 		structure.subleagues.length % 2 === 0 &&
-		structure.subleagues.every(subleague => 
+
+		structure.subleagues.every((subleague, si) => 
 			subleague.name !== "" &&
-			subleague.divisions.every(division => 
+			!structure.subleagues.slice(0, si).some(val => val.name === subleague.name) &&
+			subleague.divisions.every((division, di) => 
 				division.name !== "" &&
-				division.teams.length >= 2
+				division.teams.length >= 2 &&
+				division.teams.length <= MAX_TEAMS_PER_DIVISION &&
+				!subleague.divisions.slice(0, di).some(val => val.name === division.name)
 			)
 		)
 	)
 }
 
 function validNumber(value: string, min = 1) {
-	return !isNaN(Number(value)) && Number(value) >= min
+	return !isNaN(Number(value)) && Number(value) >= min;
 }
 
 // LEAGUE STRUCUTRE
 
-function LeagueStructre(props: {state: LeagueStructureState, dispatch: React.Dispatch<StructureReducerActions>, showError: boolean}) {
+function LeagueStructre(props: {state: LeagueStructureState, dispatch: React.Dispatch<StructureReducerActions>, deletedTeams: string[], showError: boolean}) {
+	let nSubleagues = props.state.subleagues.length;
+	let nDivisions = props.state.subleagues[0].divisions.length;
 	return (
 		<div className="cl_league_structure">
 			<div className="cl_league_structure_scrollbox">
 				<div className="cl_subleague_add_align">
 					<div className="cl_league_structure_table">
 						<SubleagueHeaders subleagues={props.state.subleagues} dispatch={props.dispatch} showError={props.showError}/>
-						<Divisions subleagues={props.state.subleagues} dispatch={props.dispatch} showError={props.showError}/>
+						<Divisions subleagues={props.state.subleagues} dispatch={props.dispatch} deletedTeams={props.deletedTeams} showError={props.showError}/>
 					</div>
-					<button className="cl_subleague_add" onClick={e => props.dispatch({type: 'add_subleague'})}>➕</button>
+					{ (nSubleagues+1) * (nDivisions+1) < MAX_SUBLEAGUE_DIVISION_TOTAL ?
+						<button className="cl_subleague_add" onClick={e => props.dispatch({type: 'add_subleague'})}>➕</button> :
+						<div className="cl_subleague_add_filler"/>
+					}
 				</div>
 			</div>
 			<div className="cl_structure_err">{props.state.subleagues.length % 2 !== 0 && props.showError ? "Must have an even number of subleagues." : ""}</div>
-			<button className="cl_division_add" onClick={e => props.dispatch({type: 'add_divisions'})}>➕</button>
+			{ nSubleagues * (nDivisions+2) < MAX_SUBLEAGUE_DIVISION_TOTAL ?
+				<button className="cl_division_add" onClick={e => props.dispatch({type: 'add_divisions'})}>➕</button>:
+				<div className="cl_division_add_filler"/>
+			}
 		</div>
 	);
 }
@@ -317,16 +346,25 @@ function SubleagueHeaders(props: {subleagues: SubleagueState[], dispatch: React.
 	return (
 		<div className="cl_headers">
 			<div key="filler" className="cl_delete_filler"/> 
-			{props.subleagues.map((subleague, i) => (
-				<div key={subleague.id} className="cl_table_header">
-					<div className="cl_subleague_bg">
-						<SubleageHeader state={subleague} canDelete={props.subleagues.length > 1} dispatch={action => 
-							props.dispatch(Object.assign({subleague_index: i}, action))
-						}/>
-						<div className="cl_structure_err">{subleague.name === "" && props.showError ? "A name is required." : ""}</div>
+			{props.subleagues.map((subleague, i) => {
+				let err = 
+					subleague.name === "" ?
+						"A name is required." :
+					props.subleagues.slice(0, i).some(val => val.name === subleague.name) ?
+						"Each subleague must have a different name." :
+					"";
+
+				return (
+					<div key={subleague.id} className="cl_table_header">
+						<div className="cl_subleague_bg">
+							<SubleageHeader state={subleague} canDelete={props.subleagues.length > 1} dispatch={action => 
+								props.dispatch(Object.assign({subleague_index: i}, action))
+							}/>
+							<div className="cl_structure_err">{props.showError ? err : ""}</div>
+						</div>
 					</div>
-				</div>
-			))}
+				)
+			})}
 		</div>
 	);
 }
@@ -342,7 +380,7 @@ function SubleageHeader(props: {state: SubleagueState, canDelete: boolean, dispa
 	);
 }
 
-function Divisions(props: {subleagues: SubleagueState[], dispatch: React.Dispatch<StructureReducerActions>, showError: boolean}) {
+function Divisions(props: {subleagues: SubleagueState[], dispatch: React.Dispatch<StructureReducerActions>, deletedTeams: string[], showError: boolean}) {
 	return (<>
 		{props.subleagues[0].divisions.map((val, di) => (
 			<div key={val.id} className="cl_table_row">
@@ -357,7 +395,9 @@ function Divisions(props: {subleagues: SubleagueState[], dispatch: React.Dispatc
 						<div className="cl_subleague_bg">
 							<Division state={subleague.divisions[di]} dispatch={action =>
 								props.dispatch(Object.assign({subleague_index: si, division_index: di}, action))
-							} showError={props.showError}/>
+							} 
+							isDuplicate={subleague.divisions.slice(0, di).some(val => val.name === subleague.divisions[di].name)}
+							deletedTeams={props.deletedTeams} showError={props.showError} />
 						</div>
 					</div>
 				))}
@@ -366,7 +406,14 @@ function Divisions(props: {subleagues: SubleagueState[], dispatch: React.Dispatc
 	</>);
 }
 
-function Division(props: {state: DivisionState, dispatch:(action: DistributiveOmit<StructureReducerActions, 'subleague_index'|'division_index'>) => void, showError:boolean}) {
+function Division(props: {
+		state: DivisionState, 
+		dispatch: (action: DistributiveOmit<StructureReducerActions, 'subleague_index'|'division_index'>) => void, 
+		isDuplicate: boolean,
+		deletedTeams: string[],
+		showError: boolean
+	}) {
+
 	let [newName, setNewName] = useState("");
 	let [searchResults, setSearchResults] = useState<string[]>([]);
 	let newNameInput = useRef<HTMLInputElement>(null);
@@ -378,45 +425,59 @@ function Division(props: {state: DivisionState, dispatch:(action: DistributiveOm
 		}
 	})
 
+	let divisionErr = 
+		props.state.name === "" ? 
+			"A name is required." :
+		props.isDuplicate ?
+			"Each division in a subleague must have a different name." :
+		""
+
+	let teamsErr = props.state.teams.length < 2 ? "Must have at least 2 teams." : "";
+
 	return (
 		<div className="cl_division">
 			<div className="cl_division_name_box">
 				<input type="text" className="cl_division_name" placeholder="Division Name" key="input" value={props.state.name} onChange={e => 
 					props.dispatch({type: 'rename_division', name: e.target.value})
 				}/>
-				<div className="cl_structure_err cl_structure_err_div">{props.state.name === "" && props.showError ? "A name is required." : ""}</div>
+				<div className="cl_structure_err cl_structure_err_div">{props.showError ? divisionErr : ""}</div>
 			</div>
-			{props.state.teams.map((team, i) => (
+			{props.state.teams.map((team, i) => (<>
 				<div className="cl_team" key={team.id}>
 					<div className="cl_team_name">{team.name}</div>
 					<button className="cl_team_delete" onClick={e => props.dispatch({type:'remove_team', name: team.name})}>➖</button>
 				</div>
-			))}
-			<div className="cl_team_add">
-				<input type="text" className="cl_newteam_name" placeholder="Add team..." value={newName} ref={newNameInput}
-					onChange={e => {
-						let params = new URLSearchParams({query: e.target.value, page_len: '5', page_num: '0'});
-						fetch("/api/teams/search?" + params.toString())
-							.then(response => response.json())
-							.then(data => setSearchResults(data));
-						setNewName(e.target.value);
-					}}/>
-			</div>
-			{searchResults.length > 0 && newName.length > 0 ? 
-				(<div className="cl_search_list" ref={resultList}>
-					{searchResults.map(result => 
-						<div className="cl_search_result" key={result} onClick={e => {
-							props.dispatch({type:'add_team', name: result});
-							setNewName("");
-							if (newNameInput.current) {
-								newNameInput.current.focus();
-							}
-						}}>{result}</div>
-					)}
-				</div>): 
-				<div/>
+				<div className="cl_structure_err cl_structure_err_team">{props.showError && props.deletedTeams.includes(team.name) ? "This team was deleted" : ""}</div>
+			</>))}
+			{ props.state.teams.length < MAX_TEAMS_PER_DIVISION ? <>
+				<div className="cl_team_add">
+					<input type="text" className="cl_newteam_name" placeholder="Add team..." value={newName} ref={newNameInput}
+						onChange={e => {
+							let params = new URLSearchParams({query: e.target.value, page_len: '5', page_num: '0'});
+							fetch("/api/teams/search?" + params.toString())
+								.then(response => response.json())
+								.then(data => setSearchResults(data));
+							setNewName(e.target.value);
+						}}/>
+				</div>
+				{searchResults.length > 0 && newName.length > 0 ? 
+					(<div className="cl_search_list" ref={resultList}>
+						{searchResults.map(result => 
+							<div className="cl_search_result" key={result} onClick={e => {
+								props.dispatch({type:'add_team', name: result});
+								setNewName("");
+								if (newNameInput.current) {
+									newNameInput.current.focus();
+								}
+							}}>{result}</div>
+						)}
+					</div>): 
+					null
+				}</> :
+				null
 			}
-			<div className="cl_structure_err cl_structure_err_teams">{props.state.teams.length < 2 && props.showError ? "Must have at least 2 teams." : ""}</div>
+			
+			<div className="cl_structure_err cl_structure_err_teams">{props.showError ? teamsErr : ""}</div>
 		</div>
 	);
 }
@@ -446,7 +507,7 @@ function LeagueOptions(props: {state: LeagueOptionsState, dispatch: React.Dispat
 	);
 }
 
-function NumberInput(props: {title: string, value: string, setValue: (newVal: string) => void, showError: boolean, minValue?:number}) {
+function NumberInput(props: {title: string, value: string, setValue: (newVal: string) => void, showError: boolean, minValue? : number}) {
 	let minValue = 1;
 	if (props.minValue !== undefined) { 
 		minValue = props.minValue
@@ -455,7 +516,7 @@ function NumberInput(props: {title: string, value: string, setValue: (newVal: st
 		<div className="cl_option_box">
 			<div className="cl_option_label">{props.title}</div>
 			<input className="cl_option_input" type="number" min={minValue} value={props.value} onChange={e => props.setValue(e.target.value)}/>
-			<div className="cl_option_err">{(!isNaN(Number(props.value)) || Number(props.value) < minValue) && props.showError ? "Must be a number greater than "+minValue : ""}</div>
+			<div className="cl_option_err">{(isNaN(Number(props.value)) || Number(props.value) < minValue) && props.showError ? "Must be a number greater than " + minValue : ""}</div>
 		</div>
 	);
 }
