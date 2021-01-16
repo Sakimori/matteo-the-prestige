@@ -97,6 +97,8 @@ def create_league():
         inter_division_games=config['inter_division_series'],
         inter_league_games=config['inter_league_series'],
     )
+    new_league.constraints["division_leaders"] = config["top_postseason"]
+    new_league.constraints["wild_cards"] = config["wildcards"]
     new_league.generate_schedule()
     leagues.save_league(new_league)
 
@@ -199,6 +201,8 @@ def update_loop():
                         if this_game.last_update[0]["defender"] != "":
                             punc = ". "
 
+                        
+
                         if "fc_out" in this_game.last_update[0].keys():
                             name, base_string = this_game.last_update[0]['fc_out']
                             updatestring = f"{this_game.last_update[0]['batter']} {this_game.last_update[0]['text'].value.format(name, base_string)} {this_game.last_update[0]['defender']}{punc}"
@@ -209,6 +213,13 @@ def update_loop():
 
                         state["update_emoji"] = "🏏"
                         state["update_text"] = updatestring
+                        
+                        if "veil" in this_game.last_update[0].keys():
+                            state["update_emoji"] = "🌌"                            
+                            state["update_text"] += f" {this_game.last_update[0]['batter']}'s will manifests on {games.base_string(this_game.last_update[1])} base."
+                        elif "error" in this_game.last_update[0].keys():
+                            state["update_emoji"] = "👻"
+                            state["update_text"] = f"{this_game.last_update[0]['batter']}'s hit goes ethereal, and {this_game.last_update[0]['defender']} can't catch it! {this_game.last_update[0]['batter']} reaches base safely."
 
             state["bases"] = this_game.named_bases()
 
@@ -230,4 +241,4 @@ def update_loop():
             state["update_pause"] -= 1
 
         socketio.emit("states_update", game_states)
-        time.sleep(1)
+        time.sleep(8)

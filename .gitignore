@@ -344,6 +344,7 @@ config.json
 games_config.json
 weather_config.json
 ids
+data/
 
 # database
 matteo.db
@@ -351,5 +352,8 @@ matteo.db-wal
 matteo.db-shm
 /data/leagues/*
 /matteo_env/Lib/site-packages/flask_socketio/__init__.py
+Pipfile
 
 env
+/data/leagues
+/simmadome/build
