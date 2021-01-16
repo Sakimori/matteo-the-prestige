@@ -31,12 +31,13 @@ def config():
 def all_weathers():
     weathers_dic = {
         #"Supernova" : weather("Supernova", "🌟"),
-        "Midnight": weather("Midnight", "🕶"),
+        #"Midnight": weather("Midnight", "🕶"),
         "Slight Tailwind": weather("Slight Tailwind", "🏌️‍♀️"),
-        "Heavy Snow": weather("Heavy Snow", "❄")
+        "Heavy Snow": weather("Heavy Snow", "❄"),
+        "Twilight" : weather("Twilight", "👻"),
+        "Thinned Veil" : weather("Thinned Veil", "🌌")
         }
     return weathers_dic
-
 
 class appearance_outcomes(Enum):
     strikeoutlooking = "strikes out looking."
@@ -173,7 +174,7 @@ class team(object):
         if rotation_slot is None:
             self.pitcher = random.choice(temp_rotation)
         else:
-            self.pitcher = temp_rotation[rotation_slot % len(temp_rotation)]
+            self.pitcher = temp_rotation[(rotation_slot-1) % len(temp_rotation)]
 
     def is_ready(self):
         try:
@@ -199,7 +200,8 @@ class team(object):
 
     def finalize(self):
         if self.is_ready():
-            self.set_pitcher()
+            if self.pitcher == None:
+                self.set_pitcher()
             while len(self.lineup) <= 4:
                 self.lineup.append(random.choice(self.lineup))       
             return self
@@ -268,6 +270,13 @@ class game(object):
         pb_system_stat = (random.gauss(1*math.erf((bat_stat - pitch_stat)*1.5)-1.8,2.2))
         hitnum = random.gauss(2*math.erf(bat_stat/4)-1,3)
 
+        if self.weather.name == "Twilight":
+            error_line = - (math.log(defender.stlats["defense_stars"] + 1)/50) + 1
+            error_roll = random.random()
+            if error_roll > error_line:
+                outcome["error"] = True
+                outcome["defender"] = defender
+                pb_system_stat = 0.1
 
         
         if pb_system_stat <= 0:
@@ -312,7 +321,7 @@ class game(object):
             outcome["ishit"] = True
             if hitnum < 1:
                 outcome["text"] = appearance_outcomes.single
-            elif hitnum < 2.85:
+            elif hitnum < 2.85 or "error" in outcome.keys():
                 outcome["text"] = appearance_outcomes.double
             elif hitnum < 3.1:
                 outcome["text"] = appearance_outcomes.triple
@@ -363,6 +372,7 @@ class game(object):
                 run_roll = run_roll * .9 #stealing third is harder
             if run_roll < 1:
                 outcome["steals"].append(f"{baserunner} was caught stealing {base_string(start_base+1)} base by {defender}!")
+                self.get_pitcher().game_stats["outs_pitched"] += 1
                 self.outs += 1
             else:
                 outcome["steals"].append(f"{baserunner} steals {base_string(start_base+1)} base!")
@@ -382,6 +392,11 @@ class game(object):
                 if base is not None:
                     runs += 1
             self.bases = {1 : None, 2 : None, 3 : None}
+            if "veil" in outcome.keys():
+                if runs < 4:
+                    self.bases[runs] = self.get_batter()
+                else:
+                    runs += 1
             return runs
 
         elif "advance" in outcome.keys():
@@ -533,6 +548,10 @@ class game(object):
             elif result["text"] == appearance_outcomes.homerun or result["text"] == appearance_outcomes.grandslam:
                 self.get_batter().game_stats["total_bases"] += 4
                 self.get_batter().game_stats["home_runs"] += 1
+                if self.weather.name == "Thinned Veil":
+                    result["veil"] = True
+
+
 
             scores_to_add += self.baserunner_check(defender, result)
 
@@ -674,6 +693,10 @@ class game(object):
                 return "Game not started."
 
     def add_stats(self):
+        players = self.get_stats()
+        db.add_stats(players)
+
+    def get_stats(self):
         players = []
         for this_player in self.teams["away"].lineup:
             players.append((this_player.name, this_player.game_stats))
@@ -681,7 +704,20 @@ class game(object):
             players.append((this_player.name, this_player.game_stats))
         players.append((self.teams["home"].pitcher.name, self.teams["home"].pitcher.game_stats))
         players.append((self.teams["away"].pitcher.name, self.teams["away"].pitcher.game_stats))
-        db.add_stats(players)
+        return players
+
+    def get_team_specific_stats(self):
+        players = {
+            self.teams["away"].name : [],
+            self.teams["home"].name : []
+            }
+        for this_player in self.teams["away"].lineup:
+            players[self.teams["away"].name].append((this_player.name, this_player.game_stats))
+        for this_player in self.teams["home"].lineup:
+            players[self.teams["home"].name].append((this_player.name, this_player.game_stats))
+        players[self.teams["home"].name].append((self.teams["home"].pitcher.name, self.teams["home"].pitcher.game_stats))
+        players[self.teams["away"].name].append((self.teams["away"].pitcher.name, self.teams["away"].pitcher.game_stats))
+        return players
         
 
 
