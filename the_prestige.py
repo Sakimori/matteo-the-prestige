@@ -601,8 +601,8 @@ class DraftPlayerCommand(Command):
 
 class StartDraftCommand(Command):
     name = "startdraft"
-    template = "m;startdraft [mention] [teamname] [slogan]"
-    description = """Starts a draft with an arbitrary number of participants. Send this command at the top of the list with each mention, teamname, and slogan on a new line (shift+enter in discord).
+    template = "m;startdraft\n[mention]\n[teamname]\n[slogan]"
+    description = """Starts a draft with an arbitrary number of participants. Send this command at the top of the list with each mention, teamname, and slogan on their own lines (shift+enter in discord).
  - The draft will proceed in the order that participants were entered.
  - 20 players will be available for draft at a time, and the pool will refresh automatically when it becomes small.
  - Each participant will be asked to draft 12 hitters then finally one pitcher.
@@ -817,7 +817,7 @@ Plays a league with a given name, provided that league has been saved on the web
                 if active_league.name == league.name:
                     await msg.channel.send("That league is already running, boss. Patience is a virtue, you know.")
                     return
-            if (league.owner is not None and msg.author.id in league.owner) or msg.author.id in config()["owners"]:
+            if (league.owner is not None and msg.author.id in league.owner) or msg.author.id in config()["owners"] or league.owner is None:
                 league.autoplay = autoplay
                 league.games_per_hour = gph
                 if str(league.day_to_series_num(league.day)) not in league.schedule.keys():
