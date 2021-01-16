@@ -98,8 +98,9 @@ accepting pull requests, check the issues for to-dos.
   - m;pauseleague [leaguename]
     - pauses the specified league after the current series finishes until the league is started again with m;startleague.
 - general commands (all of these can be used by anyone):
-  - m;leaguestandings [leaguename]
+  - m;leaguestandings [leaguename] --season #/-s #
     - displays the current standings for the specified league.
+	- by default this will display the standings for the current season but if the --season #/-s # flag is set it will instead display the standings for the #th season instead for viewing historical standings.
   - m;leaguewildcard [leaguename]
     - displays the wild card standings for the specified league. if the league doesn't have wild cards, it will instead tell you that.
   - m;leagueschedule [leaguename]
