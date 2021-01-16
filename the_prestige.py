@@ -1740,6 +1740,8 @@ async def start_league_day(channel, league, partial = False):
 
     if partial:
         missed_games = (league.day % league.series_length) - 1
+        if missed_games == -1:
+            missed_games = league.series_length - 1
         await league_day_watcher(channel, league, current_games, config()['simmadome_url']+ext, last, missed = missed_games)
     else:
         await league_day_watcher(channel, league, current_games, config()['simmadome_url']+ext, last)
