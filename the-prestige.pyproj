@@ -32,6 +32,9 @@
     <Compile Include="leagues.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="league_storage.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="main_controller.py">
       <SubType>Code</SubType>
     </Compile>
