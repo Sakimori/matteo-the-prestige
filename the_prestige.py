@@ -1,8 +1,13 @@
-import discord, json, math, os, roman, games, asyncio, random, main_controller, threading, time
+import discord, json, math, os, roman, games, asyncio, random, main_controller, threading, time, urllib, leagues, datetime
 import database as db
 import onomancer as ono
+from league_storage import league_exists, season_save
+from the_draft import Draft, DRAFT_ROUNDS
 from flask import Flask
+from uuid import uuid4
 
+data_dir = "data"
+config_filename = os.path.join(data_dir, "config.json")
 
 class Command:
     def isauthorized(self, user):
@@ -10,6 +15,12 @@ class Command:
 
     async def execute(self, msg, command):
         return
+
+class DraftError(Exception):
+    pass
+
+class SlowDraftError(DraftError):
+    pass
 
 class CommandError(Exception):
     pass
@@ -67,7 +78,7 @@ class IdolizeCommand(Command):
         else:
             meme = False
 
-        player_name = discord.utils.escape_mentions(command)
+        player_name = discord.utils.escape_mentions(command.strip())
         if len(player_name) >= 70:
             await msg.channel.send("That name is too long. Please keep it below 70 characters, for my sake and yours.")
             return
@@ -99,7 +110,7 @@ class ShowIdolCommand(Command):
 class ShowPlayerCommand(Command):
     name = "showplayer"
     template = "m;showplayer [name]"
-    description = "Displays any name's stars in a nice discord embed, there's a limit of 70 characters. That should be *plenty*. Note: if you want to lookup a lot of different players you can do it on onomancer instead of spamming this command a bunch and clogging up discord: https://onomancer.sibr.dev/reflect"
+    description = "Displays any name's stars in a nice discord embed, there's a limit of 70 characters. That should be *plenty*. Note: if you want to lookup a lot of different players you can do it on onomancer here instead of spamming this command a bunch and clogging up discord: <https://onomancer.sibr.dev/reflect>"
 
     async def execute(self, msg, command):
         player_name = json.loads(ono.get_stats(command.split(" ",1)[1]))
@@ -111,48 +122,45 @@ class StartGameCommand(Command):
     description ="""Starts a game with premade teams made using saveteam, use this command at the top of a list followed by each of these in a new line (shift+enter in discord, or copy+paste from notepad):
   - the away team's name.
   - the home team's name.
-  - and finally, optionally, the number of innings, which must be greater than 2 and less than 31. if not included it will default to 9."""
+  - and finally, optionally, the number of innings, which must be greater than 2 and less than 201. if not included it will default to 9. 
+  - this command has fuzzy search so you don't need to type the full name of the team as long as you give enough to identify the team you're looking for."""
 
     async def execute(self, msg, command):
         league = None
+        day = None
         if config()["game_freeze"]:
             await msg.channel.send("Patch incoming. We're not allowing new games right now.")
             return
 
         if "-l " in command.split("\n")[0]:          
-            league = command.split("\n")[0].split("-l ")[1]
+            league = command.split("\n")[0].split("-l ")[1].split("-")[0].strip()
         elif "--league " in command.split("\n")[0]:
-            league = command.split("\n")[0].split("--league ")[1]
+            league = command.split("\n")[0].split("--league ")[1].split("-")[0].strip()
+        try:
+            if "-d " in command.split("\n")[0]:
+                day = int(command.split("\n")[0].split("-d ")[1].split("-")[0].strip())
+            elif "--day " in command.split("\n")[0]:
+                day = int(command.split("\n")[0].split("--day ")[1].split("-")[0].strip())
+        except ValueError:
+            await msg.channel.send("Make sure you put an integer after the -d flag.")
+            return
 
         innings = None
         try:
             team_name1 = command.split("\n")[1].strip()
-            team1 = games.get_team(team_name1)
-            if team1 is None:
-                teams = games.search_team(team_name1.lower())
-                if len(teams) == 1:
-                    team1 = teams[0]
+            team1 = get_team_fuzzy_search(team_name1)
+
             team_name2 = command.split("\n")[2].strip()
-            team2 = games.get_team(team_name2)
-            if team2 is None:
-                teams = games.search_team(team_name2.lower())
-                if len(teams) == 1:
-                    team2 = teams[0]
+            team2 = get_team_fuzzy_search(team_name2)
+
             innings = int(command.split("\n")[3])
         except IndexError:
             try:
                 team_name1 = command.split("\n")[1].strip()
-                team1 = games.get_team(team_name1)
-                if team1 is None:
-                    teams = games.search_team(team_name1.lower())
-                    if len(teams) == 1:
-                        team1 = teams[0]
+                team1 = get_team_fuzzy_search(team_name1)
+
                 team_name2 = command.split("\n")[2].strip()
-                team2 = games.get_team(team_name2)
-                if team2 is None:
-                    teams = games.search_team(team_name2.lower())
-                    if len(teams) == 1:
-                        team2 = teams[0]
+                team2 = get_team_fuzzy_search(team_name2)
             except IndexError:
                 await msg.channel.send("We need at least three lines: startgame, away team, and home team are required. Optionally, the number of innings can go at the end, if you want a change of pace.")
                 return
@@ -164,12 +172,15 @@ class StartGameCommand(Command):
             await msg.channel.send("Anything less than 2 innings isn't even an outing. Try again.")
             return 
                                                     
-        elif innings is not None and innings > 30 and msg.author.id not in config()["owners"]:
-            await msg.channel.send("Y'all can't behave, so we've limited games to 30 innings. Ask xvi to start it with more if you really want to.")
+        elif innings is not None and innings > 200 and msg.author.id not in config()["owners"]:
+            await msg.channel.send("Y'all can behave, so we've upped the limit on game length to 200 innings.")
             return
 
         if team1 is not None and team2 is not None:
-            game = games.game(msg.author.name, team1, team2, length=innings)
+            game = games.game(team1.finalize(), team2.finalize(), length=innings)
+            if day is not None:
+                game.teams['away'].set_pitcher(rotation_slot = day)
+                game.teams['home'].set_pitcher(rotation_slot = day)
             channel = msg.channel
             await msg.delete()
             
@@ -178,6 +189,26 @@ class StartGameCommand(Command):
         else:
             await msg.channel.send("We can't find one or both of those teams. Check your staging, chief.")
             return
+
+class StartRandomGameCommand(Command):
+    name = "randomgame"
+    template = "m;randomgame"
+    description = "Starts a 9-inning game between 2 entirely random teams. Embrace chaos!"
+
+    async def execute(self, msg, command):
+        if config()["game_freeze"]:
+            await msg.channel.send("Patch incoming. We're not allowing new games right now.")
+            return
+
+        channel = msg.channel
+        await msg.delete()
+        await channel.send("Rolling the bones... This might take a while.")
+        teamslist = games.get_all_teams()
+
+        game = games.game(random.choice(teamslist).finalize(), random.choice(teamslist).finalize())
+
+        game_task = asyncio.create_task(watch_game(channel, game, user="the winds of chaos"))
+        await game_task
 
 class SetupGameCommand(Command):
     name = "setupgame"
@@ -202,16 +233,23 @@ class SetupGameCommand(Command):
             inningmax = 3
         game_task = asyncio.create_task(setup_game(msg.channel, msg.author, games.game(msg.author.name, games.team(), games.team(), length=inningmax)))
         await game_task
-
+        
 class SaveTeamCommand(Command):
     name = "saveteam"
-    template = "m;saveteam [name] [slogan] [players]"
+    template = """m;saveteam
+   [name] 
+   [slogan] 
+   [lineup]
+   [rotation]"""
+
     description = """Saves a team to the database allowing it to be used for games. Send this command at the top of a list, with entries separated by new lines (shift+enter in discord, or copy+paste from notepad).
-  - the first line of the list is your team's name (cannot contain emoji).
-  - the second line is your team's icon and slogan, this should begin with an emoji followed by a space, followed by a short slogan.
+  - the first line of the list is your team's name.
+  - the second line is the team's icon and slogan, generally this is an emoji followed by a space, followed by a short slogan.
+  - the third line must be blank.
   - the next lines are your batters' names in the order you want them to appear in your lineup, lineups can contain any number of batters between 1 and 12.
-  - the final line is your pitcher's name.
-if you did it correctly, you'll get a team embed with a prompt to confirm. hit the 👍 and it'll be saved."""
+  - there must be another blank line between your batters and your pitchers.
+  - the final lines are the names of the pitchers in your rotation, rotations can contain any number of pitchers between 1 and 8.
+If you did it correctly, you'll get a team embed with a prompt to confirm. hit the 👍 and your team will be saved!"""
 
     async def execute(self, msg, command):
         if db.get_team(command.split('\n',1)[1].split("\n")[0]) == None:
@@ -226,7 +264,7 @@ if you did it correctly, you'll get a team embed with a prompt to confirm. hit t
 class ImportCommand(Command):
     name = "import"
     template = "m;import [onomancer collection URL]"
-    description = "Imports an onomancer collection as a new team. You can use the new onomancer simsim setting to ensure compatibility."
+    description = "Imports an onomancer collection as a new team. You can use the new onomancer simsim setting to ensure compatibility. Similarly to saveteam, you'll get a team embed with a prompt to confirm, hit the 👍 and your team will be saved!"
 
     async def execute(self, msg, command):
         team_raw = ono.get_collection(command.strip())
@@ -243,19 +281,15 @@ class ImportCommand(Command):
 class ShowTeamCommand(Command):
     name = "showteam"
     template = "m;showteam [name]"
-    description = "Shows information about any saved team."
+    description = "Shows the lineup, rotation, and slogan of any saved team in a discord embed with primary stat star ratings for all of the players. This command has fuzzy search so you don't need to type the full name of the team as long as you give enough to identify the team you're looking for."
     
     async def execute(self, msg, command):
         team_name = command.strip()
-        team = games.get_team(team_name)
+        team = get_team_fuzzy_search(team_name)
         if team is not None:
             await msg.channel.send(embed=build_team_embed(team))
-        else:
-            teams = games.search_team(team_name.lower())
-            if len(teams) == 1:
-                await msg.channel.send(embed=build_team_embed(teams[0]))
-            else:
-                await msg.channel.send("Can't find that team, boss. Typo?")
+            return
+        await msg.channel.send("Can't find that team, boss. Typo?")
 
 class ShowAllTeamsCommand(Command):
     name = "showallteams"
@@ -287,6 +321,129 @@ class CreditCommand(Command):
     async def execute(self, msg, command):
         await msg.channel.send("Our avatar was graciously provided to us, with permission, by @HetreaSky on Twitter.")
 
+class SwapPlayerCommand(Command):
+    name = "swapsection"
+    template = """m;swapsection
+    [team name]
+    [player name]"""
+    description = "Swaps a player from your lineup to the end of your rotation or your rotation to the end of your lineup. Requires team ownership and exact spelling of team name."
+
+    async def execute(self, msg, command):
+        try:
+            team_name = command.split("\n")[1].strip()
+            player_name = command.split("\n")[2].strip()
+            team, owner_id = games.get_team_and_owner(team_name)
+            if team is None:
+                await msg.channel.send("Can't find that team, boss. Typo?")
+                return
+            elif owner_id != msg.author.id and msg.author.id not in config()["owners"]:
+                await msg.channel.send("You're not authorized to mess with this team. Sorry, boss.")
+                return
+            elif not team.swap_player(player_name):
+                await msg.channel.send("Either we can't find that player, you've got no space on the other side, or they're your last member of that side of the roster. Can't field an empty lineup, and we *do* have rules, chief.")
+                return
+            else:
+                await msg.channel.send(embed=build_team_embed(team))
+                games.update_team(team)
+                await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
+        except IndexError:
+            await msg.channel.send("Three lines, remember? Command, then team, then name.")
+
+class MovePlayerCommand(Command):
+    name = "moveplayer"
+    template = """m;moveplayer 
+    [team name]
+    [player name]
+    [new lineup/rotation position number] (indexed with 1 being the top)"""
+    description = "Moves a player within your lineup or rotation. If you want to instead move a player from your rotation to your lineup or vice versa, use m;swapsection instead. Requires team ownership and exact spelling of team name."
+
+    async def execute(self, msg, command):
+        try:
+            team_name = command.split("\n")[1].strip()
+            player_name = command.split("\n")[2].strip()
+            team, owner_id = games.get_team_and_owner(team_name)
+            try:
+                new_pos = int(command.split("\n")[3].strip())
+            except ValueError:
+                await msg.channel.send("Hey, quit being cheeky. We're just trying to help. Third line has to be a natural number, boss.")
+                return
+            if owner_id != msg.author.id and msg.author.id not in config()["owners"]:
+                await msg.channel.send("You're not authorized to mess with this team. Sorry, boss.")
+                return
+            elif not team.slide_player(player_name, new_pos):
+                await msg.channel.send("You either gave us a number that was bigger than your current roster, or we couldn't find the player on the team. Try again.")
+                return
+            else:
+                await msg.channel.send(embed=build_team_embed(team))
+                games.update_team(team)
+                await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
+        except IndexError:
+            await msg.channel.send("Four lines, remember? Command, then team, then name, and finally, new spot on the lineup or rotation.")
+
+class AddPlayerCommand(Command):
+    name = "addplayer"
+    template = """m;addplayer pitcher (or m;addplayer batter)
+    [team name]
+    [player name]"""
+    description = "Adds a new player to the end of your team, either in the lineup or the rotation depending on which version you use. Requires team ownership and exact spelling of team name."
+
+    async def execute(self, msg, command):
+        try:
+            team_name = command.split("\n")[1].strip()
+            player_name = command.split("\n")[2].strip()
+            team, owner_id = games.get_team_and_owner(team_name)
+            if owner_id != msg.author.id and msg.author.id not in config()["owners"]:
+                await msg.channel.send("You're not authorized to mess with this team. Sorry, boss.")
+                return
+
+            new_player = games.player(ono.get_stats(player_name))
+
+            if "batter" in command.split("\n")[0].lower():
+                if not team.add_lineup(new_player)[0]:
+                    await msg.channel.send("Too many batters 🎶")
+                    return
+            elif "pitcher" in command.split("\n")[0].lower():
+                if not team.add_pitcher(new_player):
+                    await msg.channel.send("8 pitchers is quite enough, we think.")
+                    return
+            else:
+                await msg.channel.send("You have to tell us if you want a pitcher or a batter, boss. Just say so in the first line, with the command.")
+                return
+
+            await msg.channel.send(embed=build_team_embed(team))
+            games.update_team(team)
+            await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
+        except IndexError:
+            await msg.channel.send("Three lines, remember? Command, then team, then name.")
+
+class RemovePlayerCommand(Command):
+    name = "removeplayer"
+    template = """m;removeplayer
+    [team name]
+    [player name]"""
+    description = "Removes a player from your team. If there are multiple copies of the same player on a team this will only delete the first one. Requires team ownership and exact spelling of team name."
+
+    async def execute(self, msg, command):
+        try:
+            team_name = command.split("\n")[1].strip()
+            player_name = command.split("\n")[2].strip()
+            team, owner_id = games.get_team_and_owner(team_name)
+            if owner_id != msg.author.id and msg.author.id not in config()["owners"]:
+                await msg.channel.send("You're not authorized to mess with this team. Sorry, boss.")
+                return
+
+            if not team.delete_player(player_name):
+                await msg.channel.send("We've got bad news: that player isn't on your team. The good news is that... that player isn't on your team?")
+                return
+
+            else:
+                await msg.channel.send(embed=build_team_embed(team))
+                games.update_team(team)
+                await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
+        except IndexError:
+            await msg.channel.send("Three lines, remember? Command, then team, then name.")
+
+
 class HelpCommand(Command):
     name = "help"
     template = "m;help [command]"
@@ -310,7 +467,7 @@ class HelpCommand(Command):
 class DeleteTeamCommand(Command):
     name = "deleteteam"
     template = "m;deleteteam [name]"
-    description = "Allows you to delete the team with the provided name if you are the owner of it, Gives a confirmation first to prevent accidental deletions. If it isn't letting you delete your team, you probably created it before teams having owners was a thing, contact xvi and xie can assign you as the owner."
+    description = "Allows you to delete the team with the provided name. You'll get an embed with a confirmation to prevent accidental deletions. Hit the 👍 and your team will be deleted.. Requires team ownership. If you are the owner and the bot is telling you it's not yours, contact xvi and xie can assist."
 
     async def execute(self, msg, command):
         team_name = command.strip()
@@ -331,17 +488,473 @@ class AssignOwnerCommand(Command):
         return user.id in config()["owners"]
 
     async def execute(self, msg, command):
-        #try:
         new_owner = msg.mentions[0]
         team_name = command.strip().split(new_owner.mention+" ")[1]
-        print(team_name)
         if db.assign_owner(team_name, new_owner.id):
             await msg.channel.send(f"{team_name} is now owned by {new_owner.display_name}. Don't break it.")
         else:
             await msg.channel.send("We couldn't find that team. Typo?")
-        #except:
-            #await msg.channel.send("We hit a snag. Tell xvi.")
 
+class StartTournamentCommand(Command):
+    name = "starttournament"
+    template = """m;starttournament
+    [tournament name]
+    [list of teams, each on a new line]"""
+    description = "Starts a randomly seeded tournament with the provided teams, automatically adding byes as necessary. All series have a 5 minute break between games and by default there is a 10 minute break between rounds. The current tournament format is:\nBest of 5 until the finals, which are Best of 7."
+
+    async def execute(self, msg, command):
+        if config()["game_freeze"]:
+            await msg.channel.send("Patch incoming. We're not allowing new games right now.")
+            return
+
+        to_parse = command.split("\n")[0]
+
+        if "--rounddelay " in to_parse:
+            try:
+                round_delay = int(to_parse.split("--rounddelay ")[1].split("-")[0].strip())
+            except ValueError:
+                await msg.channel.send("The delay between rounds should be a whole number.")
+                return
+            if round_delay < 1 or round_delay > 120:
+                await msg.channel.send("The delay between rounds has to  bebetween 1 and 120 minutes.")
+                return
+        else:
+            round_delay = 10
+       
+        if "--bestof " in command.split("\n")[0]:
+            try:
+                series_length = int(to_parse.split("--bestof ")[1].split("-")[0].strip())
+                if series_length % 2 == 0 or series_length < 0:
+                    raise ValueError
+            except ValueError:
+                await msg.channel.send("Series length has to be an odd positive integer.")
+                return
+            if msg.author.id not in config()["owners"] and series_length > 21:
+                await msg.channel.send("That's too long, boss. We have to run patches *some* time.")
+                return
+        else:
+            series_length = 5
+
+        if "--finalsbestof " in command.split("\n")[0]:
+            try:
+                finals_series_length = int(to_parse.split("--finalsbestof ")[1].split("-")[0].strip())
+                if finals_series_length % 2 == 0 or finals_series_length < 0:
+                    raise ValueError
+            except ValueError:
+                await msg.channel.send("Finals series length has to be an odd positive integer.")
+                return
+            if msg.author.id not in config()["owners"] and finals_series_length > 21:
+                await msg.channel.send("That's too long, boss. We have to run patches *some* time.")
+                return
+        else:
+            finals_series_length = 7
+
+        rand_seed = not "--seeding stars" in command.split("\n")[0]
+
+        
+        
+
+        tourney_name = command.split("\n")[1]
+        list_of_team_names = command.split("\n")[2:]
+        team_dic = {}
+        for name in list_of_team_names:
+            team = get_team_fuzzy_search(name.strip())
+            if team == None:
+                await msg.channel.send(f"We couldn't find {name}. Try again?")
+                return
+            add = True
+            for extant_team in team_dic.keys():
+                if extant_team.name == team.name:
+                    add = False
+            if add:
+                team_dic[team] = {"wins": 0}
+
+        channel = msg.channel
+        await msg.delete()
+
+        if len(team_dic) < 2:
+            await msg.channel.send("One team does not a tournament make.")
+            return
+
+        id = random.randint(1111,9999)
+
+        tourney = leagues.tournament(tourney_name, team_dic, series_length = series_length, finals_series_length = finals_series_length,  id=id, secs_between_rounds = round_delay * 60)
+        tourney.build_bracket(random_sort = rand_seed)
+
+        
+        await start_tournament_round(channel, tourney)
+
+
+class DraftPlayerCommand(Command):
+    name = "draft"
+    template = "m;draft [playername]"
+    description = "On your turn during a draft, use this command to pick your player."
+
+    async def execute(self, msg, command):
+        """
+        This is a no-op definition. `StartDraftCommand` handles the orchestration directly,
+        this is just here to provide a help entry and so the command dispatcher recognizes it
+        as valid.
+        """
+        pass
+
+
+class StartDraftCommand(Command):
+    name = "startdraft"
+    template = "m;startdraft\n[mention]\n[teamname]\n[slogan]"
+    description = """Starts a draft with an arbitrary number of participants. Send this command at the top of the list with each mention, teamname, and slogan on their own lines (shift+enter in discord).
+ - The draft will proceed in the order that participants were entered.
+ - 20 players will be available for draft at a time, and the pool will refresh automatically when it becomes small.
+ - Each participant will be asked to draft 12 hitters then finally one pitcher.
+ - The draft will start only once every participant has given a 👍 to begin.
+ - use the command `d`, `draft`, or `m;draft` on your turn to draft someone
+    """
+
+    async def execute(self, msg, command):
+        draft = Draft.make_draft()
+        mentions = {f'<@!{m.id}>' for m in msg.mentions}
+        content = msg.content.split('\n')[1:]  # drop command out of message
+        if not content or len(content) % 3:
+            await msg.channel.send('Invalid list')
+            raise ValueError('Invalid length')
+
+        for i in range(0, len(content), 3):
+            handle_token = content[i].strip()
+            for mention in mentions:
+                if mention in handle_token:
+                    handle = mention
+                    break
+            else:
+                await msg.channel.send(f"I don't recognize {handle_token}")
+                return
+            team_name = content[i + 1].strip()
+            if games.get_team(team_name):
+                await msg.channel.send(f'Sorry {handle}, {team_name} already exists')
+                return
+            slogan = content[i + 2].strip()
+            draft.add_participant(handle, team_name, slogan)
+
+        success = await self.wait_start(msg.channel, mentions)
+        if not success:
+            return
+
+        draft.start_draft()
+        footer = f"The draft class of {random.randint(2007, 2075)}"
+        while draft.round <= DRAFT_ROUNDS:
+            message_prefix = f'Round {draft.round}/{DRAFT_ROUNDS}:'
+            if draft.round == DRAFT_ROUNDS:
+                body = random.choice([
+                    f"Now just choose a pitcher and we can finish off this paperwork for you, {draft.active_drafter}",
+                    f"Pick a pitcher, {draft.active_drafter}, and we can all go home happy. 'Cept your players. They'll have to play bllaseball.",
+                    f"Almost done, {draft.active_drafter}. Pick your pitcher.",
+                ])
+                message = f"⚾️ {message_prefix} {body}"
+            else:
+                body = random.choice([
+                    f"Choose a batter, {draft.active_drafter}",
+                    f"{draft.active_drafter}, your turn. Pick one.",
+                    f"Pick one to fill your next lineup slot, {draft.active_drafter}",
+                    f"Alright, {draft.active_drafter}, choose a batter.",
+                ])
+                message = f"🏏 {message_prefix} {body}"
+            await msg.channel.send(
+                message,
+                embed=build_draft_embed(draft.get_draftees(), footer=footer),
+            )
+            try:
+                draft_message = await self.wait_draft(msg.channel, draft)
+                draft.draft_player(f'<@!{draft_message.author.id}>', draft_message.content.split(' ', 1)[1])
+            except SlowDraftError:
+                player = random.choice(draft.get_draftees())
+                await msg.channel.send(f"I'm not waiting forever. You get {player}. Next.")
+                draft.draft_player(draft.active_drafter, player)
+            except ValueError as e:
+                await msg.channel.send(str(e))
+            except IndexError:
+                await msg.channel.send("Quit the funny business.")
+
+        for handle, team in draft.get_teams():
+            await msg.channel.send(
+                random.choice([
+                    f"Done and dusted, {handle}. Here's your squad.",
+                    f"Behold the {team.name}, {handle}. Flawless, we think.",
+                    f"Oh, huh. Interesting stat distribution. Good luck, {handle}.",
+                ]),
+                embed=build_team_embed(team),
+            )
+        try:
+            draft.finish_draft()
+        except Exception as e:
+            await msg.channel.send(str(e))
+
+    async def wait_start(self, channel, mentions):
+        start_msg = await channel.send("Sound off, folks. 👍 if you're good to go " + " ".join(mentions))
+        await start_msg.add_reaction("👍")
+        await start_msg.add_reaction("👎")
+
+        def react_check(react, user):
+            return f'<@!{user.id}>' in mentions and react.message == start_msg
+
+        while True:
+            try:
+                react, _ = await client.wait_for('reaction_add', timeout=60.0, check=react_check)
+                if react.emoji == "👎":
+                    await channel.send("We dragged out the photocopier for this! Fine, putting it back.")
+                    return False
+                if react.emoji == "👍":
+                    reactors = set()
+                    async for user in react.users():
+                        reactors.add(f'<@!{user.id}>')
+                    if reactors.intersection(mentions) == mentions:
+                        return True
+            except asyncio.TimeoutError:
+                await channel.send("Y'all aren't ready.")
+                return False
+        return False
+
+    async def wait_draft(self, channel, draft):
+
+        def check(m):
+            if m.channel != channel:
+                return False
+            if m.content.startswith('d ') or m.content.startswith('draft '):
+                return True
+            for prefix in config()['prefix']:
+                if m.content.startswith(prefix + 'draft '):
+                    return True
+            return False
+
+        try:
+            draft_message = await client.wait_for('message', timeout=120.0, check=check)
+        except asyncio.TimeoutError:
+            raise SlowDraftError('Too slow')
+        return draft_message
+
+class DebugLeagueStart(Command):
+    name = "startdebugleague"
+
+    async def execute(self, msg, command):
+        if not league_exists("test2"):
+            league = leagues.league_structure("test2")
+            league.setup({
+                "nL" : { 
+                    "nL west" : [get_team_fuzzy_search("lockpicks"), get_team_fuzzy_search("liches")],
+                    "nL east" : [get_team_fuzzy_search("bethesda soft"), get_team_fuzzy_search("traverse city")]
+                    },
+                "aL" : {
+                    "aL west" : [get_team_fuzzy_search("deep space"), get_team_fuzzy_search("phoenix")],
+                    "aL east" : [get_team_fuzzy_search("cheyenne mountain"), get_team_fuzzy_search("tarot dragons")]
+                    }
+            }, division_games=6, inter_division_games=3, inter_league_games=3, games_per_hour = 12)
+            league.generate_schedule()
+            leagues.save_league(league)
+
+class DebugLeagueDisplay(Command):
+    name = "displaydebugleague"
+
+    async def execute(self, msg, command):
+        if league_exists("Midseries"):
+            league = leagues.load_league_file("Midseries")
+            league.champion = "Butts"
+            leagues.save_league(league)
+            season_save(league)
+            league.season_reset()
+
+            await msg.channel.send(embed=league.past_standings(1))
+
+            
+class StartLeagueCommand(Command):
+    name = "startleague"
+    template = "m;startleague [league name]\n[games per hour]"
+    description = """Optional flags for the first line: `--queue X` or `-q X` to play X number of series before stopping; `--noautopostseason` will pause the league before starting postseason.
+Plays a league with a given name, provided that league has been saved on the website. The games per hour sets how often the games will start. (e.g. GPH 2 will start games at X:00 and X:30)"""
+
+    async def execute(self, msg, command):
+        if config()["game_freeze"]:
+            await msg.channel.send("Patch incoming. We're not allowing new games right now.")
+            return
+
+        league_name = command.split("-")[0].split("\n")[0].strip()
+        autoplay = None
+
+        
+        try:          
+            if "--queue " in command:
+                autoplay = int(command.split("--queue ")[1].split("\n")[0])
+            elif "-q " in command:
+                autoplay = int(command.split("-q ")[1].split("\n")[0])
+            if autoplay is not None and autoplay <= 0:
+                raise ValueError
+            elif autoplay is None:
+                autoplay = -1
+        except ValueError:
+            await msg.channel.send("Sorry boss, the queue flag needs a natural number. Any whole number over 0 will do just fine.")
+            return
+        except IndexError:
+            await msg.channel.send("We need a games per hour number in the second line.")
+            return
+
+        
+
+        try:
+            gph = int(command.split("\n")[1].strip())
+            if gph < 1 or gph > 12:
+                raise ValueError
+        except ValueError:
+            await msg.channel.send("Chief, we need a games per hour number between 1 and 12. We think that's reasonable.")
+            return
+
+        if league_exists(league_name):
+            league = leagues.load_league_file(league_name)
+            if "--noautopostseason" in command:
+                autoplay = int(list(league.schedule.keys())[-1]) - league.day_to_series_num(league.day) + 1
+
+            if league.historic:
+                await msg.channel.send("That league is done and dusted, chief. Sorry.")
+                return
+            for active_league in active_leagues:
+                if active_league.name == league.name:
+                    await msg.channel.send("That league is already running, boss. Patience is a virtue, you know.")
+                    return
+            if (league.owner is not None and msg.author.id in league.owner) or msg.author.id in config()["owners"] or league.owner is None:
+                league.autoplay = autoplay
+                league.games_per_hour = gph
+                if str(league.day_to_series_num(league.day)) not in league.schedule.keys():
+                    await league_postseason(msg.channel, league)
+                elif league.day % league.series_length == 1:
+                    await start_league_day(msg.channel, league)
+                else:
+                    await start_league_day(msg.channel, league, partial = True)
+            else:
+                await msg.channel.send("You don't have permission to manage that league.")
+                return
+        else:
+            await msg.channel.send("Couldn't find that league, boss. Did you save it on the website?")
+
+class LeagueDisplayCommand(Command):
+    name = "leaguestandings"
+    template = "m;leaguestandings [league name]"
+    description = "Displays the current standings for the given league. Use `--season X` or `-s X` to get standings from season X of that league."
+
+    async def execute(self, msg, command):
+        if league_exists(command.split("-")[0].strip()):
+            league = leagues.load_league_file(command.split("-")[0].strip())
+
+            try:
+                if "--season " in command:
+                    season_num = int(command.split("--season ")[1])
+                    await msg.channel.send(embed=league.past_standings(season_num))
+                elif "-s " in command:
+                    season_num = int(command.split("-s ")[1])
+                    await msg.channel.send(embed=league.past_standings(season_num))
+                else:
+                    await msg.channel.send(embed=league.standings_embed())
+            except ValueError:
+                await msg.channel.send("Give us a proper number, boss.")
+            except TypeError:
+                await msg.channel.send("That season hasn't been played yet, chief.")
+        else:
+            await msg.channel.send("Can't find that league, boss.")
+
+class LeagueWildcardCommand(Command):
+    name = "leaguewildcard"
+    template = "m;leaguewildcard [league name]"
+    description = "Displays the current wildcard race for the given league, if the league has wildcard slots."
+
+    async def execute(self, msg, command):
+        if league_exists(command.strip()):
+            league = leagues.load_league_file(command.strip())
+            if league.constraints["wild_cards"] > 0:
+                await msg.channel.send(embed=league.wildcard_embed())
+            else:
+                await msg.channel.send("That league doesn't have wildcards, boss.")
+        else:
+            await msg.channel.send("Can't find that league, boss.")
+
+class LeaguePauseCommand(Command):
+    name = "pauseleague"
+    template = "m;pauseleague [league name]"
+    descripton = "Tells a currently running league to stop running automatically after the current series."
+
+    async def execute(self, msg, command):
+        league_name = command.strip()
+        for active_league in active_leagues:
+            if active_league.name == league_name:
+                if (active_league.owner is not None and msg.author.id in active_league.owner) or msg.author.id in config()["owners"]:
+                    active_league.autoplay = 0
+                    await msg.channel.send(f"Loud and clear, chief. {league_name} will stop after this series is over.")
+                    return
+                else:
+                    await msg.channel.send("You don't have permission to manage that league.")
+                    return
+        await msg.channel.send("That league either doesn't exist or isn't running.")
+
+class LeagueClaimCommand(Command):
+    name = "claimleague"
+    template = "m;claimleague [league name]"
+    description = "Claims an unclaimed league. Do this as soon as possible after creating the league, or it will remain unclaimed."
+
+    async def execute(self, msg, command):
+        league_name = command.strip()
+        if league_exists(league_name):
+            league = leagues.load_league_file(league_name)
+            if league.owner is None:
+                league.owner = [msg.author.id]
+                leagues.save_league(league)
+                await msg.channel.send(f"The {league.name} commissioner is doing a great job. That's you, by the way.")
+                return
+            else:
+                await msg.channel.send("That league has already been claimed!")
+        else:
+            await msg.channel.send("Can't find that league, boss.")
+
+class LeagueAddOwnersCommand(Command):
+    name = "addleagueowner"
+    template = "m;addleagueowner [league name]\n[user mentions]"
+    description = "Adds additional owners to a league."
+
+    async def execute(self, msg, command):
+        league_name = command.split("\n")[0].strip()
+        if league_exists(league_name):
+            league = leagues.load_league_file(league_name)
+            if (league.owner is not None and msg.author.id in league.owner) or (league.owner is not None and msg.author.id in config()["owners"]):
+                for user in msg.mentions:
+                    if user.id not in league.owner:
+                        league.owner.append(user.id)
+                leagues.save_league(league)
+                await msg.channel.send(f"The new {league.name} front office is now up and running.")
+                return
+            else:
+                await msg.channel.send(f"That league isn't yours, boss.")
+                return
+        else:
+            await msg.channel.send("Can't find that league, boss.")
+            
+class LeagueScheduleCommand(Command):
+    name = "leagueschedule"
+    template = "m;leagueschedule [league name]"
+    description = "Sends an embed with the given league's schedule for the next 4 series."
+
+    async def execute(self, msg, command):
+        league_name = command.strip()
+        if league_exists(league_name):
+            league = leagues.load_league_file(league_name)
+            current_series = league.day_to_series_num(league.day)
+            if str(current_series+1) in league.schedule.keys():
+                sched_embed = discord.Embed(title=f"{league.name}'s Schedule:")
+                days = [0,1,2,3]
+                for day in days:
+                    if str(current_series+day) in league.schedule.keys():
+                        schedule_text = ""
+                        for game in league.schedule[str(current_series+day)]:
+                            schedule_text += f"**{game[0]}** @ **{game[1]}**\n"
+                        sched_embed.add_field(name=f"Days {((current_series+day-1)*league.series_length) + 1} - {(current_series+day)*(league.series_length)}", value=schedule_text, inline = False)
+                await msg.channel.send(embed=sched_embed)
+            else:
+                await msg.channel.send("That league's already finished with this season, boss.")
+        else:
+            await msg.channel.send("We can't find that league. Typo?")
+            
 
 commands = [
     IntroduceCommand(),
@@ -353,26 +966,46 @@ commands = [
     #SetupGameCommand(),
     SaveTeamCommand(),
     ImportCommand(),
+    SwapPlayerCommand(),
+    MovePlayerCommand(),
+    AddPlayerCommand(),
+    RemovePlayerCommand(),
     DeleteTeamCommand(),
     ShowTeamCommand(),
     ShowAllTeamsCommand(),
     SearchTeamsCommand(),
     StartGameCommand(),
+    StartRandomGameCommand(),
+    StartTournamentCommand(),
+    LeagueClaimCommand(),
+    LeagueAddOwnersCommand(),
+    StartLeagueCommand(),
+    LeaguePauseCommand(),
+    LeagueDisplayCommand(),
+    LeagueWildcardCommand(),
+    LeagueScheduleCommand(),
     CreditCommand(),
     RomanCommand(),
     HelpCommand(),
+    StartDraftCommand(),
+    DraftPlayerCommand(),
+    DebugLeagueStart(),
+    DebugLeagueDisplay()
 ]
 
 client = discord.Client()
 gamesarray = []
-gamesqueue = []
+active_tournaments = []
+active_leagues = []
 setupmessages = {}
 
 thread1 = threading.Thread(target=main_controller.update_loop)
 thread1.start()
 
 def config():
-    if not os.path.exists("config.json"):
+    if not os.path.exists(os.path.dirname(config_filename)):
+        os.makedirs(os.path.dirname(config_filename))
+    if not os.path.exists(config_filename):
         #generate default config
         config_dic = {
                 "token" : "",
@@ -384,12 +1017,12 @@ def config():
                 "soulscream channel id" : 0,
                 "game_freeze" : 0
             }
-        with open("config.json", "w") as config_file:
+        with open(config_filename, "w") as config_file:
             json.dump(config_dic, config_file, indent=4)
             print("please fill in bot token and any bot admin discord ids to the new config.json file!")
             quit()
     else:
-        with open("config.json") as config_file:
+        with open(config_filename) as config_file:
             return json.load(config_file)
 
 @client.event
@@ -398,6 +1031,7 @@ async def on_ready():
     print(f"logged in as {client.user} with token {config()['token']}")
     watch_task = asyncio.create_task(game_watcher())
     await watch_task
+
 
 @client.event
 async def on_reaction_add(reaction, user):
@@ -439,19 +1073,6 @@ async def on_message(msg):
             await msg.channel.send("Can't find that command, boss; try checking the list with `m;help`.")
         except CommandError as ce:
             await msg.channel.send(str(ce))
-
-async def start_game(channel):
-    msg = await channel.send("Play ball!")
-    await asyncio.sleep(4)
-    newgame = games.debug_game()
-    gamesarray.append(newgame)
-    while not newgame.over:
-        state = newgame.gamestate_update_full()
-        if not state.startswith("Game over"):
-            await msg.edit(content=state)
-        await asyncio.sleep(3)
-    await channel.send(state)
-    gamesarray.pop()
 
 
 async def setup_game(channel, owner, newgame):
@@ -579,17 +1200,37 @@ Creator, type `{newgame.name} done` to finalize lineups.""")
     await game_task
 
 async def watch_game(channel, newgame, user = None, league = None):
-    blank_emoji = discord.utils.get(client.emojis, id = 790899850295509053)
-    empty_base = discord.utils.get(client.emojis, id = 790899850395779074)
-    occupied_base = discord.utils.get(client.emojis, id = 790899850320543745)
-    out_emoji = discord.utils.get(client.emojis, id = 791578957241778226)
-    in_emoji = discord.utils.get(client.emojis, id = 791578957244792832)
+    newgame, state_init = prepare_game(newgame)
 
-    
+    if league is not None:
+        discrim_string = league
+        state_init["is_league"] = True
+    elif user is not None:
+        if isinstance(user, str):
+            discrim_string = f"Started by {user}"
+        else:
+            discrim_string = f"Started by {user.name}"
+        state_init["is_league"] = False
+    else:
+        discrim_string = "Unclaimed game."
+        state_init["is_league"] = False
 
-    await asyncio.sleep(1)
-    weathers = games.all_weathers()
-    newgame.weather = weathers[random.choice(list(weathers.keys()))]
+
+    id = str(uuid4())
+    ext = "?game="+id
+    if league is not None:
+        ext += "&league=" + urllib.parse.quote_plus(league)
+
+    await channel.send(f"{newgame.teams['away'].name} vs. {newgame.teams['home'].name}, starting at {config()['simmadome_url']+ext}")
+    gamesarray.append((newgame, channel, user, id))
+
+    main_controller.master_games_dic[id] = (newgame, state_init, discrim_string)
+
+def prepare_game(newgame, league = None, weather_name = None):
+    if weather_name is None:
+        weathers = games.all_weathers()
+        newgame.weather = weathers[random.choice(list(weathers.keys()))]
+
     state_init = {
         "away_name" : newgame.teams['away'].name,
         "home_name" : newgame.teams['home'].name,
@@ -599,32 +1240,221 @@ async def watch_game(channel, newgame, user = None, league = None):
         "victory_lap" : False,
         "weather_emoji" : newgame.weather.emoji,
         "weather_text" : newgame.weather.name,
-        "start_delay" : 5,
-        "end_delay" : 10
+        "start_delay" : 3,
+        "end_delay" : 9
         } 
 
-    if league is not None:
-        discrim_string = league
-        state_init["is_league"] = True
-    elif user is not None:
-        discrim_string = f"Started by {user.name}"
+    if league is None:
         state_init["is_league"] = False
     else:
-        discrim_string = "Unclaimed game."
-        state_init["is_league"] = False
+        state_init["is_league"] = True
 
-    await channel.send(f"{newgame.teams['away'].name} vs. {newgame.teams['home'].name}, starting at {config()['simmadome_url']}")
-    timestamp = str(time.time() * 1000.0)
-    gamesarray.append((newgame, channel, user, timestamp))
-    
+    if newgame.weather.name == "Heavy Snow":
+        newgame.weather.counter_away = random.randint(0,len(newgame.teams['away'].lineup)-1)
+        newgame.weather.counter_home = random.randint(0,len(newgame.teams['home'].lineup)-1)
+    return newgame, state_init
+
+async def start_tournament_round(channel, tourney, seeding = None):
+    current_games = []
+    if tourney.bracket is None:
+        if seeding is None:
+            tourney.build_bracket(random_sort=True)
+
+    games_to_start = tourney.bracket.get_bottom_row()
+
+    for pair in games_to_start:
+        if pair[0] is not None and pair[1] is not None:
+            team_a = get_team_fuzzy_search(pair[0].name)
+            team_b = get_team_fuzzy_search(pair[1].name)
+
+            if tourney.league is not None:
+                if tourney.day is None:
+                    tourney.day = tourney.league.day
+                team_a.set_pitcher(rotation_slot = tourney.day)
+                team_b.set_pitcher(rotation_slot = tourney.day)
+
+            this_game = games.game(team_a.finalize(), team_b.finalize(), length = tourney.game_length)
+            this_game, state_init = prepare_game(this_game)
+
+            state_init["is_league"] = True
+
+            if tourney.round_check():
+                series_string = f"Best of {tourney.finals_length}:"
+            else:
+                series_string = f"Best of {tourney.series_length}:"
+            state_init["title"] = f"{series_string} 0 - 0"
+            discrim_string = tourney.name     
+
+            id = str(uuid4())
+            current_games.append((this_game, id))
+            main_controller.master_games_dic[id] = (this_game, state_init, discrim_string)
+
+    ext = "?league=" + urllib.parse.quote_plus(tourney.name)
+
+    if tourney.round_check(): #if finals
+        await channel.send(f"The {tourney.name} finals are starting now, at {config()['simmadome_url']+ext}")
+        finals = True
+
+    else:
+        await channel.send(f"{len(current_games)} games started for the {tourney.name} tournament, at {config()['simmadome_url']+ext}")
+        finals = False
+    await tourney_round_watcher(channel, tourney, current_games, config()['simmadome_url']+ext, finals)
+
+async def continue_tournament_series(tourney, queue, games_list, wins_in_series):
+    for oldgame in queue:
+        away_team = games.get_team(oldgame.teams["away"].name)
+        home_team = games.get_team(oldgame.teams["home"].name)
+
+        if tourney.league is not None:
+            if tourney.day is None:
+                tourney.day = tourney.league.day
+            away_team.set_pitcher(rotation_slot = tourney.day)
+            home_team.set_pitcher(rotation_slot = tourney.day)
+            
+
+        this_game = games.game(away_team.finalize(), home_team.finalize(), length = tourney.game_length)
+        this_game, state_init = prepare_game(this_game)
+
+        state_init["is_league"] = True
+
+        if tourney.round_check():
+            series_string = f"Best of {tourney.finals_length}:"
+        else:
+            series_string = f"Best of {tourney.series_length}:"
+
+        state_init["title"] = f"{series_string} {wins_in_series[oldgame.teams['away'].name]} - {wins_in_series[oldgame.teams['home'].name]}"
+
+        discrim_string = tourney.name     
+
+        id = str(uuid4())
+        games_list.append((this_game, id))
+        main_controller.master_games_dic[id] = (this_game, state_init, discrim_string)
+
+    return games_list
+
+async def tourney_round_watcher(channel, tourney, games_list, filter_url, finals = False):
+    tourney.active = True
+    active_tournaments.append(tourney)
+    wins_in_series = {}
+    winner_list = []
+    while tourney.active:
+        queued_games = []
+        while len(games_list) > 0:
+            try:
+                for i in range(0, len(games_list)):
+                    game, key = games_list[i]
+                    if game.over and ((key in main_controller.master_games_dic.keys() and main_controller.master_games_dic[key][1]["end_delay"] <= 8) or not key in main_controller.master_games_dic.keys()):
+                        if game.teams['home'].name not in wins_in_series.keys():
+                            wins_in_series[game.teams["home"].name] = 0
+                        if game.teams['away'].name not in wins_in_series.keys():
+                            wins_in_series[game.teams["away"].name] = 0
+
+                        winner_name = game.teams['home'].name if game.teams['home'].score > game.teams['away'].score else game.teams['away'].name
+
+                        if winner_name in wins_in_series.keys():
+                            wins_in_series[winner_name] += 1
+                        else:
+                            wins_in_series[winner_name] = 1
+
+                        final_embed = game_over_embed(game)
+                        final_embed.add_field(name="Series score:", value=f"{wins_in_series[game.teams['away'].name]} - {wins_in_series[game.teams['home'].name]}")
+                        await channel.send(f"A {tourney.name} game just ended!")                
+                        await channel.send(embed=final_embed)
+                        if wins_in_series[winner_name] >= int((tourney.series_length+1)/2) and not finals:
+                            winner_list.append(winner_name)
+                        elif wins_in_series[winner_name] >= int((tourney.finals_length+1)/2):
+                            winner_list.append(winner_name)
+                        else:
+                            queued_games.append(game)
+                            
+                        games_list.pop(i)
+                        break
+            except:
+                print("something went wrong in tourney_watcher")
+            await asyncio.sleep(4)
+        if tourney.league is not None:
+            tourney.day += 1
+        
+        if len(queued_games) > 0:
+            
+            if tourney.league is not None:
+                now = datetime.datetime.now()
+                validminutes = [int((60 * div)/tourney.league.games_per_hour) for div in range(0,tourney.league.games_per_hour)]
+                for i in range(0, len(validminutes)):
+                    if now.minute > validminutes[i]:
+                        if i <= len(validminutes)-3:
+                            if validminutes[i+1] == now.minute:
+                                delta = datetime.timedelta(minutes= (validminutes[i+2] - now.minute))
+                            else:
+                                delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
+                        elif i <= len(validminutes)-2:
+                            if validminutes[i+1] == now.minute:
+                                delta = datetime.timedelta(minutes= (60 - now.minute))
+                            else:
+                                delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
+                        else:
+                            delta = datetime.timedelta(minutes= (60 - now.minute))           
+
+                next_start = (now + delta).replace(second=0, microsecond=0)
+                wait_seconds = (next_start - now).seconds
+                await channel.send(f"The next batch of games for the {tourney.name} will start in {math.ceil(wait_seconds/60)} minutes.")
+                await asyncio.sleep(wait_seconds)
+            else:
+                await channel.send(f"The next batch of games for {tourney.name} will start in {int(tourney.delay/60)} minutes.")
+                await asyncio.sleep(tourney.delay)
+            await channel.send(f"{len(queued_games)} games for {tourney.name}, starting at {filter_url}")
+            games_list = await continue_tournament_series(tourney, queued_games, games_list, wins_in_series)
+        else:
+            tourney.active = False
+
+    if finals: #if this last round was finals
+        embed = discord.Embed(color = discord.Color.dark_purple(), title = f"{winner_list[0]} win the {tourney.name} finals!")
+        if tourney.day > tourney.league.day:
+            tourney.league.day = tourney.day
+        await channel.send(embed=embed)
+        tourney.winner = get_team_fuzzy_search(winner_list[0])
+        active_tournaments.pop(active_tournaments.index(tourney))
+        return
+
+    tourney.bracket.set_winners_dive(winner_list)
+
+    winners_string = ""
+    for game in tourney.bracket.get_bottom_row():
+        winners_string += f"{game[0].name}\n{game[1].name}\n"
+
+    if tourney.league is not None:
+        now = datetime.datetime.now()
+        validminutes = [int((60 * div)/tourney.league.games_per_hour) for div in range(0,tourney.league.games_per_hour)]
+        for i in range(0, len(validminutes)):
+            if now.minute > validminutes[i]:
+                if i <= len(validminutes)-3:
+                    if validminutes[i+1] == now.minute:
+                        delta = datetime.timedelta(minutes= (validminutes[i+2] - now.minute))
+                    else:
+                        delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
+                elif i <= len(validminutes)-2:
+                    if validminutes[i+1] == now.minute:
+                        delta = datetime.timedelta(minutes= (60 - now.minute))
+                    else:
+                        delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
+                else:
+                    delta = datetime.timedelta(minutes= (60 - now.minute))           
+
+        next_start = (now + delta).replace(second=0, microsecond=0)
+        wait_seconds = (next_start - now).seconds
+        await channel.send(f"""This round of games for the {tourney.name} is now complete! The next round will start in {math.ceil(wait_seconds/60)} minutes.
+Advancing teams:
+{winners_string}""")
+        await asyncio.sleep(wait_seconds)
+    else:
+        await channel.send(f"""
+This round of games for {tourney.name} is now complete! The next round will be starting in {int(tourney.round_delay/60)} minutes.
+Advancing teams:
+{winners_string}""")
+        await asyncio.sleep(tourney.round_delay)
+    await start_tournament_round(channel, tourney)
 
 
-    main_controller.master_games_dic[timestamp] = (newgame, state_init, discrim_string)
-
-async def play_from_queue(channel, game, user_mention):
-    await channel.send(f"{user_mention}, your game's ready.")
-    game_task = asyncio.create_task(watch_game(channel, game))
-    await game_task
 
 async def team_delete_confirm(channel, team, owner):
     team_msg = await channel.send(embed=build_team_embed(team))
@@ -654,13 +1484,26 @@ async def team_delete_confirm(channel, team, owner):
         return
 
 
+def build_draft_embed(names, title="The Draft", footer="You must choose"):
+    embed = discord.Embed(color=discord.Color.purple(), title=title)
+    column_size = 7
+    for i in range(0, len(names), column_size):
+        draft = '\n'.join(names[i:i + column_size])
+        embed.add_field(name="-", value=draft, inline=True)
+    embed.set_footer(text=footer)
+    return embed
+
+
 def build_team_embed(team):
     embed = discord.Embed(color=discord.Color.purple(), title=team.name)
     lineup_string = ""
     for player in team.lineup:
         lineup_string += f"{player.name} {player.star_string('batting_stars')}\n"
 
-    embed.add_field(name="Pitcher:", value=f"{team.pitcher.name} {team.pitcher.star_string('pitching_stars')}", inline = False)
+    rotation_string = ""
+    for player in team.rotation:
+        rotation_string += f"{player.name} {player.star_string('pitching_stars')}\n"
+    embed.add_field(name="Rotation:", value=rotation_string, inline = False)
     embed.add_field(name="Lineup:", value=lineup_string, inline = False)
     embed.set_footer(text=team.slogan)
     return embed
@@ -689,8 +1532,8 @@ def team_from_collection(newteam_json):
         raise CommandError("We've given you 100 characters for the slogan. Discord puts limits on us and thus, we put limits on you. C'est la vie.")
     if len(newteam_json["lineup"]) > 20:
         raise CommandError("20 players in the lineup, maximum. We're being really generous here.")
-    if not len(newteam_json["rotation"]) == 1:
-        raise CommandError("One and only one pitcher per team, thanks.")
+    if len(newteam_json["rotation"]) > 8:
+        raise CommandError("8 pitchers on the rotation, max. That's a *lot* of pitchers.")
     for player in newteam_json["lineup"] + newteam_json["rotation"]:
         if len(player["name"]) > 70:
             raise CommandError(f"{player['name']} is too long, chief. 70 or less.")
@@ -701,23 +1544,32 @@ def team_from_collection(newteam_json):
     newteam.slogan = newteam_json["slogan"]
     for player in newteam_json["lineup"]:
         newteam.add_lineup(games.player(json.dumps(player)))
-    newteam.set_pitcher(games.player(json.dumps(newteam_json["rotation"][0])))
+    for player in newteam_json["rotation"]:
+        newteam.add_pitcher(games.player(json.dumps(player)))
 
     return newteam
 
 def team_from_message(command):
     newteam = games.team()
     roster = command.split("\n",1)[1].split("\n")
-    newteam.name = roster[0] #first line is team name
-    newteam.slogan = roster[1] #second line is slogan
-    for rosternum in range(2,len(roster)-1):
+    newteam.name = roster[0].strip() #first line is team name
+    newteam.slogan = roster[1].strip() #second line is slogan
+    if not roster[2].strip() == "":
+        raise CommandError("The third line should be blank. It wasn't, so just in case, we've not done anything on our end.")
+    pitchernum = len(roster)-2
+    for rosternum in range(3,len(roster)-1):
         if roster[rosternum] != "":
             if len(roster[rosternum]) > 70:
                 raise CommandError(f"{roster[rosternum]} is too long, chief. 70 or less.")
             newteam.add_lineup(games.player(ono.get_stats(roster[rosternum].rstrip())))
-    if len(roster[len(roster)-1]) > 70:
-        raise CommandError(f"{roster[len(roster)-1]} is too long, chief. 70 or less.")
-    newteam.set_pitcher(games.player(ono.get_stats(roster[len(roster)-1].rstrip()))) #last line is pitcher name
+        else:
+            pitchernum = rosternum + 1 
+            break
+
+    for rosternum in range(pitchernum, len(roster)):
+        if len(roster[rosternum]) > 70:
+            raise CommandError(f"{roster[len(roster)-1]} is too long, chief. 70 or less.")
+        newteam.add_pitcher(games.player(ono.get_stats(roster[rosternum].rstrip()))) 
 
     if len(newteam.name) > 30:
         raise CommandError("Team names have to be less than 30 characters! Try again.")
@@ -762,7 +1614,10 @@ async def team_pages(msg, all_teams, search_term=None):
         embed.set_footer(text = f"Page {page+1} of {page_max}")
         for i in range(0,25):
             try:
-                embed.add_field(name=all_teams[i+25*page].name, value=all_teams[i+25*page].slogan)
+                if all_teams[i+25*page].slogan.strip() != "":
+                    embed.add_field(name=all_teams[i+25*page].name, value=all_teams[i+25*page].slogan)
+                else:
+                    embed.add_field(name=all_teams[i+25*page].name, value="404: Slogan not found")
             except:
                 break
         pages.append(embed)
@@ -796,37 +1651,362 @@ async def game_watcher():
             this_array = gamesarray.copy()
             for i in range(0,len(this_array)):
                 game, channel, user, key = this_array[i]
-                if game.over and main_controller.master_games_dic[key][1]["end_delay"] <= 9:
-                    title_string = f"{game.teams['away'].name} at {game.teams['home'].name} ended after {game.inning-1} innings"
-                    if (game.inning - 1) > game.max_innings: #if extra innings
-                        title_string += f" with {game.inning - (game.max_innings+1)} extra innings."
-                    else:
-                        title_string += "."
-
-                    winning_team = game.teams['home'].name if game.teams['home'].score > game.teams['away'].score else game.teams['away'].name
-                    winstring = f"{game.teams['away'].score} to {game.teams['home'].score}\n"
-                    if game.victory_lap and winning_team == game.teams['home'].name:
-                        winstring += f"{winning_team} wins with a victory lap!"
-                    elif winning_team == game.teams['home'].name:
-                        winstring += f"{winning_team} wins, shaming {game.teams['away'].name}!"
-                    else:
-                       winstring += f"{winning_team} wins!"
-
-                    if user is not None:
+                if game.over and ((key in main_controller.master_games_dic.keys() and main_controller.master_games_dic[key][1]["end_delay"] <= 8) or not key in main_controller.master_games_dic.keys()):                   
+                    final_embed = game_over_embed(game)
+                    if isinstance(user, str):
+                        await channel.send(f"A game started by {user} just ended.")
+                    elif user is not None:
                         await channel.send(f"{user.mention}'s game just ended.")
                     else:
-                        await channel.send("A game started from this channel just ended.")
-
-                    final_embed = discord.Embed(color=discord.Color.dark_purple(), title=title_string)
-                    final_embed.add_field(name="Final score:", value=winstring)
+                        await channel.send("A game started from this channel just ended.")                
                     await channel.send(embed=final_embed)
                     gamesarray.pop(i)
                     break
         except:
             print("something broke in game_watcher")
+        await asyncio.sleep(4)
 
-        await asyncio.sleep(6)
+def game_over_embed(game):
+    title_string = f"{game.teams['away'].name} at {game.teams['home'].name} ended after {game.inning-1} innings"
+    if (game.inning - 1) > game.max_innings: #if extra innings
+        title_string += f" with {game.inning - (game.max_innings+1)} extra innings.\n"
+    else:
+        title_string += ".\n"
 
+    winning_team = game.teams['home'].name if game.teams['home'].score > game.teams['away'].score else game.teams['away'].name
+    winstring = f"{game.teams['away'].score} to {game.teams['home'].score}\n"
+    if game.victory_lap and winning_team == game.teams['home'].name:
+        winstring += f"{winning_team} wins with a victory lap!"
+    elif winning_team == game.teams['home'].name:
+        winstring += f"{winning_team} wins, shaming {game.teams['away'].name}!"
+    else:
+        winstring += f"{winning_team} wins!"
 
+    embed = discord.Embed(color=discord.Color.dark_purple(), title=title_string)
+    embed.add_field(name="Final score:", value=winstring, inline=False)
+    embed.add_field(name=f"{game.teams['away'].name} pitcher:", value=game.teams['away'].pitcher.name)
+    embed.add_field(name=f"{game.teams['home'].name} pitcher:", value=game.teams['home'].pitcher.name)
+    embed.set_footer(text=game.weather.emoji + game.weather.name)
+    return embed
+
+def get_team_fuzzy_search(team_name):
+    team = games.get_team(team_name)
+    if team is None:
+        teams = games.search_team(team_name.lower())
+        if len(teams) == 1:
+            team = teams[0]
+    return team
+
+async def start_league_day(channel, league, partial = False):
+    current_games = []
         
+    games_to_start = league.schedule[str(league.day_to_series_num(league.day))]
+    if league.game_length is None:
+        game_length = games.config()["default_length"]
+    else:
+        game_length = league.game_length
+
+    for pair in games_to_start:
+        if pair[0] is not None and pair[1] is not None:
+            away = get_team_fuzzy_search(pair[0])
+            away.set_pitcher(rotation_slot=league.day)
+            home = get_team_fuzzy_search(pair[1])
+            home.set_pitcher(rotation_slot=league.day)
+
+            this_game = games.game(away.finalize(), home.finalize(), length = game_length)
+            this_game, state_init = prepare_game(this_game)
+
+            state_init["is_league"] = True
+            if not partial:
+                series_string = "Series score:"
+                state_init["title"] = f"{series_string} 0 - 0"
+            else:
+                state_init["title"] = "Interrupted series!"
+            discrim_string = league.name     
+
+            id = str(uuid4())
+            current_games.append((this_game, id))
+            main_controller.master_games_dic[id] = (this_game, state_init, discrim_string)
+
+    ext = "?league=" + urllib.parse.quote_plus(league.name)
+
+    if league.last_series_check(): #if finals
+        await channel.send(f"The final series of the {league.name} regular season is starting now, at {config()['simmadome_url']+ext}")
+        last = True
+
+    else:
+        await channel.send(f"The day {league.day} series of the {league.name} is starting now, at {config()['simmadome_url']+ext}")
+        last = False
+
+    if partial:
+        missed_games = (league.day % league.series_length) - 1
+        if missed_games == -1:
+            missed_games = league.series_length - 1
+        await league_day_watcher(channel, league, current_games, config()['simmadome_url']+ext, last, missed = missed_games)
+    else:
+        await league_day_watcher(channel, league, current_games, config()['simmadome_url']+ext, last)
+
+
+async def league_day_watcher(channel, league, games_list, filter_url, last = False, missed = 0):
+    league.active = True
+    league.autoplay -= 1
+    if league not in active_leagues:
+        active_leagues.append(league)
+    series_results = {}
+
+    while league.active:
+        queued_games = []
+        while len(games_list) > 0:
+            try:
+                for i in range(0, len(games_list)):
+                    game, key = games_list[i]
+                    if game.over and ((key in main_controller.master_games_dic.keys() and main_controller.master_games_dic[key][1]["end_delay"] <= 8) or not key in main_controller.master_games_dic.keys()):
+                        if game.teams['home'].name not in series_results.keys():
+                            series_results[game.teams["home"].name] = {}
+                            series_results[game.teams["home"].name]["wins"] = 0
+                            series_results[game.teams["home"].name]["losses"] = 0
+                            series_results[game.teams["home"].name]["run_diff"] = 0
+                        if game.teams['away'].name not in series_results.keys():
+                            series_results[game.teams["away"].name] = {}
+                            series_results[game.teams["away"].name]["wins"] = 0
+                            series_results[game.teams["away"].name]["losses"] = 0
+                            series_results[game.teams["away"].name]["run_diff"] = 0
+
+                        winner_name = game.teams['home'].name if game.teams['home'].score > game.teams['away'].score else game.teams['away'].name
+                        loser_name = game.teams['away'].name if game.teams['home'].score > game.teams['away'].score else game.teams['home'].name
+                        rd = int(math.fabs(game.teams['home'].score - game.teams['away'].score))
+
+                        series_results[winner_name]["wins"] += 1
+                        series_results[winner_name]["run_diff"] += rd
+
+                        winner_dic = {"wins" : 1, "run_diff" : rd}
+
+                        series_results[loser_name]["losses"] += 1
+                        series_results[loser_name]["run_diff"] -= rd
+
+                        loser_dic = {"losses" : 1, "run_diff" : -rd}
+
+                        league.add_stats_from_game(game.get_team_specific_stats())
+                        league.update_standings({winner_name : winner_dic, loser_name : loser_dic})
+                        leagues.save_league(league)
+                        final_embed = game_over_embed(game)
+                        final_embed.add_field(name="Day:", value=league.day)
+                        final_embed.add_field(name="Series score:", value=f"{series_results[game.teams['away'].name]['wins']} - {series_results[game.teams['home'].name]['wins']}")
+                        await channel.send(f"A {league.name} game just ended!")                
+                        await channel.send(embed=final_embed)
+                        if series_results[winner_name]["wins"] + series_results[winner_name]["losses"] + missed < league.series_length:
+                            queued_games.append(game)                           
+                        games_list.pop(i)
+                        break
+            except:
+                print("something went wrong in league_day_watcher")
+            await asyncio.sleep(2)
+        league.day += 1
+        
+        if len(queued_games) > 0:
+
+            now = datetime.datetime.now()
+
+            validminutes = [int((60 * div)/league.games_per_hour) for div in range(0,league.games_per_hour)]
+            for i in range(0, len(validminutes)):
+                if now.minute > validminutes[i]:
+                    if i <= len(validminutes)-3:
+                        if validminutes[i+1] == now.minute:
+                            delta = datetime.timedelta(minutes= (validminutes[i+2] - now.minute))
+                        else:
+                            delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
+                    elif i <= len(validminutes)-2:
+                        if validminutes[i+1] == now.minute:
+                            delta = datetime.timedelta(minutes= (60 - now.minute))
+                        else:
+                            delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
+                    else:
+                        delta = datetime.timedelta(minutes= (60 - now.minute))           
+
+            next_start = (now + delta).replace(second=0, microsecond=0)
+            wait_seconds = (next_start - now).seconds
+                
+            leagues.save_league(league)
+            await channel.send(embed=league.standings_embed())
+            await channel.send(f"The day {league.day} games for the {league.name} will start in {math.ceil(wait_seconds/60)} minutes.")
+            leagues.save_league(league)
+            await asyncio.sleep(wait_seconds)
+            await channel.send(f"A {league.name} series is continuing now at {filter_url}")
+            games_list = await continue_league_series(league, queued_games, games_list, series_results, missed)
+        else:
+            league.active = False
+
+    if league.autoplay == 0 or config()["game_freeze"]: #if number of series to autoplay has been reached
+        await channel.send(embed=league.standings_embed())
+        await channel.send(f"The {league.name} is no longer autoplaying.")
+        if config()["game_freeze"]:
+            await channel.send("Patch incoming.")
+        leagues.save_league(league)
+        active_leagues.pop(active_leagues.index(league))
+        return
+
+    if last: #if last game of the season
+        now = datetime.datetime.now()
+        validminutes = [int((60 * div)/league.games_per_hour) for div in range(0,league.games_per_hour)]
+        for i in range(0, len(validminutes)):
+            if now.minute > validminutes[i]:
+                if i <= len(validminutes)-3:
+                    if validminutes[i+1] == now.minute:
+                        delta = datetime.timedelta(minutes= (validminutes[i+2] - now.minute))
+                    else:
+                        delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
+                elif i <= len(validminutes)-2:
+                    if validminutes[i+1] == now.minute:
+                        delta = datetime.timedelta(minutes= (60 - now.minute))
+                    else:
+                        delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
+                else:
+                    delta = datetime.timedelta(minutes= (60 - now.minute))           
+
+        next_start = (now + delta).replace(second=0, microsecond=0)
+        wait_seconds = (next_start - now).seconds
+        await channel.send(f"This {league.name} season is now over! The postseason (with any necessary tiebreakers) will be starting in {math.ceil(wait_seconds/60)} minutes.")
+        await asyncio.sleep(wait_seconds)
+        await league_postseason(channel, league)
+
+        #need to reset league to new season here
+
+        return
+
+
+
+
+
+    
+
+    now = datetime.datetime.now()
+
+    validminutes = [int((60 * div)/league.games_per_hour) for div in range(0,league.games_per_hour)]
+    for i in range(0, len(validminutes)):
+        if now.minute > validminutes[i]:
+            if i <= len(validminutes)-3:
+                if validminutes[i+1] == now.minute:
+                    delta = datetime.timedelta(minutes= (validminutes[i+2] - now.minute))
+                else:
+                    delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
+            elif i <= len(validminutes)-2:
+                if validminutes[i+1] == now.minute:
+                    delta = datetime.timedelta(minutes= (60 - now.minute))
+                else:
+                    delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
+            else:
+                delta = datetime.timedelta(minutes= (60 - now.minute))           
+
+    next_start = (now + delta).replace(second=0, microsecond=0)
+    wait_seconds = (next_start - now).seconds
+
+    leagues.save_league(league)
+    await channel.send(embed=league.standings_embed())
+    await channel.send(f"""This {league.name} series is now complete! The next series will be starting in {int(wait_seconds/60)} minutes.""")
+    await asyncio.sleep(wait_seconds)
+
+    await start_league_day(channel, league)
+
+async def continue_league_series(league, queue, games_list, series_results, missed):
+    for oldgame in queue:
+        away_team = games.get_team(oldgame.teams["away"].name)
+        away_team.set_pitcher(rotation_slot=league.day)
+        home_team = games.get_team(oldgame.teams["home"].name)
+        home_team.set_pitcher(rotation_slot=league.day)
+        this_game = games.game(away_team.finalize(), home_team.finalize(), length = league.game_length)
+        this_game, state_init = prepare_game(this_game)
+
+        state_init["is_league"] = True
+        series_string = f"Series score:"
+
+        if missed <= 0:
+            series_string = "Series score:"
+            state_init["title"] = f"{series_string} {series_results[away_team.name]['wins']} - {series_results[home_team.name]['wins']}"
+        else:
+            state_init["title"] = "Interrupted series!"
+        discrim_string = league.name
+
+        id = str(uuid4())
+        games_list.append((this_game, id))
+        main_controller.master_games_dic[id] = (this_game, state_init, discrim_string)
+
+    return games_list
+
+async def league_postseason(channel, league):
+    embed = league.standings_embed()
+    embed.set_footer(text="Final Standings")
+    await channel.send(embed=embed)
+        
+
+    tiebreakers = league.tiebreaker_required()       
+    if tiebreakers != []:
+        await channel.send("Tiebreakers required!")
+        await asyncio.gather(*[start_tournament_round(channel, tourney) for tourney in tiebreakers])
+        for tourney in tiebreakers:
+            league.update_standings({tourney.winner.name : {"wins" : 1}})
+            leagues.save_league(league)
+        now = datetime.datetime.now()
+
+        validminutes = [int((60 * div)/league.games_per_hour) for div in range(0,league.games_per_hour)]
+        for i in range(0, len(validminutes)):
+            if now.minute > validminutes[i]:
+                if i <= len(validminutes)-3:
+                    if validminutes[i+1] == now.minute:
+                        delta = datetime.timedelta(minutes= (validminutes[i+2] - now.minute))
+                    else:
+                        delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
+                elif i <= len(validminutes)-2:
+                    if validminutes[i+1] == now.minute:
+                        delta = datetime.timedelta(minutes= (60 - now.minute))
+                    else:
+                        delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
+                else:
+                    delta = datetime.timedelta(minutes= (60 - now.minute))           
+
+        next_start = (now + delta).replace(second=0, microsecond=0)
+        wait_seconds = (next_start - now).seconds
+        await channel.send(f"Tiebreakers complete! Postseason starting in {math.ceil(wait_seconds/60)} minutes.")
+        await asyncio.sleep(wait_seconds)
+            
+
+    tourneys = league.champ_series()
+    await asyncio.gather(*[start_tournament_round(channel, tourney) for tourney in tourneys])
+    champs = {}
+    for tourney in tourneys:
+        for team in tourney.teams.keys():
+            if team.name == tourney.winner.name:
+                champs[tourney.winner] = {"wins" : tourney.teams[team]["wins"]}
+    world_series = leagues.tournament(f"{league.name} Championship Series", champs, series_length=7, secs_between_games=int(3600/league.games_per_hour), secs_between_rounds=int(7200/league.games_per_hour))
+    world_series.build_bracket(by_wins = True)
+    world_series.league = league
+    now = datetime.datetime.now()
+
+    validminutes = [int((60 * div)/league.games_per_hour) for div in range(0,league.games_per_hour)]
+    for i in range(0, len(validminutes)):
+        if now.minute > validminutes[i]:
+            if i <= len(validminutes)-3:
+                if validminutes[i+1] == now.minute:
+                    delta = datetime.timedelta(minutes= (validminutes[i+2] - now.minute))
+                else:
+                    delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
+            elif i <= len(validminutes)-2:
+                if validminutes[i+1] == now.minute:
+                    delta = datetime.timedelta(minutes= (60 - now.minute))
+                else:
+                    delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
+            else:
+                delta = datetime.timedelta(minutes= (60 - now.minute))           
+
+    next_start = (now + delta).replace(second=0, microsecond=0)
+    wait_seconds = (next_start - now).seconds
+    await channel.send(f"The {league.name} Championship Series is starting in {math.ceil(wait_seconds/60)} minutes!")
+    await asyncio.sleep(wait_seconds)
+    await start_tournament_round(channel, world_series)
+    league.champion = world_series.winner.name
+    leagues.save_league(league)
+    season_save(league)
+    league.season_reset()
+
+
+
 client.run(config()["token"])

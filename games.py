@@ -2,8 +2,13 @@ import json, random, os, math, jsonpickle
 from enum import Enum
 import database as db
 
+data_dir = "data"
+games_config_file = os.path.join(data_dir, "games_config.json")
+
 def config():
-    if not os.path.exists("games_config.json"):
+    if not os.path.exists(os.path.dirname(games_config_file)):
+        os.makedirs(os.path.dirname(games_config_file))
+    if not os.path.exists(games_config_file):
         #generate default config
         config_dic = {
                 "default_length" : 3,
@@ -16,31 +21,23 @@ def config():
                 "stolen_base_chance_mod" : 1,
                 "stolen_base_success_mod" : 1
             }
-        with open("games_config.json", "w") as config_file:
+        with open(games_config_file, "w") as config_file:
             json.dump(config_dic, config_file, indent=4)
             return config_dic
     else:
-        with open("games_config.json") as config_file:
+        with open(games_config_file) as config_file:
             return json.load(config_file)
 
 def all_weathers():
-    if not os.path.exists("weather_config.json"):
-        #generate default config
-        super_weather_json = jsonpickle.encode(weather("Supernova", "🌟"))
-        mid_weather_json = jsonpickle.encode(weather("Midnight", "🕶"))
-        config_dic = {
-            "Supernova" : super_weather_json,
-            "Midnight": mid_weather_json
-            }
-        with open("weather_config.json", "w") as config_file:
-            json.dump(config_dic, config_file, indent=4)
-    with open("weather_config.json") as config_file:
-        weather_dic = {}
-        for weather_json in json.load(config_file).values():
-            this_weather = jsonpickle.decode(weather_json, classes=weather)
-            weather_dic[this_weather.name] = this_weather
-        return weather_dic
-
+    weathers_dic = {
+        #"Supernova" : weather("Supernova", "🌟"),
+        #"Midnight": weather("Midnight", "🕶"),
+        "Slight Tailwind": weather("Slight Tailwind", "🏌️‍♀️"),
+        "Heavy Snow": weather("Heavy Snow", "❄"),
+        "Twilight" : weather("Twilight", "👻"),
+        "Thinned Veil" : weather("Thinned Veil", "🌌")
+        }
+    return weathers_dic
 
 class appearance_outcomes(Enum):
     strikeoutlooking = "strikes out looking."
@@ -54,7 +51,7 @@ class appearance_outcomes(Enum):
     single = "hits a single!"
     double = "hits a double!"
     triple = "hits a triple!"
-    homerun = "hits a home run!"
+    homerun = "hits a dinger!"
     grandslam = "hits a grand slam!"
 
 
@@ -102,10 +99,59 @@ class team(object):
         self.name = None
         self.lineup = []
         self.lineup_position = 0
+        self.rotation = []
         self.pitcher = None
         self.score = 0
         self.slogan = None
 
+    def find_player(self, name):
+        for index in range(0,len(self.lineup)):
+            if self.lineup[index].name == name:
+                return (self.lineup[index], index, self.lineup)
+        for index in range(0,len(self.rotation)):
+            if self.rotation[index].name == name:
+                return (self.rotation[index], index, self.rotation)
+        else:
+            return (None, None, None)
+
+    def average_stars(self):
+        total_stars = 0
+        for _player in self.lineup:
+            total_stars += _player.stlats["batting_stars"]
+        for _player in self.rotation:
+            total_stars += _player.stlats["pitching_stars"]
+        return total_stars/(len(self.lineup) + len(self.rotation))
+
+    def swap_player(self, name):
+        this_player, index, roster = self.find_player(name)
+        if this_player is not None and len(roster) > 1:
+            if roster == self.lineup:
+                if self.add_pitcher(this_player):
+                    roster.pop(index)
+                    return True
+            else:
+                if self.add_lineup(this_player)[0]:
+                    self.rotation.pop(index)
+                    return True
+        return False
+
+    def delete_player(self, name):
+        this_player, index, roster = self.find_player(name)
+        if this_player is not None and len(roster) > 1:
+            roster.pop(index)
+            return True
+        else:
+            return False
+
+    def slide_player(self, name, new_spot):
+        this_player, index, roster = self.find_player(name)
+        if this_player is not None and new_spot <= len(roster):
+            roster.pop(index)
+            roster.insert(new_spot-1, this_player)
+            return True
+        else:
+            return False
+                
     def add_lineup(self, new_player):
         if len(self.lineup) < 20:
             self.lineup.append(new_player)
@@ -113,34 +159,59 @@ class team(object):
         else:
             return (False, "20 players in the lineup, maximum. We're being really generous here.")
     
-    def set_pitcher(self, new_player):
-        self.pitcher = new_player
-        return (True,)
+    def add_pitcher(self, new_player):
+        if len(self.rotation) < 8:
+            self.rotation.append(new_player)
+            return True
+        else:
+            return False
+
+    def set_pitcher(self, rotation_slot = None, use_lineup = False):
+        temp_rotation = self.rotation.copy()
+        if use_lineup:         
+            for batter in self.rotation:
+                temp_rotation.append(batter)
+        if rotation_slot is None:
+            self.pitcher = random.choice(temp_rotation)
+        else:
+            self.pitcher = temp_rotation[(rotation_slot-1) % len(temp_rotation)]
 
     def is_ready(self):
-        return (len(self.lineup) >= 1 and self.pitcher is not None)
+        try:
+            return (len(self.lineup) >= 1 and len(self.rotation) > 0)
+        except AttributeError:
+            self.rotation = [self.pitcher]
+            self.pitcher = None
+            return (len(self.lineup) >= 1 and len(self.rotation) > 0)
 
     def prepare_for_save(self):
         self.lineup_position = 0
         self.score = 0
+        if self.pitcher is not None and self.pitcher not in self.rotation:
+            self.rotation.append(self.pitcher)
+        self.pitcher = None
         for this_player in self.lineup:
             for stat in this_player.game_stats.keys():
                 this_player.game_stats[stat] = 0
-        return True
+        for this_player in self.rotation:
+            for stat in this_player.game_stats.keys():
+                this_player.game_stats[stat] = 0
+        return self
 
     def finalize(self):
         if self.is_ready():
+            if self.pitcher == None:
+                self.set_pitcher()
             while len(self.lineup) <= 4:
-                self.lineup.append(random.choice(self.lineup))
-            return True
-        else: 
+                self.lineup.append(random.choice(self.lineup))       
+            return self
+        else:
             return False
 
 
 class game(object):
 
-    def __init__(self, name, team1, team2, length=None):
-        self.name = name
+    def __init__(self, team1, team2, length=None):
         self.over = False
         self.teams = {"away" : team1, "home" : team2}
         self.inning = 1
@@ -160,8 +231,13 @@ class game(object):
     def get_batter(self):
         if self.top_of_inning:
             bat_team = self.teams["away"]
+            counter = self.weather.counter_away
         else:
             bat_team = self.teams["home"]
+            counter = self.weather.counter_home
+
+        if self.weather.name == "Heavy Snow" and counter == bat_team.lineup_position:
+            return bat_team.pitcher
         return bat_team.lineup[bat_team.lineup_position % len(bat_team.lineup)]
 
     def get_pitcher(self):
@@ -194,6 +270,13 @@ class game(object):
         pb_system_stat = (random.gauss(1*math.erf((bat_stat - pitch_stat)*1.5)-1.8,2.2))
         hitnum = random.gauss(2*math.erf(bat_stat/4)-1,3)
 
+        if self.weather.name == "Twilight":
+            error_line = - (math.log(defender.stlats["defense_stars"] + 1)/50) + 1
+            error_roll = random.random()
+            if error_roll > error_line:
+                outcome["error"] = True
+                outcome["defender"] = defender
+                pb_system_stat = 0.1
 
         
         if pb_system_stat <= 0:
@@ -238,7 +321,7 @@ class game(object):
             outcome["ishit"] = True
             if hitnum < 1:
                 outcome["text"] = appearance_outcomes.single
-            elif hitnum < 2.85:
+            elif hitnum < 2.85 or "error" in outcome.keys():
                 outcome["text"] = appearance_outcomes.double
             elif hitnum < 3.1:
                 outcome["text"] = appearance_outcomes.triple
@@ -289,6 +372,7 @@ class game(object):
                 run_roll = run_roll * .9 #stealing third is harder
             if run_roll < 1:
                 outcome["steals"].append(f"{baserunner} was caught stealing {base_string(start_base+1)} base by {defender}!")
+                self.get_pitcher().game_stats["outs_pitched"] += 1
                 self.outs += 1
             else:
                 outcome["steals"].append(f"{baserunner} steals {base_string(start_base+1)} base!")
@@ -308,6 +392,11 @@ class game(object):
                 if base is not None:
                     runs += 1
             self.bases = {1 : None, 2 : None, 3 : None}
+            if "veil" in outcome.keys():
+                if runs < 4:
+                    self.bases[runs] = self.get_batter()
+                else:
+                    runs += 1
             return runs
 
         elif "advance" in outcome.keys():
@@ -422,13 +511,25 @@ class game(object):
     def batterup(self):
         scores_to_add = 0
         result = self.at_bat()
-        self.get_batter()
         if self.top_of_inning:
             offense_team = self.teams["away"]
+            weather_count = self.weather.counter_away
             defense_team = self.teams["home"]
         else:
             offense_team = self.teams["home"]
+            weather_count = self.weather.counter_home
             defense_team = self.teams["away"]
+
+        if self.weather.name == "Slight Tailwind" and "mulligan" not in self.last_update[0].keys() and not result["ishit"] and result["text"] != appearance_outcomes.walk: 
+            mulligan_roll_target = -((((self.get_batter().stlats["batting_stars"])-5)/6)**2)+1
+            if random.random() > mulligan_roll_target and self.get_batter().stlats["batting_stars"] <= 5:
+                result["mulligan"] = True
+                return (result, 0)
+
+        if self.weather.name == "Heavy Snow" and weather_count == offense_team.lineup_position and "snow_atbat" not in self.last_update[0].keys():
+            result["snow_atbat"] = True
+            result["text"] = f"{offense_team.lineup[offense_team.lineup_position % len(offense_team.lineup)].name}'s hands are too cold! {self.get_batter().name} is forced to bat!"
+            return (result, 0)
 
         defenders = defense_team.lineup.copy()
         defenders.append(defense_team.pitcher)
@@ -447,6 +548,10 @@ class game(object):
             elif result["text"] == appearance_outcomes.homerun or result["text"] == appearance_outcomes.grandslam:
                 self.get_batter().game_stats["total_bases"] += 4
                 self.get_batter().game_stats["home_runs"] += 1
+                if self.weather.name == "Thinned Veil":
+                    result["veil"] = True
+
+
 
             scores_to_add += self.baserunner_check(defender, result)
 
@@ -519,12 +624,21 @@ class game(object):
         for base in self.bases.keys():
             self.bases[base] = None
         self.outs = 0
+        if self.top_of_inning and self.weather.name == "Heavy Snow" and self.weather.counter_away < self.teams["away"].lineup_position:
+            self.weather.counter_away = self.pitcher_insert(self.teams["away"])
+
         if not self.top_of_inning:
+            if self.weather.name == "Heavy Snow" and self.weather.counter_home < self.teams["home"].lineup_position:
+                self.weather.counter_home = self.pitcher_insert(self.teams["home"])
             self.inning += 1
             if self.inning > self.max_innings and self.teams["home"].score != self.teams["away"].score: #game over
                 self.over = True
         self.top_of_inning = not self.top_of_inning
 
+    def pitcher_insert(self, this_team):
+        rounds = math.ceil(this_team.lineup_position / len(this_team.lineup))
+        position = random.randint(0, len(this_team.lineup)-1)
+        return rounds * len(this_team.lineup) + position
 
     def end_of_game_report(self):
         return {
@@ -567,19 +681,9 @@ class game(object):
                     else:
                         inningtext = "bottom"
 
-                    updatestring = f"{self.last_update[0]['batter']} {self.last_update[0]['text'].value} {self.last_update[0]['defender']}{punc}\n"
+                    updatestring = "this isn't used but i don't want to break anything"
 
-                    if self.last_update[1] > 0:
-                        updatestring += f"{self.last_update[1]} runs scored!"
-
-                    return f"""Last update: {updatestring}
-
-        Score: {self.teams['away'].score} - {self.teams['home'].score}.
-        Current inning: {inningtext} of {self.inning}. {self.outs} outs.
-        Pitcher: {self.get_pitcher().name}
-        Batter: {self.get_batter().name}
-        Bases: 3: {str(self.bases[3])} 2: {str(self.bases[2])} 1: {str(self.bases[1])}
-        """
+                    return "this isn't used but i don't want to break anything"
                 else:
                     return f"""Game over! Final score: **{self.teams['away'].score} - {self.teams['home'].score}**
         Last update: {self.last_update[0]['batter']} {self.last_update[0]['text'].value} {self.last_update[0]['defender']}{punc}"""
@@ -589,6 +693,10 @@ class game(object):
                 return "Game not started."
 
     def add_stats(self):
+        players = self.get_stats()
+        db.add_stats(players)
+
+    def get_stats(self):
         players = []
         for this_player in self.teams["away"].lineup:
             players.append((this_player.name, this_player.game_stats))
@@ -596,7 +704,20 @@ class game(object):
             players.append((this_player.name, this_player.game_stats))
         players.append((self.teams["home"].pitcher.name, self.teams["home"].pitcher.game_stats))
         players.append((self.teams["away"].pitcher.name, self.teams["away"].pitcher.game_stats))
-        db.add_stats(players)
+        return players
+
+    def get_team_specific_stats(self):
+        players = {
+            self.teams["away"].name : [],
+            self.teams["home"].name : []
+            }
+        for this_player in self.teams["away"].lineup:
+            players[self.teams["away"].name].append((this_player.name, this_player.game_stats))
+        for this_player in self.teams["home"].lineup:
+            players[self.teams["home"].name].append((this_player.name, this_player.game_stats))
+        players[self.teams["home"].name].append((self.teams["home"].pitcher.name, self.teams["home"].pitcher.game_stats))
+        players[self.teams["away"].name].append((self.teams["away"].pitcher.name, self.teams["away"].pitcher.game_stats))
+        return players
         
 
 
@@ -619,26 +740,55 @@ def get_team(name):
     try:
         team_json = jsonpickle.decode(db.get_team(name)[0], keys=True, classes=team)
         if team_json is not None:
+            if team_json.pitcher is not None: #detects old-format teams, adds pitcher
+                team_json.rotation.append(team_json.pitcher)
+                team_json.pitcher = None
+                update_team(team_json)
             return team_json
         return None
+    except AttributeError:
+        team_json.rotation = []
+        team_json.rotation.append(team_json.pitcher)
+        team_json.pitcher = None
+        update_team(team_json)
+        return team_json
     except:
         return None
 
 def get_team_and_owner(name):
-    #try:
-    counter, name, team_json_string, timestamp, owner_id = db.get_team(name, owner=True)
-    team_json = jsonpickle.decode(team_json_string, keys=True, classes=team)
-    if team_json is not None:
+    try:
+        counter, name, team_json_string, timestamp, owner_id = db.get_team(name, owner=True)
+        team_json = jsonpickle.decode(team_json_string, keys=True, classes=team)
+        if team_json is not None:
+            if team_json.pitcher is not None: #detects old-format teams, adds pitcher
+                team_json.rotation.append(team_json.pitcher)
+                team_json.pitcher = None
+                update_team(team_json)
+            return (team_json, owner_id)
+        return None
+    except AttributeError:
+        team_json.rotation = []
+        team_json.rotation.append(team_json.pitcher)
+        team_json.pitcher = None
+        update_team(team_json)
         return (team_json, owner_id)
-    return None
-    #except:
-        #return None
+    except:
+        return None
 
 def save_team(this_team, user_id):
     try:
         this_team.prepare_for_save()
         team_json_string = jsonpickle.encode(this_team, keys=True)
         db.save_team(this_team.name, team_json_string, user_id)
+        return True
+    except:
+        return None
+
+def update_team(this_team):
+    try:
+        this_team.prepare_for_save()
+        team_json_string = jsonpickle.encode(this_team, keys=True)
+        db.update_team(this_team.name, team_json_string)
         return True
     except:
         return None
@@ -653,8 +803,22 @@ def get_all_teams():
 def search_team(search_term):
     teams = []
     for team_pickle in db.search_teams(search_term):
-        this_team = jsonpickle.decode(team_pickle[0], keys=True, classes=team)
-        teams.append(this_team)
+        team_json = jsonpickle.decode(team_pickle[0], keys=True, classes=team)
+        try:         
+            if team_json.pitcher is not None:
+                if len(team_json.rotation) == 0: #detects old-format teams, adds pitcher
+                    team_json.rotation.append(team_json.pitcher)
+                    team_json.pitcher = None
+                    update_team(team_json)
+        except AttributeError:
+            team_json.rotation = []
+            team_json.rotation.append(team_json.pitcher)
+            team_json.pitcher = None
+            update_team(team_json)
+        except:
+            return None
+
+        teams.append(team_json)
     return teams
 
 def base_string(base):
@@ -674,6 +838,8 @@ class weather(object):
     def __init__(self, new_name, new_emoji):
         self.name = new_name
         self.emoji = new_emoji
+        self.counter_away = 0
+        self.counter_home = 0
 
     def __str__(self):
         return f"{self.emoji} {self.name}"

@@ -1,32 +1,130 @@
-import asyncio, time, datetime, games, json, threading, jinja2
-from flask import Flask, url_for, Response, render_template, request, jsonify
+import asyncio, time, datetime, games, json, threading, jinja2, leagues, os, leagues
+from leagues import league_structure
+from league_storage import league_exists
+from flask import Flask, url_for, Response, render_template, request, jsonify, send_from_directory, abort
 from flask_socketio import SocketIO, emit
+import database as db
 
-app = Flask("the-prestige")
+app = Flask("the-prestige", static_folder='simmadome/build')
 app.config['SECRET KEY'] = 'dev'
 #app.config['SERVER_NAME'] = '0.0.0.0:5000'
 socketio = SocketIO(app)
 
-@app.route('/')
-def index():
-    return render_template("index.html")
+# Serve React App
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve(path):
+    if path != "" and os.path.exists(app.static_folder + '/' + path):
+        return send_from_directory(app.static_folder, path)
+    else:
+        return send_from_directory(app.static_folder, 'index.html')
+
+### API
+
+@app.route('/api/teams/search')
+def search_teams():
+    query = request.args.get('query')
+    page_len = int(request.args.get('page_len'))
+    page_num = int(request.args.get('page_num'))
+
+    if query is None:
+        abort(400, "A query term is required")
+
+    result = db.search_teams(query)
+    if page_len is not None: #pagination should probably be done in the sqlite query but this will do for now
+        if page_num is None:
+            abort(400, "A page_len argument must be accompanied by a page_num argument")
+        result = result[page_num*page_len : (page_num + 1)*page_len]
+
+    return jsonify([json.loads(x[0])['name'] for x in result]) #currently all we need is the name but that can change
+
+MAX_SUBLEAGUE_DIVISION_TOTAL = 22;
+MAX_TEAMS_PER_DIVISION = 12;
+
+@app.route('/api/leagues', methods=['POST'])
+def create_league():
+    config = json.loads(request.data)
+
+    if league_exists(config['name']):
+        return jsonify({'status':'err_league_exists'}), 400
+
+    num_subleagues = len(config['structure']['subleagues'])
+    if num_subleagues < 1 or num_subleagues % 2 != 0:
+        return jsonify({'status':'err_invalid_subleague_count'}), 400
+
+    num_divisions = len(config['structure']['subleagues'][0]['divisions'])
+    if num_subleagues * (num_divisions + 1) > MAX_SUBLEAGUE_DIVISION_TOTAL:
+        return jsonify({'status':'err_invalid_subleague_division_total'}), 400
+
+    league_dic = {}
+    err_teams = []
+    for subleague in config['structure']['subleagues']:
+        if subleague['name'] in league_dic:
+            return jsonify({'status':'err_duplicate_name', 'cause':subleague['name']})
+
+        subleague_dic = {}
+        for division in subleague['divisions']:
+            if division['name'] in subleague_dic:
+                return jsonify({'status':'err_duplicate_name', 'cause':f"{subleague['name']}/{division['name']}"}), 400
+            elif len(division['teams']) > MAX_TEAMS_PER_DIVISION:
+                return jsonify({'status':'err_too_many_teams', 'cause':f"{subleague['name']}/{division['name']}"})
+
+            teams = []
+            for team_name in division['teams']:
+                team = games.get_team(team_name)
+                if team is None:
+                    err_teams.append(team_name)
+                else:
+                    teams.append(team)
+            subleague_dic[division['name']] = teams
+        league_dic[subleague['name']] = subleague_dic
+
+    if len(err_teams) > 0:
+        return jsonify({'status':'err_no_such_team', 'cause': err_teams}), 400
+
+    for (key, min_val) in [
+        ('division_series', 1), 
+        ('inter_division_series', 1), 
+        ('inter_league_series', 1)
+    ]:
+        if config[key] < min_val:
+            return jsonify({'status':'err_invalid_optiion_value', 'cause':key}), 400
+
+    new_league = league_structure(config['name'])
+    new_league.setup(
+        league_dic, 
+        division_games=config['division_series'], # need to add a check that makes sure these values are ok
+        inter_division_games=config['inter_division_series'],
+        inter_league_games=config['inter_league_series'],
+    )
+    new_league.constraints["division_leaders"] = config["top_postseason"]
+    new_league.constraints["wild_cards"] = config["wildcards"]
+    new_league.generate_schedule()
+    leagues.save_league(new_league)
+
+    return jsonify({'status':'success_league_created'})
+
+
+
+### SOCKETS
 
 thread2 = threading.Thread(target=socketio.run,args=(app,'0.0.0.0'))
 thread2.start()
 
 master_games_dic = {} #key timestamp : (game game, {} state)
-data_to_send = []
+game_states = []
 
 @socketio.on("recieved")
 def handle_new_conn(data):
-    socketio.emit("states_update", data_to_send, room=request.sid)
+    socketio.emit("states_update", game_states, room=request.sid)
 
 def update_loop():
+    global game_states
     while True:
-        game_states = {}
-        game_times = iter(master_games_dic.copy().keys())
-        for game_time in game_times:
-            this_game, state, discrim_string = master_games_dic[game_time]
+        game_states = []
+        game_ids = iter(master_games_dic.copy().keys())
+        for game_id in game_ids:
+            this_game, state, discrim_string = master_games_dic[game_id]
             test_string = this_game.gamestate_display_full()
             state["leagueoruser"] = discrim_string
             state["display_inning"] = this_game.inning          #games need to be initialized with the following keys in state:
@@ -84,11 +182,26 @@ def update_loop():
                         state["update_emoji"] = "💎" 
                         state["update_text"] = updatestring
 
+                    elif "mulligan" in this_game.last_update[0].keys():
+                        updatestring = ""
+                        punc = ""
+                        if this_game.last_update[0]["defender"] != "":
+                            punc = ", "
+
+                        state["update_emoji"] = "🏌️‍♀️"
+                        state["update_text"] = f"{this_game.last_update[0]['batter']} would have gone out, but they took a mulligan!"
+
+                    elif "snow_atbat" in this_game.last_update[0].keys():
+                        state["update_emoji"] = "❄"
+                        state["update_text"] = this_game.last_update[0]["text"]
+
                     else:
                         updatestring = ""
                         punc = ""
                         if this_game.last_update[0]["defender"] != "":
                             punc = ". "
+
+                        
 
                         if "fc_out" in this_game.last_update[0].keys():
                             name, base_string = this_game.last_update[0]['fc_out']
@@ -100,35 +213,32 @@ def update_loop():
 
                         state["update_emoji"] = "🏏"
                         state["update_text"] = updatestring
+                        
+                        if "veil" in this_game.last_update[0].keys():
+                            state["update_emoji"] = "🌌"                            
+                            state["update_text"] += f" {this_game.last_update[0]['batter']}'s will manifests on {games.base_string(this_game.last_update[1])} base."
+                        elif "error" in this_game.last_update[0].keys():
+                            state["update_emoji"] = "👻"
+                            state["update_text"] = f"{this_game.last_update[0]['batter']}'s hit goes ethereal, and {this_game.last_update[0]['defender']} can't catch it! {this_game.last_update[0]['batter']} reaches base safely."
 
             state["bases"] = this_game.named_bases()
 
             state["top_of_inning"] = this_game.top_of_inning 
 
-            game_states[game_time] = state
+            game_states.append([game_id, state])
 
             if state["update_pause"] <= 1 and state["start_delay"] < 0:
                 if this_game.over:
                     state["update_pause"] = 2
                     if state["end_delay"] < 0:
-                        master_games_dic.pop(game_time)
+                        master_games_dic.pop(game_id)
                     else:
                         state["end_delay"] -= 1
-                        master_games_dic[game_time][1]["end_delay"] -= 1
+                        master_games_dic[game_id][1]["end_delay"] -= 1
                 else:
                     this_game.gamestate_update_full()
 
             state["update_pause"] -= 1
 
-        global data_to_send
-        template = jinja2.Environment(loader=jinja2.FileSystemLoader('templates')).get_template('game.html')
-        data_to_send = []
-        for timestamp in game_states:
-            data_to_send.append({
-                'timestamp' : timestamp,
-                'league' : game_states[timestamp]['leagueoruser'] if game_states[timestamp]['is_league'] else '',
-                'html' : template.render(state=game_states[timestamp])
-            })
-
-        socketio.emit("states_update", data_to_send)
-        time.sleep(6)
+        socketio.emit("states_update", game_states)
+        time.sleep(8)
