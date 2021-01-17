@@ -1,6 +1,7 @@
 import time, asyncio, json, jsonpickle, random, math, os
 import league_storage as league_db
 from itertools import chain
+from copy import deepcopy
 from games import team, game
 from discord import Embed, Color
 
@@ -122,8 +123,9 @@ class league_structure(object):
         matchups = []
         batch_subleagues = [] #each sub-array is all teams in each subleague
         subleague_max = 1
-        for subleague in self.league.keys():
-            teams = self.teams_in_subleague(subleague)
+        league = deepcopy(self.league)
+        for subleague in league.keys():
+            teams = deepcopy(self.teams_in_subleague(subleague))
             if subleague_max < len(teams):
                 subleague_max = len(teams)
             batch_subleagues.append(teams)
@@ -152,13 +154,13 @@ class league_structure(object):
                         a_home = not a_home
                     
         for i in range(0, self.constraints["inter_div_games"]): #inter-division matchups
-            for subleague in self.league.keys():
+            for subleague in league.keys():
                 division_max = 1
                 divisions = []
-                for div in self.league[subleague].keys():
-                    if division_max < len(self.league[subleague][div]):
-                        divison_max = len(self.league[subleague][div])
-                    divisions.append(self.league[subleague][div])
+                for div in league[subleague].keys():
+                    if division_max < len(league[subleague][div]):
+                        divison_max = len(league[subleague][div])
+                    divisions.append(deepcopy(league[subleague][div]))
 
                 last_div = None
                 if len(divisions) % 2 != 0:
@@ -186,8 +188,8 @@ class league_structure(object):
                     a_home = not a_home
 
 
-        for subleague in self.league.keys():
-            for division in self.league[subleague].values(): #generate round-robin matchups
+        for subleague in league.keys():
+            for division in league[subleague].values(): #generate round-robin matchups
                 if len(division) % 2 != 0:
                     division.append("OFF")
 
@@ -197,13 +199,14 @@ class league_structure(object):
                     teams_b.reverse()
 
                     for team_a, team_b in zip(teams_a, teams_b):
-                        for j in range(0, self.constraints["division_games"]):
-                            if i % 2 == 0:
-                                matchups.append([team_b.name, team_a.name])
-                            else:
-                                matchups.append([team_a.name, team_b.name])
+                        if team_a != "OFF" and team_b != "OFF":
+                            for j in range(0, self.constraints["division_games"]):                            
+                                if i % 2 == 0:
+                                    matchups.append([team_b.name, team_a.name])
+                                else:
+                                    matchups.append([team_a.name, team_b.name])
 
-                        division.insert(1, division.pop())
+                            division.insert(1, division.pop())
         return matchups       
     
     def generate_schedule(self):
