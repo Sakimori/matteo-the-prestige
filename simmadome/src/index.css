@@ -55,12 +55,24 @@ h2 {
     margin: auto;
 }
 
+#links {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+}
+
 #link_div {
     text-align: right;
     position: absolute;
     top: 1rem;
     right: 2rem;
     display: flex;
+}
+
+#nav_links {
+    position: absolute;
+    top: 1rem;
+    left: 2rem;
 }
 
 .github_logo, .twitter_logo, .patreon_container {
@@ -97,15 +109,18 @@ a:hover {
     color: white;
 }
 
-#utility_links {
-    position: absolute;
-    top: 1rem;
-    left: 2rem;
-}
-
 img.emoji {
    height: 1em;
    width: 1em;
    margin: 0 .05em 0 .1em;
    vertical-align: -0.1em;
+}
+
+@media only screen and (max-width: 800px) {
+    #link_div, #nav_links {
+        position: static;
+        margin-top: 0.5rem;
+        margin-left: 2rem;
+        margin-right: 2rem;
+    }
 }

@@ -5,23 +5,29 @@ import './GamesPage.css';
 import Game from './Game';
 
 function GamesPage() {
+  let gameList = useRef<(string | null)[]>([]);
+
   let [search, setSearch] = useState(window.location.search);
   useEffect(() => {
     setSearch(window.location.search);
+    gameList.current = [];
     //eslint-disable-next-line react-hooks/exhaustive-deps
   }, [window.location.search])
 
+  // get filter term
   let searchparams = new URLSearchParams(search);
   let filter = searchparams.get('league') ?? ""
 
+  // set up socket listener
   let [games, setGames] = useState<[string, GameState][]>([]);
   useListener(setGames);
 
+  // build filter list
   let filters = useRef(filter !== "" ? [filter] : []); 
   games.forEach((game) => { if (game[1].is_league && !filters.current.includes(game[1].leagueoruser)) { filters.current.push(game[1].leagueoruser) }});
   filters.current = filters.current.filter((f) => games.find((game) => game && game[1].is_league && game[1].leagueoruser === f) || f === filter);
 
-  let gameList = useRef<(string | null)[]>([]);
+  // update game list
   let filterGames = games.filter((game, i) => filter === "" || game[1].leagueoruser === filter);
   updateList(gameList.current, filterGames, searchparams.get('game'));
 
