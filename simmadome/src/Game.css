@@ -1,13 +1,4 @@
-
-:root {
-    --background-main: #2f3136; /*discord dark theme background-secondary - the same color as the embeds*/
-    --background-secondary: #4f545c; /*discord's background-tertiary*/
-    --background-accent: #4f545c; /*discord's background-accent*/
-    --highlight: rgb(113, 54, 138); /*matteo purple™*/
-}
-
 .game {
-    align-self: stretch;
     text-align: center;
     display: flex;
     flex-direction: column;
@@ -125,7 +116,7 @@
 }
 
 .score {
-    background: var(--background-accent);
+    background: var(--background-secondary);
     width: 40px;
     min-width: 40px;
     height: 40px;
@@ -170,7 +161,7 @@
     border-radius: 4px;
     align-items: center;
     display: flex;
-    justify-content: start;
+    justify-content: flex-start;
 }
 
 .update_emoji {
@@ -193,7 +184,7 @@
     height: 60px;
 }
 
-.base_2 {
+.field > .base {
     margin-bottom: -25%
 }
 

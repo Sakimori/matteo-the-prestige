@@ -1,0 +1,111 @@
+@import url('https://fonts.googleapis.com/css2?family=Alegreya&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Goldman:wght@700&display=swap');
+
+:root {
+    --background-main: #2f3136;
+    --background-secondary: #4f545c;
+    --background-tertiary: #202225;
+    --background-accent: #40444b;
+    --highlight: rgb(113, 54, 138); /*matteo purple™*/
+    --accent-red: #f04747;
+    --accent-green: rgb(67, 181, 129);
+}
+
+body {
+    background-image: url("img/naturalblack.png");
+}
+/* Background pattern from Toptal Subtle Patterns */
+
+* {
+    font-family: 'Alegreya', serif;
+    color: white;
+}
+
+h2 {
+    text-align: center;
+}
+
+.link{
+    position: relative;
+    top: 10px; 
+}
+
+.h1 {
+    margin: auto;
+    width: 45%;
+    color: white;
+}
+
+.page_header {
+    color: white;
+    font-family: 'Goldman', cursive;
+    text-decoration: none;
+}
+
+#header {
+    width: 100%;
+    height: max-content;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+#header .page_header {
+    margin: auto;
+}
+
+#link_div {
+    text-align: right;
+    position: absolute;
+    top: 1rem;
+    right: 2rem;
+    display: flex;
+}
+
+.github_logo, .twitter_logo, .patreon_container {
+    height: 2rem;
+    width: 2rem;
+    margin-left: 0.75rem;
+}
+
+.patreon_container {
+    border-radius: 1rem;
+    background: #FF424D;
+}
+
+.patreon_logo {
+    box-sizing: border-box;
+    padding: 0.35rem;
+    height: 2rem;
+    width: 2rem;
+    position: relative;
+    left: 0.1rem;
+    bottom: 0.05rem;
+}
+
+a {
+    background-color: transparent;
+    text-decoration: underline;
+}
+
+a:link, a:visited {
+    color: lightblue;
+}
+
+a:hover {
+    color: white;
+}
+
+#utility_links {
+    position: absolute;
+    top: 1rem;
+    left: 2rem;
+}
+
+img.emoji {
+   height: 1em;
+   width: 1em;
+   margin: 0 .05em 0 .1em;
+   vertical-align: -0.1em;
+}
