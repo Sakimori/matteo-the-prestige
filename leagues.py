@@ -149,7 +149,7 @@ class league_structure(object):
                             matchups.append([team_b.name, team_a.name])
                         else:
                             matchups.append([team_a.name, team_b.name])
-                        a_home != a_home
+                        a_home = not a_home
                     
         for i in range(0, self.constraints["inter_div_games"]): #inter-division matchups
             for subleague in self.league.keys():
@@ -183,7 +183,7 @@ class league_structure(object):
                         matchups.append([team_b.name, team_a.name])
                     else:
                         matchups.append([team_a.name, team_b.name])
-                    a_home != a_home
+                    a_home = not a_home
 
 
         for subleague in self.league.keys():
