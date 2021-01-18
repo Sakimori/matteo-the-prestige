@@ -1028,7 +1028,7 @@ def config():
 @client.event
 async def on_ready():
     db.initialcheck()
-    print(f"logged in as {client.user} with token {config()['token']}")
+    print(f"logged in as {client.user} with token {config()['token']} to {len(client.guilds)} servers")
     watch_task = asyncio.create_task(game_watcher())
     await watch_task
 
