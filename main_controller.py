@@ -57,6 +57,7 @@ def create_league():
         return jsonify({'status':'err_invalid_subleague_division_total'}), 400
 
     league_dic = {}
+    all_teams = set()
     err_teams = []
     for subleague in config['structure']['subleagues']:
         if subleague['name'] in league_dic:
@@ -67,10 +68,14 @@ def create_league():
             if division['name'] in subleague_dic:
                 return jsonify({'status':'err_duplicate_name', 'cause':f"{subleague['name']}/{division['name']}"}), 400
             elif len(division['teams']) > MAX_TEAMS_PER_DIVISION:
-                return jsonify({'status':'err_too_many_teams', 'cause':f"{subleague['name']}/{division['name']}"})
+                return jsonify({'status':'err_too_many_teams', 'cause':f"{subleague['name']}/{division['name']}"}), 400
 
             teams = []
             for team_name in division['teams']:
+                if team_name in all_teams:
+                    return jsonify({'status':'err_duplicate_team', 'cause':team_name}), 400
+                all_teams.add(team_name)
+                
                 team = games.get_team(team_name)
                 if team is None:
                     err_teams.append(team_name)

@@ -171,6 +171,8 @@
 
 .update_text {
     text-align: start;
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
 }
 
 .field {
