@@ -357,3 +357,4 @@ Pipfile
 env
 /data/leagues
 /simmadome/build
+/simmadome/.eslintcache
