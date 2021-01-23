@@ -98,7 +98,7 @@ def create_league():
     new_league = league_structure(config['name'])
     new_league.setup(
         league_dic, 
-        division_games=config['division_series'], # need to add a check that makes sure these values are ok
+        division_games=config['division_series'],
         inter_division_games=config['inter_division_series'],
         inter_league_games=config['inter_league_series'],
     )
