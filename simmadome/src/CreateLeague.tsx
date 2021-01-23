@@ -183,18 +183,51 @@ function CreateLeague() {
 	let [name, setName] = useState("");
 	let [showError, setShowError] = useState(false);
 	let [nameExists, setNameExists] = useState(false);
-	let [deletedTeams, setDeletedTeams] = useState<string[]>([]);
+	let [deletedTeams, setDeletedTeams] = useState(new Set<string>());
 	let [createSuccess, setCreateSuccess] = useState(false);
 	let [structure, structureDispatch] = useReducer(leagueStructureReducer, initLeagueStructure);
 	let [options, optionsDispatch] = useReducer(LeagueOptionsReducer, new LeagueOptionsState());
 
-	let self = useRef<HTMLDivElement | null>(null)
+	let self = useRef<HTMLDivElement | null>(null);	
 
 	useLayoutEffect(() => {
 		if (self.current) {
 			twemoji.parse(self.current)
 		}
-	})
+	});
+
+	let duplicateTeams = getDuplicateTeams(structure);
+
+	let submit = () => {
+		if (!validRequest(name, structure, options)) {
+			setShowError(true);
+		} else {
+			let req = new XMLHttpRequest();
+			let data = makeRequest(name, structure, options);
+			req.open("POST", "/api/leagues", true);
+			req.setRequestHeader("Content-type", "application/json");
+			req.onreadystatechange = () => {
+				if(req.readyState === 4) {
+					if (req.status === 200) {
+						setCreateSuccess(true);
+					}
+					if (req.status === 400) {
+						let err = JSON.parse(req.response);
+						switch (err.status) {
+						case 'err_league_exists':
+							setNameExists(true);
+							break;
+						case 'err_no_such_team':
+							setDeletedTeams(new Set(err.cause));
+							break;
+						}
+						setShowError(true);
+					}
+				}
+			}
+			req.send(data);
+		}
+	}
 
 	if (createSuccess) {
 		return( 
@@ -217,40 +250,21 @@ function CreateLeague() {
 				nameExists && showError ? "A league by that name already exists" : 
 				""
 			}</div>
-			<LeagueStructre state={structure} dispatch={structureDispatch} deletedTeams={deletedTeams} showError={showError}/>
+			<LeagueStructre 
+				state={structure} 
+				dispatch={structureDispatch} 
+				deletedTeams={deletedTeams}
+				duplicateTeams={duplicateTeams} 
+				showError={showError}
+			/>
 			<div className="cl_league_options">
-				<LeagueOptions state={options} dispatch={optionsDispatch} showError={showError}/>
+				<LeagueOptions 
+					state={options} 
+					dispatch={optionsDispatch} 
+					showError={showError}
+				/>
 				<div className="cl_option_submit_box">
-					<button className="cl_option_submit" onClick={e => {
-						if (!validRequest(name, structure, options)) {
-							setShowError(true);
-						} else {
-							let req = new XMLHttpRequest();
-							let data = makeRequest(name, structure, options);
-							req.open("POST", "/api/leagues", true);
-							req.setRequestHeader("Content-type", "application/json");
-							req.onreadystatechange = () => {
-								if(req.readyState === 4) {
-									if (req.status === 200) {
-										setCreateSuccess(true);
-									}
-									if (req.status === 400) {
-										let err = JSON.parse(req.response);
-										switch (err.status) {
-										case 'err_league_exists':
-											setNameExists(true);
-											break;
-										case 'err_no_such_team':
-											setDeletedTeams(err.cause);
-											break;
-										}
-										setShowError(true);
-									}
-								}
-							}
-							req.send(data);
-						}
-					}}>Submit</button>
+					<button className="cl_option_submit" onClick={submit}>Submit</button>
 					<div className="cl_option_err">{
 						!validRequest(name, structure, options) && showError ?
 						"Cannot create league. Some information is missing or invalid." : ""
@@ -283,8 +297,6 @@ function makeRequest(name:string, structure: LeagueStructureState, options:Leagu
 }
 
 function validRequest(name:string, structure: LeagueStructureState, options:LeagueOptionsState) {
-
-
 	return (
 		name !== "" && 
 
@@ -296,6 +308,7 @@ function validRequest(name:string, structure: LeagueStructureState, options:Leag
 		validNumber(options.wildcards, 0) &&
 
 		structure.subleagues.length % 2 === 0 &&
+		getDuplicateTeams(structure).size === 0 &&
 
 		structure.subleagues.every((subleague, si) => 
 			subleague.name !== "" &&
@@ -314,9 +327,27 @@ function validNumber(value: string, min = 1) {
 	return !isNaN(Number(value)) && Number(value) >= min;
 }
 
+function getDuplicateTeams(structure: LeagueStructureState) {
+	return new Set(
+		structure.subleagues.map(subleague => 
+			subleague.divisions.map(division =>
+				division.teams.map(team => team.name)
+			).reduce((prev, curr) => prev.concat(curr), [])
+		).reduce((prev, curr) => prev.concat(curr), [])
+		.filter((val, i, arr) => arr.slice(0, i).indexOf(val) >= 0)
+	)
+}
+
 // LEAGUE STRUCUTRE
 
-function LeagueStructre(props: {state: LeagueStructureState, dispatch: React.Dispatch<StructureReducerActions>, deletedTeams: string[], showError: boolean}) {
+function LeagueStructre(props: {
+		state: LeagueStructureState, 
+		dispatch: React.Dispatch<StructureReducerActions>, 
+		deletedTeams: Set<string>, 
+		duplicateTeams: Set<string>,
+		showError: boolean
+	}) {
+
 	let nSubleagues = props.state.subleagues.length;
 	let nDivisions = props.state.subleagues[0].divisions.length;
 	return (
@@ -324,8 +355,18 @@ function LeagueStructre(props: {state: LeagueStructureState, dispatch: React.Dis
 			<div className="cl_league_structure_scrollbox">
 				<div className="cl_subleague_add_align">
 					<div className="cl_league_structure_table">
-						<SubleagueHeaders subleagues={props.state.subleagues} dispatch={props.dispatch} showError={props.showError}/>
-						<Divisions subleagues={props.state.subleagues} dispatch={props.dispatch} deletedTeams={props.deletedTeams} showError={props.showError}/>
+						<SubleagueHeaders 
+							subleagues={props.state.subleagues} 
+							dispatch={props.dispatch} 
+							showError={props.showError}
+						/>
+						<Divisions 
+							subleagues={props.state.subleagues} 
+							dispatch={props.dispatch} 
+							deletedTeams={props.deletedTeams} 
+							duplicateTeams={props.duplicateTeams}
+							showError={props.showError}
+						/>
 					</div>
 					{ (nSubleagues+1) * (nDivisions+1) < MAX_SUBLEAGUE_DIVISION_TOTAL ?
 						<button className="cl_subleague_add" onClick={e => props.dispatch({type: 'add_subleague'})}>➕</button> :
@@ -380,7 +421,14 @@ function SubleageHeader(props: {state: SubleagueState, canDelete: boolean, dispa
 	);
 }
 
-function Divisions(props: {subleagues: SubleagueState[], dispatch: React.Dispatch<StructureReducerActions>, deletedTeams: string[], showError: boolean}) {
+function Divisions(props: {
+		subleagues: SubleagueState[], 
+		dispatch: React.Dispatch<StructureReducerActions>, 
+		deletedTeams: Set<string>, 
+		duplicateTeams: Set<string>,
+		showError: boolean
+	}) {
+
 	return (<>
 		{props.subleagues[0].divisions.map((val, di) => (
 			<div key={val.id} className="cl_table_row">
@@ -393,11 +441,16 @@ function Divisions(props: {subleagues: SubleagueState[], dispatch: React.Dispatc
 				{props.subleagues.map((subleague, si) => (
 					<div key={subleague.id} className="cl_division_cell">
 						<div className="cl_subleague_bg">
-							<Division state={subleague.divisions[di]} dispatch={action =>
-								props.dispatch(Object.assign({subleague_index: si, division_index: di}, action))
-							} 
-							isDuplicate={subleague.divisions.slice(0, di).some(val => val.name === subleague.divisions[di].name)}
-							deletedTeams={props.deletedTeams} showError={props.showError} />
+							<Division 
+								state={subleague.divisions[di]} 
+								dispatch={action =>
+									props.dispatch(Object.assign({subleague_index: si, division_index: di}, action))
+								} 
+								isDuplicate={subleague.divisions.slice(0, di).some(val => val.name === subleague.divisions[di].name)}
+								deletedTeams={props.deletedTeams}
+								duplicateTeams={props.duplicateTeams}
+								showError={props.showError} 
+							/>
 						</div>
 					</div>
 				))}
@@ -410,7 +463,8 @@ function Division(props: {
 		state: DivisionState, 
 		dispatch: (action: DistributiveOmit<StructureReducerActions, 'subleague_index'|'division_index'>) => void, 
 		isDuplicate: boolean,
-		deletedTeams: string[],
+		deletedTeams: Set<string>,
+		duplicateTeams: Set<string>,
 		showError: boolean
 	}) {
 
@@ -442,24 +496,27 @@ function Division(props: {
 				}/>
 				<div className="cl_structure_err cl_structure_err_div">{props.showError ? divisionErr : ""}</div>
 			</div>
-			{props.state.teams.map((team, i) => {
-				let showDeleted = props.showError && props.deletedTeams.includes(team.name)
-				return (<>
-					<div className="cl_team" key={team.id}>
-						<div className={"cl_team_name" + (showDeleted ? " cl_team_name_err" : "")}>{team.name}</div>
-						<button className="cl_team_delete" onClick={e => props.dispatch({type:'remove_team', name: team.name})}>➖</button>
-					</div>
-					<div className="cl_structure_err cl_structure_err_team">{showDeleted ? "This team was deleted" : ""}</div>
-				</>)
-			})}
-			{ props.state.teams.length < MAX_TEAMS_PER_DIVISION ? <>
+			{props.state.teams.map((team, i) => ( 
+				<Team key={team.id}
+					state={team} 
+					dispatch={props.dispatch} 
+					isDuplicate={props.duplicateTeams.has(team.name)} 
+					isDeleted={props.deletedTeams.has(team.name)} 
+					showError={props.showError}
+				/>
+			))}
+			{props.state.teams.length < MAX_TEAMS_PER_DIVISION ? <>
 				<div className="cl_team_add">
 					<input type="text" className="cl_newteam_name" placeholder="Add team..." value={newName} ref={newNameInput}
 						onChange={e => {
-							let params = new URLSearchParams({query: e.target.value, page_len: '5', page_num: '0'});
-							fetch("/api/teams/search?" + params.toString())
-								.then(response => response.json())
-								.then(data => setSearchResults(data));
+							if (e.target.value === "") {
+								setSearchResults([]);
+							} else {
+								let params = new URLSearchParams({query: e.target.value, page_len: '5', page_num: '0'});
+								fetch("/api/teams/search?" + params.toString())
+									.then(response => response.json())
+									.then(data => setSearchResults(data));
+							}
 							setNewName(e.target.value);
 						}}/>
 				</div>
@@ -483,6 +540,30 @@ function Division(props: {
 			<div className="cl_structure_err cl_structure_err_teams">{props.showError ? teamsErr : ""}</div>
 		</div>
 	);
+}
+
+function Team(props: {
+		state: TeamState, 
+		dispatch: (action: DistributiveOmit<StructureReducerActions, 'subleague_index'|'division_index'>) => void,
+		isDuplicate: boolean,
+		isDeleted: boolean,
+		showError: boolean
+	}) {
+
+	let errMsg = 
+		props.isDeleted ?
+			"This team was deleted" :
+		props.isDuplicate ?
+			"Each team in a league must be unique" :
+		"";
+	
+	return (<>
+		<div className="cl_team">
+			<div className={"cl_team_name" + (errMsg && props.showError ? " cl_team_name_err" : "")}>{props.state.name}</div>
+			<button className="cl_team_delete" onClick={e => props.dispatch({type:'remove_team', name: props.state.name})}>➖</button>
+		</div>
+		<div className="cl_structure_err cl_structure_err_team">{props.showError ? errMsg : ""}</div>
+	</>);
 }
 
 // LEAGUE OPTIONS

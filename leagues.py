@@ -167,7 +167,7 @@ class league_structure(object):
                     if division_max % 2 != 0:
                         divisions.append(["OFF" for i in range(0, division_max)])
                     else:
-                        last_div = divisions.pop
+                        last_div = divisions.pop()
     
                 divs_a = list(chain(divisions[int(len(divisions)/2):]))[0]
                 if last_div is not None:

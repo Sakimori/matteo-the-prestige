@@ -29,6 +29,10 @@ ReactDOM.render(
 function Header() {
   return (
     <div id="header">
+      <div id="links">
+        <div id="nav_links">
+          <Link to="/create_league">Create a League</Link>
+        </div>
         <div id="link_div">
           <a href="https://www.patreon.com/sixteen" className="patreon_link" target="_blank" rel="noopener noreferrer">
             <div className="patreon_container">
@@ -42,11 +46,9 @@ function Header() {
             <img className="twitter_logo" src={twitterLogo} alt="Twitter"/>
           </a>
         </div>
-        <div id="utility_links">
-          <Link to="/create_league">Create a League</Link>
-        </div>
-        <a href="/" className="page_header"><h2 className="page_header" style={{fontSize:"50px"} as React.CSSProperties}>THE SIMMADOME</h2></a>
-        <h2 className="page_header">Join SIBR on <a href="https://discord.gg/UhAajY2NCW" className="link"><img src={discordlogo} alt="" height="30"/></a> to start your own games!</h2>
+      </div>
+      <a href="/" className="page_header"><h2 className="page_header" style={{fontSize:"50px"} as React.CSSProperties}>THE SIMMADOME</h2></a>
+      <h2 className="page_header">Join SIBR on <a href="https://discord.gg/UhAajY2NCW" className="link"><img src={discordlogo} alt="" height="30"/></a> to start your own games!</h2>
     </div>
   );
 }

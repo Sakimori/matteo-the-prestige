@@ -70,10 +70,5 @@
 
 @media only screen and (max-device-width: 800px) {
     .container {
-        display: grid;
-        grid-template-columns: repeat(1, minmax(700px, 90%));
-        position: absolute;
-        left: 50%;
-        transform: translate(-50%, 0);
     }
 }
