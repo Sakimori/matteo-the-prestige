@@ -829,7 +829,7 @@ def base_string(base):
     elif base == 3:
         return "third"
     elif base == 4:
-        return "fourth"
+        return "None"
 
 class weather(object):
     name = "Sunny"
