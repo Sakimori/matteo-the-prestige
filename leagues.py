@@ -154,6 +154,7 @@ class league_structure(object):
                         a_home = not a_home
                     
         for i in range(0, self.constraints["inter_div_games"]): #inter-division matchups
+            extra_teams = []
             for subleague in league.keys():
                 division_max = 1
                 divisions = []
@@ -164,10 +165,7 @@ class league_structure(object):
 
                 last_div = None
                 if len(divisions) % 2 != 0:
-                    if division_max % 2 != 0:
-                        divisions.append(["OFF" for i in range(0, division_max)])
-                    else:
-                        last_div = divisions.pop()
+                    last_div = divisions.pop()
     
                 divs_a = list(chain(divisions[int(len(divisions)/2):]))[0]
                 if last_div is not None:
@@ -179,6 +177,11 @@ class league_structure(object):
                     divs_a.extend(last_div[:int(len(last_div)/2)])
                 random.shuffle(divs_b)
 
+                if len(divs_a) % 2 != 0:
+                    extra_teams.append(divs_a.pop())
+                if len(divs_b) % 2 != 0:
+                    extra_teams.append(divs_b.pop())
+
                 a_home = True
                 for team_a, team_b in zip(divs_a, divs_b):
                     if a_home:
@@ -187,6 +190,11 @@ class league_structure(object):
                         matchups.append([team_a.name, team_b.name])
                     a_home = not a_home
 
+            if extra_teams != []:
+                if len(extra_teams) % 2 == 0:
+                    for index in range(0, int(len(extra_teams)/2)):
+                        matchups.append(extra_teams[index], extra_teams[index+1])
+                        
 
         for subleague in league.keys():
             for division in league[subleague].values(): #generate round-robin matchups

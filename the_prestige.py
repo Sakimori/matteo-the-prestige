@@ -443,6 +443,45 @@ class RemovePlayerCommand(Command):
         except IndexError:
             await msg.channel.send("Three lines, remember? Command, then team, then name.")
 
+class ReplacePlayerCommand(Command):
+    name = "replaceplayer"
+    template = """m;replaceplayer
+    [team name]
+    [player name to **remove**]
+    [player name to **add**]"""
+    description = "Replaces a player on your team. If there are multiple copies of the same player on a team this will only replace the first one. Requires team ownership and exact spelling of team name."
+
+    async def execute(self, msg, command):
+        try:
+            team_name = command.split("\n")[1].strip()
+            remove_name = command.split("\n")[2].strip()
+            add_name = command.split("\n")[3].strip()
+            team, owner_id = games.get_team_and_owner(team_name)
+            if owner_id != msg.author.id and msg.author.id not in config()["owners"]:
+                await msg.channel.send("You're not authorized to mess with this team. Sorry, boss.")
+                return
+
+            old_player, old_pos, old_list = team.find_player(remove_name)
+            new_player = games.player(ono.get_stats(add_name))
+
+            if old_player is None:
+                await msg.channel.send("We've got bad news: that player isn't on your team. The good news is that... that player isn't on your team?")
+                return
+
+            else:
+                if old_list == team.lineup:
+                    team.delete_player(remove_name)
+                    team.add_lineup(new_player)
+                    team.slide_player(add_name, old_pos+1)
+                else:
+                    team.delete_player(remove_name)
+                    team.add_pitcher(new_player)
+                    team.slide_player(add_name, old_pos+1)
+                await msg.channel.send(embed=build_team_embed(team))
+                games.update_team(team)
+                await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
+        except IndexError:
+            await msg.channel.send("Four lines, remember? Command, then team, then the two names.")
 
 class HelpCommand(Command):
     name = "help"
@@ -807,6 +846,7 @@ Plays a league with a given name, provided that league has been saved on the web
         if league_exists(league_name):
             league = leagues.load_league_file(league_name)
             if "--noautopostseason" in command:
+                await msg.channel.send("Automatic postseason disabled.")
                 autoplay = int(list(league.schedule.keys())[-1]) - league.day_to_series_num(league.day) + 1
 
             if league.historic:
@@ -874,7 +914,7 @@ class LeagueWildcardCommand(Command):
 class LeaguePauseCommand(Command):
     name = "pauseleague"
     template = "m;pauseleague [league name]"
-    descripton = "Tells a currently running league to stop running automatically after the current series."
+    description = "Tells a currently running league to stop running automatically after the current series."
 
     async def execute(self, msg, command):
         league_name = command.strip()
@@ -970,6 +1010,7 @@ commands = [
     MovePlayerCommand(),
     AddPlayerCommand(),
     RemovePlayerCommand(),
+    ReplacePlayerCommand(),
     DeleteTeamCommand(),
     ShowTeamCommand(),
     ShowAllTeamsCommand(),
