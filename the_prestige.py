@@ -846,6 +846,7 @@ Plays a league with a given name, provided that league has been saved on the web
         if league_exists(league_name):
             league = leagues.load_league_file(league_name)
             if "--noautopostseason" in command:
+                await msg.channel.send("Automatic postseason disabled.")
                 autoplay = int(list(league.schedule.keys())[-1]) - league.day_to_series_num(league.day) + 1
 
             if league.historic:
@@ -913,7 +914,7 @@ class LeagueWildcardCommand(Command):
 class LeaguePauseCommand(Command):
     name = "pauseleague"
     template = "m;pauseleague [league name]"
-    descripton = "Tells a currently running league to stop running automatically after the current series."
+    description = "Tells a currently running league to stop running automatically after the current series."
 
     async def execute(self, msg, command):
         league_name = command.strip()
