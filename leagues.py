@@ -156,32 +156,39 @@ class league_structure(object):
         for i in range(0, self.constraints["inter_div_games"]): #inter-division matchups
             extra_teams = []
             for subleague in league.keys():
-                division_max = 1
                 divisions = []
                 for div in league[subleague].keys():
-                    if division_max < len(league[subleague][div]):
-                        divison_max = len(league[subleague][div])
                     divisions.append(deepcopy(league[subleague][div]))
 
+                #Check if there's an odd number of divisions
                 last_div = None
                 if len(divisions) % 2 != 0:
                     last_div = divisions.pop()
-    
-                divs_a = list(chain(divisions[int(len(divisions)/2):]))[0]
-                if last_div is not None:
-                    divs_a.extend(last_div[int(len(last_div)/2):])
-                random.shuffle(divs_a)
-            
-                divs_b = list(chain(divisions[:int(len(divisions)/2)]))[0]
-                if last_div is not None:
-                    divs_a.extend(last_div[:int(len(last_div)/2)])
-                random.shuffle(divs_b)
 
-                if len(divs_a) % 2 != 0:
-                    extra_teams.append(divs_a.pop())
-                if len(divs_b) % 2 != 0:
+                #Get teams from half of the divisions
+                divs_a = list(chain(divisions[int(len(divisions)/2):]))[0]
+                if last_div is not None: #If there's an extra division, take half of those teams too
+                    divs_a.extend(last_div[int(len(last_div)/2):])
+
+                #Get teams from the other half of the divisions
+                divs_b = list(chain(divisions[:int(len(divisions)/2)]))[0]
+                if last_div is not None: #If there's an extra division, take the rest of those teams too
+                    divs_b.extend(last_div[:int(len(last_div)/2)])
+
+                #Ensure both groups have the same number of teams
+                #Uness logic above changes, divs_a will always be one longer than divs_b or they'll be the same
+                if len(divs_a) > len(divs_b):
+                    divs_b.append(divs_a.pop())
+    
+                #Now we shuffle the groups
+                random.shuffle(divs_a)
+                random.shuffle(divs_b)
+                
+                #If there are an odd number of teams overall, then we need to remember the extra team for later
+                if len(divs_a) < len(divs_b):
                     extra_teams.append(divs_b.pop())
 
+                #Match up teams from each group
                 a_home = True
                 for team_a, team_b in zip(divs_a, divs_b):
                     if a_home:
@@ -190,10 +197,11 @@ class league_structure(object):
                         matchups.append([team_a.name, team_b.name])
                     a_home = not a_home
 
+            #Pair up any extra teams
             if extra_teams != []:
                 if len(extra_teams) % 2 == 0:
                     for index in range(0, int(len(extra_teams)/2)):
-                        matchups.append(extra_teams[index], extra_teams[index+1])
+                        matchups.append([extra_teams[index], extra_teams[index+1]])
                         
 
         for subleague in league.keys():
