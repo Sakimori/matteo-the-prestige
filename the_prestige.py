@@ -1547,6 +1547,7 @@ def build_team_embed(team):
         rotation_string += f"{player.name} {player.star_string('pitching_stars')}\n"
     embed.add_field(name="Rotation:", value=rotation_string, inline = False)
     embed.add_field(name="Lineup:", value=lineup_string, inline = False)
+    embed.add_field(name="█a██:", value=str(abs(hash(team.name)) % (10 ** 4)))
     embed.set_footer(text=team.slogan)
     return embed
 
