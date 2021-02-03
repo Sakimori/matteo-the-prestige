@@ -225,6 +225,8 @@ def update_loop():
                         elif "error" in this_game.last_update[0].keys():
                             state["update_emoji"] = "👻"
                             state["update_text"] = f"{this_game.last_update[0]['batter']}'s hit goes ethereal, and {this_game.last_update[0]['defender']} can't catch it! {this_game.last_update[0]['batter']} reaches base safely."
+                            if this_game.last_update[1] > 0:
+                                updatestring += f"{this_game.last_update[1]} runs scored!"
 
             state["bases"] = this_game.named_bases()
 
