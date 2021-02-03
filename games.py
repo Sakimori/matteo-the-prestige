@@ -32,7 +32,7 @@ def all_weathers():
     weathers_dic = {
         #"Supernova" : weather("Supernova", "🌟"),
         #"Midnight": weather("Midnight", "🕶"),
-        "Slight Tailwind": weather("Slight Tailwind", "🏌️‍♀️"),
+        #"Slight Tailwind": weather("Slight Tailwind", "🏌️‍♀️"),
         "Heavy Snow": weather("Heavy Snow", "❄"),
         "Twilight" : weather("Twilight", "👻"),
         "Thinned Veil" : weather("Thinned Veil", "🌌")
