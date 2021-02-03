@@ -331,6 +331,30 @@ class league_structure(object):
         this_embed.set_footer(text=f"Standings as of day {self.day-1} / {self.season_length()}")
         return this_embed
 
+    def standings_embed_div(self, division, div_name):
+        this_embed = Embed(color=Color.purple(), title=f"{self.name} Season {self.season}")
+        standings = {}
+        for team_name, wins, losses, run_diff in league_db.get_standings(self.name):
+            standings[team_name] = {"wins" : wins, "losses" : losses, "run_diff" : run_diff}
+        teams = self.division_standings(division, standings)
+
+        for index in range(0, len(teams)):
+            if index == self.constraints["division_leaders"] - 1:
+                teams[index][4] = "-"
+            else:
+                games_behind = ((teams[self.constraints["division_leaders"] - 1][1] - teams[index][1]) + (teams[index][2] - teams[self.constraints["division_leaders"] - 1][2]))/2
+                teams[index][4] = games_behind
+        teams_string = ""
+        for this_team in teams:
+            if this_team[2] != 0 or this_team[1] != 0:
+                teams_string += f"**{this_team[0].name}\n**{this_team[1]} - {this_team[2]} WR: {round(this_team[1]/(this_team[1]+this_team[2]), 3)} GB: {this_team[4]}\n\n"
+            else:
+                teams_string += f"**{this_team[0].name}\n**{this_team[1]} - {this_team[2]} WR: - GB: {this_team[4]}\n\n"
+
+        this_embed.add_field(name=f"{div_name} Division:", value=teams_string, inline = False)
+        this_embed.set_footer(text=f"Standings as of day {self.day-1} / {self.season_length()}")
+        return this_embed
+
     def wildcard_embed(self):
         this_embed = Embed(color=Color.purple(), title=f"{self.name} Wildcard Race")
         standings = {}

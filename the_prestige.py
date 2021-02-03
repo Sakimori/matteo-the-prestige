@@ -877,6 +877,33 @@ class LeagueDisplayCommand(Command):
         else:
             await msg.channel.send("Can't find that league, boss.")
 
+class LeagueDivisionDisplayCommand(Command):
+    name = "divisionstandings"
+    template = "m;divisionstandings [league name]\n[team name]"
+    description = "Displays the current standings for the given division in the given league."
+
+    async def execute(self, msg, command):
+        if league_exists(command.split("\n")[0].strip()):
+            league = leagues.load_league_file(command.split("\n")[0].strip())
+            division_name = command.split("\n")[1].strip()
+            division = None
+            for subleague in iter(league.league.keys()):
+                for div in iter(league.league[subleague].keys()):
+                    if div == division_name:
+                        division = league.league[subleague][div]
+            if division is None:
+                await msg.channel.send("Chief, that division doesn't exist in that league.")
+                return
+
+            try:
+                await msg.channel.send(embed=league.standings_embed_div(division, division_name))
+            except ValueError:
+                await msg.channel.send("Give us a proper number, boss.")
+            #except TypeError:
+                #await msg.channel.send("That season hasn't been played yet, chief.")
+        else:
+            await msg.channel.send("Can't find that league, boss.")
+
 class LeagueWildcardCommand(Command):
     name = "leaguewildcard"
     template = "m;leaguewildcard [league name]"
@@ -1046,6 +1073,7 @@ commands = [
     StartLeagueCommand(),
     LeaguePauseCommand(),
     LeagueDisplayCommand(),
+    LeagueDivisionDisplayCommand(),
     LeagueWildcardCommand(),
     LeagueScheduleCommand(),
     LeagueTeamScheduleCommand(),
@@ -1054,8 +1082,6 @@ commands = [
     HelpCommand(),
     StartDraftCommand(),
     DraftPlayerCommand(),
-    DebugLeagueStart(),
-    DebugLeagueDisplay()
 ]
 
 client = discord.Client()
