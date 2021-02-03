@@ -782,38 +782,6 @@ class StartDraftCommand(Command):
             raise SlowDraftError('Too slow')
         return draft_message
 
-class DebugLeagueStart(Command):
-    name = "startdebugleague"
-
-    async def execute(self, msg, command):
-        if not league_exists("test2"):
-            league = leagues.league_structure("test2")
-            league.setup({
-                "nL" : { 
-                    "nL west" : [get_team_fuzzy_search("lockpicks"), get_team_fuzzy_search("liches")],
-                    "nL east" : [get_team_fuzzy_search("bethesda soft"), get_team_fuzzy_search("traverse city")]
-                    },
-                "aL" : {
-                    "aL west" : [get_team_fuzzy_search("deep space"), get_team_fuzzy_search("phoenix")],
-                    "aL east" : [get_team_fuzzy_search("cheyenne mountain"), get_team_fuzzy_search("tarot dragons")]
-                    }
-            }, division_games=6, inter_division_games=3, inter_league_games=3, games_per_hour = 12)
-            league.generate_schedule()
-            leagues.save_league(league)
-
-class DebugLeagueDisplay(Command):
-    name = "displaydebugleague"
-
-    async def execute(self, msg, command):
-        if league_exists("Midseries"):
-            league = leagues.load_league_file("Midseries")
-            league.champion = "Butts"
-            leagues.save_league(league)
-            season_save(league)
-            league.season_reset()
-
-            await msg.channel.send(embed=league.past_standings(1))
-
             
 class StartLeagueCommand(Command):
     name = "startleague"
