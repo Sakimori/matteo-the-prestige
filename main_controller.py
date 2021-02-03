@@ -172,11 +172,17 @@ def update_loop():
                         state["batter"] = "-"
                     elif this_game.top_of_inning:
                         state["update_text"] = f"Top of {this_game.inning}. {this_game.teams['away'].name} batting!"
+                        if this_game.weather.name == "Drizzle":
+                            state["update_emoji"] = "🌧"
+                            state["update_text"] += f' Due to inclement weather, {this_game.teams["away"].lineup[(this_game.teams["away"].lineup_position-1) % len(this_game.teams["away"].lineup)].name} is placed on second base.'
                     else:
                         if this_game.inning >= this_game.max_innings:
                             if this_game.teams["home"].score > this_game.teams["away"].score:
                                 this_game.victory_lap = True
                         state["update_text"] = f"Bottom of {this_game.inning}. {this_game.teams['home'].name} batting!"
+                        if this_game.weather.name == "Drizzle":
+                            state["update_emoji"] = "🌧"
+                            state["update_text"] += f' Due to inclement weather, {this_game.teams["home"].lineup[(this_game.teams["home"].lineup_position-1) % len(this_game.teams["home"].lineup)].name} is placed on second base.'
 
                 elif state["update_pause"] != 1 and test_string != "Game not started.":
                     if "steals" in this_game.last_update[0].keys():

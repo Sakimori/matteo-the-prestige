@@ -35,7 +35,9 @@ def all_weathers():
         #"Slight Tailwind": weather("Slight Tailwind", "🏌️‍♀️"),
         "Heavy Snow": weather("Heavy Snow", "❄"),
         "Twilight" : weather("Twilight", "👻"),
-        "Thinned Veil" : weather("Thinned Veil", "🌌")
+        "Thinned Veil" : weather("Thinned Veil", "🌌"),
+        "Heat Wave" : weather("Heat Wave", "🌄"),
+        "Drizzle" : weather("Drizzle", "🌧")
         }
     return weathers_dic
 
@@ -654,6 +656,12 @@ class game(object):
             if self.inning > self.max_innings and self.teams["home"].score != self.teams["away"].score: #game over
                 self.over = True
         self.top_of_inning = not self.top_of_inning
+
+        if self.weather.name == "Drizzle":
+            if self.top_of_inning:
+                self.bases[2] = self.teams["away"].lineup[(self.teams["away"].lineup_position-1) % len(self.teams["away"].lineup)]
+            else:
+                self.bases[2] = self.teams["home"].lineup[(self.teams["home"].lineup_position-1) % len(self.teams["home"].lineup)]
 
     def pitcher_insert(self, this_team):
         rounds = math.ceil(this_team.lineup_position / len(this_team.lineup))
