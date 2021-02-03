@@ -209,7 +209,7 @@ class league_structure(object):
             if extra_teams != []:
                 if len(extra_teams) % 2 == 0:
                     for index in range(0, int(len(extra_teams)/2)):
-                        matchups.append([extra_teams[index], extra_teams[index+1]])
+                        matchups.append([extra_teams[index].name, extra_teams[index+1].name])
                         
 
         for subleague in league.keys():
