@@ -989,7 +989,7 @@ class LeagueScheduleCommand(Command):
     description = "Sends an embed with the given league's schedule for the next 4 series."
 
     async def execute(self, msg, command):
-        league_name = command.strip()
+        league_name = command.split("\n")[0].strip()
         if league_exists(league_name):
             league = leagues.load_league_file(league_name)
             current_series = league.day_to_series_num(league.day)
@@ -1008,6 +1008,41 @@ class LeagueScheduleCommand(Command):
                             schedule_text += "Resting:\n"
                             for team in teams:
                                 schedule_text += f"**{team}**\n"
+                        sched_embed.add_field(name=f"Days {((current_series+day-1)*league.series_length) + 1} - {(current_series+day)*(league.series_length)}", value=schedule_text, inline = False)
+                await msg.channel.send(embed=sched_embed)
+            else:
+                await msg.channel.send("That league's already finished with this season, boss.")
+        else:
+            await msg.channel.send("We can't find that league. Typo?")
+
+class LeagueTeamScheduleCommand(Command):
+    name = "teamschedule"
+    template = "m;teamschedule [league name]\n[team name]"
+    description = "Sends an embed with the given team's schedule in the given league for the next 7 series."
+
+    async def execute(self, msg, command):
+        league_name = command.split("\n")[0].strip()
+        team_name = command.split("\n")[1].strip()
+        team = get_team_fuzzy_search(team_name)
+        if league_exists(league_name):
+            league = leagues.load_league_file(league_name)
+            current_series = league.day_to_series_num(league.day)
+
+            if team.name not in league.team_names_in_league():
+                await msg.channel.send("Can't find that team in that league, chief.")
+                return
+
+            if str(current_series+1) in league.schedule.keys():
+                sched_embed = discord.Embed(title=f"{team.name}'s Schedule for the {league.name}:", color=discord.Color.purple())
+                days = [0,1,2,3,4,5,6]
+                for day in days:
+                    if str(current_series+day) in league.schedule.keys():
+                        schedule_text = ""
+                        for game in league.schedule[str(current_series+day)]:
+                            if team.name in game:
+                                schedule_text += f"**{game[0]}** @ **{game[1]}**"
+                        if schedule_text == "":
+                            schedule_text += "Resting"
                         sched_embed.add_field(name=f"Days {((current_series+day-1)*league.series_length) + 1} - {(current_series+day)*(league.series_length)}", value=schedule_text, inline = False)
                 await msg.channel.send(embed=sched_embed)
             else:
@@ -1045,6 +1080,7 @@ commands = [
     LeagueDisplayCommand(),
     LeagueWildcardCommand(),
     LeagueScheduleCommand(),
+    LeagueTeamScheduleCommand(),
     CreditCommand(),
     RomanCommand(),
     HelpCommand(),
