@@ -191,7 +191,7 @@ class team(object):
     def set_pitcher(self, rotation_slot = None, use_lineup = False):
         temp_rotation = self.rotation.copy()
         if use_lineup:         
-            for batter in self.rotation:
+            for batter in self.lineup:
                 temp_rotation.append(batter)
         if rotation_slot is None:
             self.pitcher = random.choice(temp_rotation)
@@ -638,6 +638,25 @@ class game(object):
         offense_team.lineup_position += 1 #put next batter up
         if self.outs >= 3:
             self.flip_inning()
+            if self.weather.name == "Heat Wave":
+                if self.top_of_inning:
+                    self.weather.home_pitcher = self.get_pitcher()
+                    if self.inning >= self.weather.counter_home:
+                        self.weather.counter_home = self.weather.counter_home - (self.weather.counter_home % 5) + 5 + random.randint(1,4) #rounds down to last 5, adds up to next 5. then adds a random number 2<=x<=5 to determine next pitcher                       
+                        tries = 0
+                        while self.get_pitcher() == self.weather.home_pitcher and tries < 3:
+                            self.teams["home"].set_pitcher(use_lineup = True)
+                            tries += 1
+
+ 
+                else:
+                    self.weather.away_pitcher = self.get_pitcher()
+                    if self.inning >= self.weather.counter_away:
+                        self.weather.counter_away = self.weather.counter_away - (self.weather.counter_away % 5) + 5 + random.randint(1,4)                  
+                        tries = 0
+                        while self.get_pitcher() == self.weather.away_pitcher and tries < 3:
+                            self.teams["away"].set_pitcher(use_lineup = True)
+                            tries += 1
          
 
         return (result, scores_to_add) #returns ab information and scores

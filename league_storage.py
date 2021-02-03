@@ -168,6 +168,13 @@ def season_save(league):
                 if "." in item.name:
                     os.rename(os.path.join(data_dir, league_dir, league.name, item.name), os.path.join(new_dir, item.name))
 
+def season_restart(league):
+    if league_exists(league.name):
+        with os.scandir(os.path.join(data_dir, league_dir, league.name)) as folder:
+            for item in folder:
+                if "." in item.name:
+                    os.remove(os.path.join(data_dir, league_dir, league.name, item.name))
+
 def get_past_standings(league_name, season_num):
     if league_exists(league_name):
          with os.scandir(os.path.join(data_dir, league_dir, league_name)) as folder:

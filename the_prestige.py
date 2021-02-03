@@ -1,7 +1,7 @@
 import discord, json, math, os, roman, games, asyncio, random, main_controller, threading, time, urllib, leagues, datetime
 import database as db
 import onomancer as ono
-from league_storage import league_exists, season_save
+from league_storage import league_exists, season_save, season_restart
 from the_draft import Draft, DRAFT_ROUNDS
 from flask import Flask
 from uuid import uuid4
@@ -1045,6 +1045,19 @@ class LeagueTeamScheduleCommand(Command):
         else:
             await msg.channel.send("We can't find that league. Typo?")
             
+class LeagueRegenerateScheduleCommand(Command):
+    name = "leagueseasonreset"
+    template = "m;leagueseasonreset [league name]"
+    description = "Completely scraps the given league's current season, resetting everything to day 1 of the current season. Requires ownership."
+
+    async def execute(self, msg, command):
+        league_name = command.split("\n")[0].strip()
+        if league_exists(league_name):
+            league = leagues.load_league_file(league_name)
+            if (league.owner is not None and msg.author.id in league.owner) or (league.owner is not None and msg.author.id in config()["owners"]):
+                season_restart(league)
+                league.season -= 1
+                league.season_reset()
 
 commands = [
     IntroduceCommand(),
@@ -1077,6 +1090,7 @@ commands = [
     LeagueWildcardCommand(),
     LeagueScheduleCommand(),
     LeagueTeamScheduleCommand(),
+    LeagueRegenerateScheduleCommand(),
     CreditCommand(),
     RomanCommand(),
     HelpCommand(),
@@ -1344,6 +1358,9 @@ def prepare_game(newgame, league = None, weather_name = None):
     if newgame.weather.name == "Heavy Snow":
         newgame.weather.counter_away = random.randint(0,len(newgame.teams['away'].lineup)-1)
         newgame.weather.counter_home = random.randint(0,len(newgame.teams['home'].lineup)-1)
+    elif newgame.weather.name == "Heat Wave":
+        newgame.weather.counter_away = random.randint(2,4)
+        newgame.weather.counter_home = random.randint(2,4)
     return newgame, state_init
 
 async def start_tournament_round(channel, tourney, seeding = None):

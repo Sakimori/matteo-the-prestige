@@ -175,6 +175,10 @@ def update_loop():
                         if this_game.weather.name == "Drizzle":
                             state["update_emoji"] = "🌧"
                             state["update_text"] += f' Due to inclement weather, {this_game.teams["away"].lineup[(this_game.teams["away"].lineup_position-1) % len(this_game.teams["away"].lineup)].name} is placed on second base.'
+                        elif this_game.weather.name == "Heat Wave" and hasattr(this_game.weather, "home_pitcher") and this_game.weather.home_pitcher.name != state["pitcher"]:
+                            state["update_emoji"] = "🌄"
+                            state["update_text"] += f' {this_game.weather.home_pitcher} is exhausted from the heat. {state["pitcher"]} is forced to pitch!'
+                            
                     else:
                         if this_game.inning >= this_game.max_innings:
                             if this_game.teams["home"].score > this_game.teams["away"].score:
@@ -183,6 +187,9 @@ def update_loop():
                         if this_game.weather.name == "Drizzle":
                             state["update_emoji"] = "🌧"
                             state["update_text"] += f' Due to inclement weather, {this_game.teams["home"].lineup[(this_game.teams["home"].lineup_position-1) % len(this_game.teams["home"].lineup)].name} is placed on second base.'
+                        elif this_game.weather.name == "Heat Wave" and hasattr(this_game.weather, "away_pitcher") and this_game.weather.away_pitcher.name != state["pitcher"]:
+                            state["update_emoji"] = "🌄"
+                            state["update_text"] += f' {this_game.weather.away_pitcher} is exhausted from the heat. {state["pitcher"]} is forced to pitch!'
 
                 elif state["update_pause"] != 1 and test_string != "Game not started.":
                     if "steals" in this_game.last_update[0].keys():
