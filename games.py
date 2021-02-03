@@ -114,6 +114,11 @@ class team(object):
         else:
             return (None, None, None)
 
+    def find_player_spec(self, name, roster):
+         for s_index in range(0,len(roster)):
+            if roster[s_index].name == name:
+                return (roster[s_index], s_index)
+
     def average_stars(self):
         total_stars = 0
         for _player in self.lineup:
@@ -146,6 +151,21 @@ class team(object):
     def slide_player(self, name, new_spot):
         this_player, index, roster = self.find_player(name)
         if this_player is not None and new_spot <= len(roster):
+            roster.pop(index)
+            roster.insert(new_spot-1, this_player)
+            return True
+        else:
+            return False
+
+    def slide_player_spec(self, this_player_name, new_spot, roster):
+        index = None
+        for s_index in range(0,len(roster)):
+            if roster[s_index].name == this_player_name:
+                index = s_index
+                this_player = roster[s_index]
+        if index is None:
+            return False
+        elif new_spot <= len(roster):
             roster.pop(index)
             roster.insert(new_spot-1, this_player)
             return True

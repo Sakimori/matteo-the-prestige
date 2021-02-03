@@ -370,13 +370,26 @@ class MovePlayerCommand(Command):
             if owner_id != msg.author.id and msg.author.id not in config()["owners"]:
                 await msg.channel.send("You're not authorized to mess with this team. Sorry, boss.")
                 return
-            elif not team.slide_player(player_name, new_pos):
-                await msg.channel.send("You either gave us a number that was bigger than your current roster, or we couldn't find the player on the team. Try again.")
-                return
             else:
-                await msg.channel.send(embed=build_team_embed(team))
-                games.update_team(team)
-                await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
+                if team.find_player(player_name)[2] is None or len(team.find_player(player_name)[2]) <= new_pos:
+                    await msg.channel.send("You either gave us a number that was bigger than your current roster, or we couldn't find the player on the team. Try again.")
+                    return
+
+                if "batter" in command.split("\n")[0].lower():
+                    roster = team.lineup
+                elif "pitcher" in command.split("\n")[0].lower():
+                    roster = team.rotation
+                else:
+                    roster = None
+
+                if (roster is not None and team.slide_player_spec(player_name, new_pos, roster)) or (roster is None and team.slide_player(player_name, new_pos)):
+                    await msg.channel.send(embed=build_team_embed(team))
+                    games.update_team(team)
+                    await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
+                else:
+                    await msg.channel.send("You either gave us a number that was bigger than your current roster, or we couldn't find the player on the team. Try again.")
+                    return
+
         except IndexError:
             await msg.channel.send("Four lines, remember? Command, then team, then name, and finally, new spot on the lineup or rotation.")
 
