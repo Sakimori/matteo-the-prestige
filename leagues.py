@@ -102,6 +102,14 @@ class league_structure(object):
                 teams += teams_list
         return teams
 
+    def team_names_in_league(self):
+        teams = []
+        for division in self.league.values():
+            for teams_list in division.values():
+                for team in teams_list:
+                    teams.append(team.name)
+        return teams
+
     def teams_in_subleague(self, subleague_name):
         teams = []
         if subleague_name in self.league.keys():

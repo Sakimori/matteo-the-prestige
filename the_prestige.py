@@ -994,13 +994,20 @@ class LeagueScheduleCommand(Command):
             league = leagues.load_league_file(league_name)
             current_series = league.day_to_series_num(league.day)
             if str(current_series+1) in league.schedule.keys():
-                sched_embed = discord.Embed(title=f"{league.name}'s Schedule:")
+                sched_embed = discord.Embed(title=f"{league.name}'s Schedule:", color=discord.Color.magenta())
                 days = [0,1,2,3]
                 for day in days:
                     if str(current_series+day) in league.schedule.keys():
                         schedule_text = ""
+                        teams = league.team_names_in_league()
                         for game in league.schedule[str(current_series+day)]:
                             schedule_text += f"**{game[0]}** @ **{game[1]}**\n"
+                            teams.pop(teams.index(game[0]))
+                            teams.pop(teams.index(game[1]))
+                        if len(teams) > 0:
+                            schedule_text += "Resting:\n"
+                            for team in teams:
+                                schedule_text += f"**{team}**\n"
                         sched_embed.add_field(name=f"Days {((current_series+day-1)*league.series_length) + 1} - {(current_series+day)*(league.series_length)}", value=schedule_text, inline = False)
                 await msg.channel.send(embed=sched_embed)
             else:
