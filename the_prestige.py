@@ -1055,10 +1055,18 @@ class LeagueRegenerateScheduleCommand(Command):
         if league_exists(league_name):
             league = leagues.load_league_file(league_name)
             if (league.owner is not None and msg.author.id in league.owner) or (league.owner is not None and msg.author.id in config()["owners"]):
+                await msg.channel.send("You got it, boss. Give us two seconds and a bucket of white-out.")
                 season_restart(league)
                 league.season -= 1
-                league.season_reset()
-
+                league.season_reset()               
+                await asyncio.sleep(1)
+                await msg.channel.send("Done and dusted. Go ahead and start the league again whenever you want.")
+                return
+            else:
+                await msg.channel.send("That league isn't yours, boss.")
+                return
+        else:
+            await msg.channel.send("We can't find that league. Typo?")
 commands = [
     IntroduceCommand(),
     CountActiveGamesCommand(),
