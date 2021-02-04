@@ -1067,6 +1067,27 @@ class LeagueRegenerateScheduleCommand(Command):
                 return
         else:
             await msg.channel.send("We can't find that league. Typo?")
+
+class LeagueForceStopCommand(Command):
+    name = "leagueforcestop"
+    template = "m;leagueforcestop [league name]"
+    description = "Halts a league and removes it from the list of currently running leagues. To be used in the case of crashed loops."
+
+    def isauthorized(self, user):
+        return user.id in config()["owners"]
+
+    async def execute(self, msg, command):
+        league_name = command.split("\n")[0].strip()
+        for index in range(0,len(active_leagues)):
+            if active_leagues[index].name == league_name:
+                active_leagues.pop(index)
+                await msg.channel.send("League halted, boss. We hope you did that on purpose.")
+                return
+        await msg.channel.send("That league either doesn't exist or isn't in the active list. So, huzzah?")
+            
+            
+
+
 commands = [
     IntroduceCommand(),
     CountActiveGamesCommand(),
