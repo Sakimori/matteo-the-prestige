@@ -9,6 +9,11 @@ if you would like to add matteo to your server to be able to set up teams and ga
 
 accepting pull requests, check the issues for to-dos.
 
+## Table of Contents:
+- [FAQ](#FAQ)
+- [commands](#commands)
+
+
 ## FAQ (this FAQ is a work in progress and will be expanded over time):
 - Q: Why have the teams in my league played an uneven amount of games/why are some teams not scheduled for games for some weeks?  
   A: Scheduling algorithms are really hard and the way xvi chose to do it involves some teams having byes for some series of the season, it'll even out by the end and every team will play the same number of games.
