@@ -823,6 +823,9 @@ Plays a league with a given name, provided that league has been saved on the web
         except ValueError:
             await msg.channel.send("Chief, we need a games per hour number between 1 and 12. We think that's reasonable.")
             return
+        except IndexError:
+            await msg.channel.send("We need a games per hour number in the second line.")
+            return
 
         if league_exists(league_name):
             league = leagues.load_league_file(league_name)
@@ -1120,11 +1123,12 @@ commands = [
     LeagueScheduleCommand(),
     LeagueTeamScheduleCommand(),
     LeagueRegenerateScheduleCommand(),
+    LeagueForceStopCommand(),
     CreditCommand(),
     RomanCommand(),
     HelpCommand(),
     StartDraftCommand(),
-    DraftPlayerCommand(),
+    DraftPlayerCommand()
 ]
 
 client = discord.Client()
