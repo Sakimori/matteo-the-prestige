@@ -3,6 +3,7 @@ import sqlite3 as sql
 
 data_dir = "data"
 league_dir = "leagues"
+statements_file = os.path.join(data_dir, "sql_statements.xvi")
 
 def create_connection(league_name):
     #create connection, create db if doesn't exist
@@ -20,6 +21,45 @@ def create_connection(league_name):
     except:
         print("oops, db connection no work")
         return conn
+
+def statements():
+    if not os.path.exists(os.path.dirname(statements_file)):
+        os.makedirs(os.path.dirname(statements_file))
+    if not os.path.exists(statements_file):
+        #generate default statements: bat_base and pitch_base to be appended with a relevant ORDER BY statement
+        config_dic = {
+                "bat_base" : """SELECT name, team_name,
+	plate_appearances - (walks_taken + sacrifices) as ABs, 
+	ROUND(hits*1.0 / (plate_appearances - (walks_taken + sacrifices)*1.0),3) as BA,
+	ROUND(total_bases*1.0 / (plate_appearances - (walks_taken + sacrifices)*1.0),3) as SLG,
+	ROUND((walks_taken + hits)*1.0/plate_appearances*1.0,3) as OBP,
+	ROUND((walks_taken + hits)*1.0/plate_appearances*1.0,3) + ROUND(total_bases*1.0 / (plate_appearances - (walks_taken + sacrifices)*1.0),3) as OPS
+FROM stats WHERE plate_appearances > 8""",
+                "avg" : ["ORDER BY BA DESC;", "bat_base"],
+                "slg" : ["ORDER BY SLG DESC;", "bat_base"],
+                "obp" : ["ORDER BY OBP DESC;", "bat_base"],
+                "ops" : ["ORDER BY OPS DESC;", "bat_base"],
+                "pitch_base" : """SELECT name, team_name,
+    ROUND(((outs_pitched*1.0)/3.0),1) as IP,
+	ROUND(runs_allowed*27.0/(outs_pitched*1.0),3) as ERA,
+	ROUND((walks_allowed+hits_allowed)*3.0/(outs_pitched*1.0),3) as WHIP,
+	ROUND(walks_allowed*27.0/(outs_pitched*1.0),3) as BBper9,
+	ROUND(strikeouts_given*27.0/(outs_pitched*1.0),3) as Kper9,
+	ROUND(strikeouts_given*1.0/walks_allowed*1.0,3) as KperBB
+FROM stats WHERE outs_pitched > 20
+""",
+                "era" : ["ORDER BY ERA ASC;", "pitch_base"],
+                "whip" : ["ORDER BY WHIP ASC;", "pitch_base"],
+                "kper9" : ["ORDER BY Kper9 DESC;", "pitch_base"],
+                "bbper9" : ["ORDER BY BBper9 ASC;", "pitch_base"],
+                "kperbb" : ["ORDER BY KperBB DESC;", "pitch_base"]
+            }
+        with open(statements_file, "w") as config_file:
+            json.dump(config_dic, config_file, indent=4)
+            return config_dic
+    else:
+        with open(statements_file) as config_file:
+            return json.load(config_file)
 
 def create_season_connection(league_name, season_num):
     #create connection, create db if doesn't exist
@@ -128,6 +168,19 @@ def add_stats(league_name, player_game_stats_list):
                         c.execute(f"UPDATE stats SET {stat} = ? WHERE name=? AND team_name=?",(player_stats_dic[stat], name, team_name))
         conn.commit()
     conn.close()
+
+def get_stats(league_name, stat, is_batter=True):
+    conn = create_connection(league_name)
+    stats = None
+    if conn is not None:
+        conn.row_factory = sql.Row
+        c=conn.cursor()
+
+        if stat in statements().keys():
+            c.execute(statements()[statements()[stat][1]]+"\n"+statements()[stat][0])
+            stats = c.fetchall()
+    conn.close()
+    return stats
 
 def update_standings(league_name, update_dic):
     if league_exists(league_name):

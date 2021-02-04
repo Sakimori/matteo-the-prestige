@@ -880,6 +880,28 @@ class LeagueDisplayCommand(Command):
         else:
             await msg.channel.send("Can't find that league, boss.")
 
+class LeagueLeadersCommand(Command):
+    name = "leagueleaders"
+    template = "m;leagueleaders [league name]\n[stat name/abbreviation]"
+    description = "Displays a league's leaders in the given stats. A list of the allowed stats can be found on the github readme."
+
+    async def execute(self, msg, command):
+        if league_exists(command.split("\n")[0].strip()):
+            league = leagues.load_league_file(command.split("\n")[0].strip())
+            stat_name = command.split("\n")[1].strip()
+            stat_embed = league.stat_embed(stat_name)
+            if stat_embed is None:
+                await msg.channel.send("We don't know what that stat is, chief.")
+                return
+            try:
+                await msg.channel.send(embed=stat_embed)
+                return
+            except:
+                await msg.channel.send("Nobody's played enough games to get meaningful stats in that category yet, chief. Try again after the next game or two.")
+                return
+
+        await msg.channel.send("Can't find that league, boss.")
+
 class LeagueDivisionDisplayCommand(Command):
     name = "divisionstandings"
     template = "m;divisionstandings [league name]\n[team name]"
@@ -1118,6 +1140,7 @@ commands = [
     StartLeagueCommand(),
     LeaguePauseCommand(),
     LeagueDisplayCommand(),
+    LeagueLeadersCommand(),
     LeagueDivisionDisplayCommand(),
     LeagueWildcardCommand(),
     LeagueScheduleCommand(),

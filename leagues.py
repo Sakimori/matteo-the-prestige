@@ -415,6 +415,22 @@ class league_structure(object):
 
         return tournaments
 
+    def stat_embed(self, stat_name):
+        this_embed = Embed(color=Color.purple(), title=f"{self.name} Season {self.season} {stat_name} Leaders")
+        stats = league_db.get_stats(self.name, stat_name.lower())        
+        if stats is None:
+            return None
+        else:
+            stat_names = list(stats[0].keys())[2:]
+            for index in range(0, min(10,len(stats))):
+                this_row = list(stats[index])
+                player_name = this_row.pop(0)
+                content_string = f"**{this_row.pop(0)}**\n"
+                for stat_index in range(0, len(this_row)):
+                    content_string += f"**{stat_names[stat_index]}**: {str(this_row[stat_index])}; "
+                this_embed.add_field(name=player_name, value=content_string, inline=False)
+            return this_embed
+
 
 class tournament(object):
     def __init__(self, name, team_dic, series_length = 5, finals_series_length = 7, max_innings = 9, id = None, secs_between_games = 300, secs_between_rounds = 600): 
