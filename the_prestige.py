@@ -889,7 +889,12 @@ class LeagueLeadersCommand(Command):
         if league_exists(command.split("\n")[0].strip()):
             league = leagues.load_league_file(command.split("\n")[0].strip())
             stat_name = command.split("\n")[1].strip()
-            stat_embed = league.stat_embed(stat_name)
+            try:
+                stat_embed = league.stat_embed(stat_name)
+            except IndexError:
+                await msg.channel.send("Nobody's played enough games to get meaningful stats in that category yet, chief. Try again after the next game or two.")
+                return
+
             if stat_embed is None:
                 await msg.channel.send("We don't know what that stat is, chief.")
                 return
