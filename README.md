@@ -11,13 +11,11 @@ accepting pull requests, check the issues for to-dos.
 
 ## FAQ (this FAQ is a work in progress and will be expanded over time):
 - Q: Why have the teams in my league played an uneven amount of games/why are some teams not scheduled for games for some weeks?
-- A: Scheduling algorithms are really hard and the way xvi chose to do it involves some teams having byes for some series of the season, it'll even out by the end so every team plays the same amount of games.
-
+  - A: Scheduling algorithms are really hard and the way xvi chose to do it involves some teams having byes for some series of the season, it'll even out by the end and every team will play the same number of games.
 - Q: My league stopped playing randomly and I don't know why, what should I do?
-- A: There were probably server issues or a patch went out, use the startleague command again and things should resume from where they left off.
-
+  - A: There were probably server issues or a patch went out, use the startleague command again and things should resume from where they left off.
 - Q: What should I do if my question isn't answered by this FAQ, this readme, or the help text for the commands, or I find a bug?
-- A: Please submit your issue or bug to this form and Artemis will pass it along if it's something we can do anything about. https://forms.gle/PjbpfT46yuMDGca46
+  - A: Please submit your issue or bug to this form and Artemis will pass it along if it's something we can do anything about. https://forms.gle/PjbpfT46yuMDGca46
 
 
 ## commands: (everything here is case sensitive, and can be prefixed with either m; or m!)
