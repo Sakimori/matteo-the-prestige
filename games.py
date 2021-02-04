@@ -32,10 +32,12 @@ def all_weathers():
     weathers_dic = {
         #"Supernova" : weather("Supernova", "🌟"),
         #"Midnight": weather("Midnight", "🕶"),
-        "Slight Tailwind": weather("Slight Tailwind", "🏌️‍♀️"),
+        #"Slight Tailwind": weather("Slight Tailwind", "🏌️‍♀️"),
         "Heavy Snow": weather("Heavy Snow", "❄"),
         "Twilight" : weather("Twilight", "👻"),
-        "Thinned Veil" : weather("Thinned Veil", "🌌")
+        "Thinned Veil" : weather("Thinned Veil", "🌌"),
+        "Heat Wave" : weather("Heat Wave", "🌄"),
+        "Drizzle" : weather("Drizzle", "🌧")
         }
     return weathers_dic
 
@@ -114,6 +116,11 @@ class team(object):
         else:
             return (None, None, None)
 
+    def find_player_spec(self, name, roster):
+         for s_index in range(0,len(roster)):
+            if roster[s_index].name == name:
+                return (roster[s_index], s_index)
+
     def average_stars(self):
         total_stars = 0
         for _player in self.lineup:
@@ -151,6 +158,21 @@ class team(object):
             return True
         else:
             return False
+
+    def slide_player_spec(self, this_player_name, new_spot, roster):
+        index = None
+        for s_index in range(0,len(roster)):
+            if roster[s_index].name == this_player_name:
+                index = s_index
+                this_player = roster[s_index]
+        if index is None:
+            return False
+        elif new_spot <= len(roster):
+            roster.pop(index)
+            roster.insert(new_spot-1, this_player)
+            return True
+        else:
+            return False
                 
     def add_lineup(self, new_player):
         if len(self.lineup) < 20:
@@ -169,7 +191,7 @@ class team(object):
     def set_pitcher(self, rotation_slot = None, use_lineup = False):
         temp_rotation = self.rotation.copy()
         if use_lineup:         
-            for batter in self.rotation:
+            for batter in self.lineup:
                 temp_rotation.append(batter)
         if rotation_slot is None:
             self.pitcher = random.choice(temp_rotation)
@@ -616,6 +638,25 @@ class game(object):
         offense_team.lineup_position += 1 #put next batter up
         if self.outs >= 3:
             self.flip_inning()
+            if self.weather.name == "Heat Wave":
+                if self.top_of_inning:
+                    self.weather.home_pitcher = self.get_pitcher()
+                    if self.inning >= self.weather.counter_home:
+                        self.weather.counter_home = self.weather.counter_home - (self.weather.counter_home % 5) + 5 + random.randint(1,4) #rounds down to last 5, adds up to next 5. then adds a random number 2<=x<=5 to determine next pitcher                       
+                        tries = 0
+                        while self.get_pitcher() == self.weather.home_pitcher and tries < 3:
+                            self.teams["home"].set_pitcher(use_lineup = True)
+                            tries += 1
+
+ 
+                else:
+                    self.weather.away_pitcher = self.get_pitcher()
+                    if self.inning >= self.weather.counter_away:
+                        self.weather.counter_away = self.weather.counter_away - (self.weather.counter_away % 5) + 5 + random.randint(1,4)                  
+                        tries = 0
+                        while self.get_pitcher() == self.weather.away_pitcher and tries < 3:
+                            self.teams["away"].set_pitcher(use_lineup = True)
+                            tries += 1
          
 
         return (result, scores_to_add) #returns ab information and scores
@@ -634,6 +675,12 @@ class game(object):
             if self.inning > self.max_innings and self.teams["home"].score != self.teams["away"].score: #game over
                 self.over = True
         self.top_of_inning = not self.top_of_inning
+
+        if self.weather.name == "Drizzle":
+            if self.top_of_inning:
+                self.bases[2] = self.teams["away"].lineup[(self.teams["away"].lineup_position-1) % len(self.teams["away"].lineup)]
+            else:
+                self.bases[2] = self.teams["home"].lineup[(self.teams["home"].lineup_position-1) % len(self.teams["home"].lineup)]
 
     def pitcher_insert(self, this_team):
         rounds = math.ceil(this_team.lineup_position / len(this_team.lineup))

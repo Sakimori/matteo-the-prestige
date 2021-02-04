@@ -1,7 +1,7 @@
 import discord, json, math, os, roman, games, asyncio, random, main_controller, threading, time, urllib, leagues, datetime
 import database as db
 import onomancer as ono
-from league_storage import league_exists, season_save
+from league_storage import league_exists, season_save, season_restart
 from the_draft import Draft, DRAFT_ROUNDS
 from flask import Flask
 from uuid import uuid4
@@ -370,13 +370,26 @@ class MovePlayerCommand(Command):
             if owner_id != msg.author.id and msg.author.id not in config()["owners"]:
                 await msg.channel.send("You're not authorized to mess with this team. Sorry, boss.")
                 return
-            elif not team.slide_player(player_name, new_pos):
-                await msg.channel.send("You either gave us a number that was bigger than your current roster, or we couldn't find the player on the team. Try again.")
-                return
             else:
-                await msg.channel.send(embed=build_team_embed(team))
-                games.update_team(team)
-                await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
+                if team.find_player(player_name)[2] is None or len(team.find_player(player_name)[2]) <= new_pos:
+                    await msg.channel.send("You either gave us a number that was bigger than your current roster, or we couldn't find the player on the team. Try again.")
+                    return
+
+                if "batter" in command.split("\n")[0].lower():
+                    roster = team.lineup
+                elif "pitcher" in command.split("\n")[0].lower():
+                    roster = team.rotation
+                else:
+                    roster = None
+
+                if (roster is not None and team.slide_player_spec(player_name, new_pos, roster)) or (roster is None and team.slide_player(player_name, new_pos)):
+                    await msg.channel.send(embed=build_team_embed(team))
+                    games.update_team(team)
+                    await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
+                else:
+                    await msg.channel.send("You either gave us a number that was bigger than your current roster, or we couldn't find the player on the team. Try again.")
+                    return
+
         except IndexError:
             await msg.channel.send("Four lines, remember? Command, then team, then name, and finally, new spot on the lineup or rotation.")
 
@@ -769,38 +782,6 @@ class StartDraftCommand(Command):
             raise SlowDraftError('Too slow')
         return draft_message
 
-class DebugLeagueStart(Command):
-    name = "startdebugleague"
-
-    async def execute(self, msg, command):
-        if not league_exists("test2"):
-            league = leagues.league_structure("test2")
-            league.setup({
-                "nL" : { 
-                    "nL west" : [get_team_fuzzy_search("lockpicks"), get_team_fuzzy_search("liches")],
-                    "nL east" : [get_team_fuzzy_search("bethesda soft"), get_team_fuzzy_search("traverse city")]
-                    },
-                "aL" : {
-                    "aL west" : [get_team_fuzzy_search("deep space"), get_team_fuzzy_search("phoenix")],
-                    "aL east" : [get_team_fuzzy_search("cheyenne mountain"), get_team_fuzzy_search("tarot dragons")]
-                    }
-            }, division_games=6, inter_division_games=3, inter_league_games=3, games_per_hour = 12)
-            league.generate_schedule()
-            leagues.save_league(league)
-
-class DebugLeagueDisplay(Command):
-    name = "displaydebugleague"
-
-    async def execute(self, msg, command):
-        if league_exists("Midseries"):
-            league = leagues.load_league_file("Midseries")
-            league.champion = "Butts"
-            leagues.save_league(league)
-            season_save(league)
-            league.season_reset()
-
-            await msg.channel.send(embed=league.past_standings(1))
-
             
 class StartLeagueCommand(Command):
     name = "startleague"
@@ -841,6 +822,9 @@ Plays a league with a given name, provided that league has been saved on the web
                 raise ValueError
         except ValueError:
             await msg.channel.send("Chief, we need a games per hour number between 1 and 12. We think that's reasonable.")
+            return
+        except IndexError:
+            await msg.channel.send("We need a games per hour number in the second line.")
             return
 
         if league_exists(league_name):
@@ -893,6 +877,60 @@ class LeagueDisplayCommand(Command):
                 await msg.channel.send("Give us a proper number, boss.")
             except TypeError:
                 await msg.channel.send("That season hasn't been played yet, chief.")
+        else:
+            await msg.channel.send("Can't find that league, boss.")
+
+class LeagueLeadersCommand(Command):
+    name = "leagueleaders"
+    template = "m;leagueleaders [league name]\n[stat name/abbreviation]"
+    description = "Displays a league's leaders in the given stats. A list of the allowed stats can be found on the github readme."
+
+    async def execute(self, msg, command):
+        if league_exists(command.split("\n")[0].strip()):
+            league = leagues.load_league_file(command.split("\n")[0].strip())
+            stat_name = command.split("\n")[1].strip()
+            try:
+                stat_embed = league.stat_embed(stat_name)
+            except IndexError:
+                await msg.channel.send("Nobody's played enough games to get meaningful stats in that category yet, chief. Try again after the next game or two.")
+                return
+
+            if stat_embed is None:
+                await msg.channel.send("We don't know what that stat is, chief.")
+                return
+            try:
+                await msg.channel.send(embed=stat_embed)
+                return
+            except:
+                await msg.channel.send("Nobody's played enough games to get meaningful stats in that category yet, chief. Try again after the next game or two.")
+                return
+
+        await msg.channel.send("Can't find that league, boss.")
+
+class LeagueDivisionDisplayCommand(Command):
+    name = "divisionstandings"
+    template = "m;divisionstandings [league name]\n[team name]"
+    description = "Displays the current standings for the given division in the given league."
+
+    async def execute(self, msg, command):
+        if league_exists(command.split("\n")[0].strip()):
+            league = leagues.load_league_file(command.split("\n")[0].strip())
+            division_name = command.split("\n")[1].strip()
+            division = None
+            for subleague in iter(league.league.keys()):
+                for div in iter(league.league[subleague].keys()):
+                    if div == division_name:
+                        division = league.league[subleague][div]
+            if division is None:
+                await msg.channel.send("Chief, that division doesn't exist in that league.")
+                return
+
+            try:
+                await msg.channel.send(embed=league.standings_embed_div(division, division_name))
+            except ValueError:
+                await msg.channel.send("Give us a proper number, boss.")
+            #except TypeError:
+                #await msg.channel.send("That season hasn't been played yet, chief.")
         else:
             await msg.channel.send("Can't find that league, boss.")
 
@@ -976,18 +1014,60 @@ class LeagueScheduleCommand(Command):
     description = "Sends an embed with the given league's schedule for the next 4 series."
 
     async def execute(self, msg, command):
-        league_name = command.strip()
+        league_name = command.split("\n")[0].strip()
         if league_exists(league_name):
             league = leagues.load_league_file(league_name)
             current_series = league.day_to_series_num(league.day)
             if str(current_series+1) in league.schedule.keys():
-                sched_embed = discord.Embed(title=f"{league.name}'s Schedule:")
+                sched_embed = discord.Embed(title=f"{league.name}'s Schedule:", color=discord.Color.magenta())
                 days = [0,1,2,3]
                 for day in days:
                     if str(current_series+day) in league.schedule.keys():
                         schedule_text = ""
+                        teams = league.team_names_in_league()
                         for game in league.schedule[str(current_series+day)]:
                             schedule_text += f"**{game[0]}** @ **{game[1]}**\n"
+                            teams.pop(teams.index(game[0]))
+                            teams.pop(teams.index(game[1]))
+                        if len(teams) > 0:
+                            schedule_text += "Resting:\n"
+                            for team in teams:
+                                schedule_text += f"**{team}**\n"
+                        sched_embed.add_field(name=f"Days {((current_series+day-1)*league.series_length) + 1} - {(current_series+day)*(league.series_length)}", value=schedule_text, inline = False)
+                await msg.channel.send(embed=sched_embed)
+            else:
+                await msg.channel.send("That league's already finished with this season, boss.")
+        else:
+            await msg.channel.send("We can't find that league. Typo?")
+
+class LeagueTeamScheduleCommand(Command):
+    name = "teamschedule"
+    template = "m;teamschedule [league name]\n[team name]"
+    description = "Sends an embed with the given team's schedule in the given league for the next 7 series."
+
+    async def execute(self, msg, command):
+        league_name = command.split("\n")[0].strip()
+        team_name = command.split("\n")[1].strip()
+        team = get_team_fuzzy_search(team_name)
+        if league_exists(league_name):
+            league = leagues.load_league_file(league_name)
+            current_series = league.day_to_series_num(league.day)
+
+            if team.name not in league.team_names_in_league():
+                await msg.channel.send("Can't find that team in that league, chief.")
+                return
+
+            if str(current_series+1) in league.schedule.keys():
+                sched_embed = discord.Embed(title=f"{team.name}'s Schedule for the {league.name}:", color=discord.Color.purple())
+                days = [0,1,2,3,4,5,6]
+                for day in days:
+                    if str(current_series+day) in league.schedule.keys():
+                        schedule_text = ""
+                        for game in league.schedule[str(current_series+day)]:
+                            if team.name in game:
+                                schedule_text += f"**{game[0]}** @ **{game[1]}**"
+                        if schedule_text == "":
+                            schedule_text += "Resting"
                         sched_embed.add_field(name=f"Days {((current_series+day-1)*league.series_length) + 1} - {(current_series+day)*(league.series_length)}", value=schedule_text, inline = False)
                 await msg.channel.send(embed=sched_embed)
             else:
@@ -995,6 +1075,48 @@ class LeagueScheduleCommand(Command):
         else:
             await msg.channel.send("We can't find that league. Typo?")
             
+class LeagueRegenerateScheduleCommand(Command):
+    name = "leagueseasonreset"
+    template = "m;leagueseasonreset [league name]"
+    description = "Completely scraps the given league's current season, resetting everything to day 1 of the current season. Requires ownership."
+
+    async def execute(self, msg, command):
+        league_name = command.split("\n")[0].strip()
+        if league_exists(league_name):
+            league = leagues.load_league_file(league_name)
+            if (league.owner is not None and msg.author.id in league.owner) or (league.owner is not None and msg.author.id in config()["owners"]):
+                await msg.channel.send("You got it, boss. Give us two seconds and a bucket of white-out.")
+                season_restart(league)
+                league.season -= 1
+                league.season_reset()               
+                await asyncio.sleep(1)
+                await msg.channel.send("Done and dusted. Go ahead and start the league again whenever you want.")
+                return
+            else:
+                await msg.channel.send("That league isn't yours, boss.")
+                return
+        else:
+            await msg.channel.send("We can't find that league. Typo?")
+
+class LeagueForceStopCommand(Command):
+    name = "leagueforcestop"
+    template = "m;leagueforcestop [league name]"
+    description = "Halts a league and removes it from the list of currently running leagues. To be used in the case of crashed loops."
+
+    def isauthorized(self, user):
+        return user.id in config()["owners"]
+
+    async def execute(self, msg, command):
+        league_name = command.split("\n")[0].strip()
+        for index in range(0,len(active_leagues)):
+            if active_leagues[index].name == league_name:
+                active_leagues.pop(index)
+                await msg.channel.send("League halted, boss. We hope you did that on purpose.")
+                return
+        await msg.channel.send("That league either doesn't exist or isn't in the active list. So, huzzah?")
+            
+            
+
 
 commands = [
     IntroduceCommand(),
@@ -1023,15 +1145,18 @@ commands = [
     StartLeagueCommand(),
     LeaguePauseCommand(),
     LeagueDisplayCommand(),
+    LeagueLeadersCommand(),
+    LeagueDivisionDisplayCommand(),
     LeagueWildcardCommand(),
     LeagueScheduleCommand(),
+    LeagueTeamScheduleCommand(),
+    LeagueRegenerateScheduleCommand(),
+    LeagueForceStopCommand(),
     CreditCommand(),
     RomanCommand(),
     HelpCommand(),
     StartDraftCommand(),
-    DraftPlayerCommand(),
-    DebugLeagueStart(),
-    DebugLeagueDisplay()
+    DraftPlayerCommand()
 ]
 
 client = discord.Client()
@@ -1294,6 +1419,9 @@ def prepare_game(newgame, league = None, weather_name = None):
     if newgame.weather.name == "Heavy Snow":
         newgame.weather.counter_away = random.randint(0,len(newgame.teams['away'].lineup)-1)
         newgame.weather.counter_home = random.randint(0,len(newgame.teams['home'].lineup)-1)
+    elif newgame.weather.name == "Heat Wave":
+        newgame.weather.counter_away = random.randint(2,4)
+        newgame.weather.counter_home = random.randint(2,4)
     return newgame, state_init
 
 async def start_tournament_round(channel, tourney, seeding = None):
@@ -1547,6 +1675,7 @@ def build_team_embed(team):
         rotation_string += f"{player.name} {player.star_string('pitching_stars')}\n"
     embed.add_field(name="Rotation:", value=rotation_string, inline = False)
     embed.add_field(name="Lineup:", value=lineup_string, inline = False)
+    embed.add_field(name="█a██:", value=str(abs(hash(team.name)) % (10 ** 4)))
     embed.set_footer(text=team.slogan)
     return embed
 
