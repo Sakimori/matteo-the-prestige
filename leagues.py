@@ -102,6 +102,14 @@ class league_structure(object):
                 teams += teams_list
         return teams
 
+    def team_names_in_league(self):
+        teams = []
+        for division in self.league.values():
+            for teams_list in division.values():
+                for team in teams_list:
+                    teams.append(team.name)
+        return teams
+
     def teams_in_subleague(self, subleague_name):
         teams = []
         if subleague_name in self.league.keys():
@@ -156,32 +164,39 @@ class league_structure(object):
         for i in range(0, self.constraints["inter_div_games"]): #inter-division matchups
             extra_teams = []
             for subleague in league.keys():
-                division_max = 1
                 divisions = []
                 for div in league[subleague].keys():
-                    if division_max < len(league[subleague][div]):
-                        divison_max = len(league[subleague][div])
                     divisions.append(deepcopy(league[subleague][div]))
 
+                #Check if there's an odd number of divisions
                 last_div = None
                 if len(divisions) % 2 != 0:
                     last_div = divisions.pop()
-    
-                divs_a = list(chain(divisions[int(len(divisions)/2):]))[0]
-                if last_div is not None:
-                    divs_a.extend(last_div[int(len(last_div)/2):])
-                random.shuffle(divs_a)
-            
-                divs_b = list(chain(divisions[:int(len(divisions)/2)]))[0]
-                if last_div is not None:
-                    divs_a.extend(last_div[:int(len(last_div)/2)])
-                random.shuffle(divs_b)
 
-                if len(divs_a) % 2 != 0:
-                    extra_teams.append(divs_a.pop())
-                if len(divs_b) % 2 != 0:
+                #Get teams from half of the divisions
+                divs_a = list(chain(divisions[int(len(divisions)/2):]))[0]
+                if last_div is not None: #If there's an extra division, take half of those teams too
+                    divs_a.extend(last_div[int(len(last_div)/2):])
+
+                #Get teams from the other half of the divisions
+                divs_b = list(chain(divisions[:int(len(divisions)/2)]))[0]
+                if last_div is not None: #If there's an extra division, take the rest of those teams too
+                    divs_b.extend(last_div[:int(len(last_div)/2)])
+
+                #Ensure both groups have the same number of teams
+                #Uness logic above changes, divs_a will always be one longer than divs_b or they'll be the same
+                if len(divs_a) > len(divs_b):
+                    divs_b.append(divs_a.pop())
+    
+                #Now we shuffle the groups
+                random.shuffle(divs_a)
+                random.shuffle(divs_b)
+                
+                #If there are an odd number of teams overall, then we need to remember the extra team for later
+                if len(divs_a) < len(divs_b):
                     extra_teams.append(divs_b.pop())
 
+                #Match up teams from each group
                 a_home = True
                 for team_a, team_b in zip(divs_a, divs_b):
                     if a_home:
@@ -190,10 +205,11 @@ class league_structure(object):
                         matchups.append([team_a.name, team_b.name])
                     a_home = not a_home
 
+            #Pair up any extra teams
             if extra_teams != []:
                 if len(extra_teams) % 2 == 0:
                     for index in range(0, int(len(extra_teams)/2)):
-                        matchups.append(extra_teams[index], extra_teams[index+1])
+                        matchups.append([extra_teams[index].name, extra_teams[index+1].name])
                         
 
         for subleague in league.keys():
@@ -315,6 +331,30 @@ class league_structure(object):
         this_embed.set_footer(text=f"Standings as of day {self.day-1} / {self.season_length()}")
         return this_embed
 
+    def standings_embed_div(self, division, div_name):
+        this_embed = Embed(color=Color.purple(), title=f"{self.name} Season {self.season}")
+        standings = {}
+        for team_name, wins, losses, run_diff in league_db.get_standings(self.name):
+            standings[team_name] = {"wins" : wins, "losses" : losses, "run_diff" : run_diff}
+        teams = self.division_standings(division, standings)
+
+        for index in range(0, len(teams)):
+            if index == self.constraints["division_leaders"] - 1:
+                teams[index][4] = "-"
+            else:
+                games_behind = ((teams[self.constraints["division_leaders"] - 1][1] - teams[index][1]) + (teams[index][2] - teams[self.constraints["division_leaders"] - 1][2]))/2
+                teams[index][4] = games_behind
+        teams_string = ""
+        for this_team in teams:
+            if this_team[2] != 0 or this_team[1] != 0:
+                teams_string += f"**{this_team[0].name}\n**{this_team[1]} - {this_team[2]} WR: {round(this_team[1]/(this_team[1]+this_team[2]), 3)} GB: {this_team[4]}\n\n"
+            else:
+                teams_string += f"**{this_team[0].name}\n**{this_team[1]} - {this_team[2]} WR: - GB: {this_team[4]}\n\n"
+
+        this_embed.add_field(name=f"{div_name} Division:", value=teams_string, inline = False)
+        this_embed.set_footer(text=f"Standings as of day {self.day-1} / {self.season_length()}")
+        return this_embed
+
     def wildcard_embed(self):
         this_embed = Embed(color=Color.purple(), title=f"{self.name} Wildcard Race")
         standings = {}
@@ -374,6 +414,22 @@ class league_structure(object):
             tournaments.append(subleague_tournament)
 
         return tournaments
+
+    def stat_embed(self, stat_name):
+        this_embed = Embed(color=Color.purple(), title=f"{self.name} Season {self.season} {stat_name} Leaders")
+        stats = league_db.get_stats(self.name, stat_name.lower())        
+        if stats is None:
+            return None
+        else:
+            stat_names = list(stats[0].keys())[2:]
+            for index in range(0, min(10,len(stats))):
+                this_row = list(stats[index])
+                player_name = this_row.pop(0)
+                content_string = f"**{this_row.pop(0)}**\n"
+                for stat_index in range(0, len(this_row)):
+                    content_string += f"**{stat_names[stat_index]}**: {str(this_row[stat_index])}; "
+                this_embed.add_field(name=player_name, value=content_string, inline=False)
+            return this_embed
 
 
 class tournament(object):
