@@ -884,7 +884,7 @@ class weather(object):
 
     def __init__(self, new_name, new_emoji):
         self.name = new_name
-        self.emoji = new_emoji + "\uFE00"
+        self.emoji = new_emoji
         self.counter_away = 0
         self.counter_home = 0
 
