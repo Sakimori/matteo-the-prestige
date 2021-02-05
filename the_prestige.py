@@ -787,7 +787,8 @@ class StartLeagueCommand(Command):
     name = "startleague"
     template = "m;startleague [league name]\n[games per hour]"
     description = """Optional flags for the first line: `--queue X` or `-q X` to play X number of series before stopping; `--noautopostseason` will pause the league before starting postseason.
-Plays a league with a given name, provided that league has been saved on the website. The games per hour sets how often the games will start. (e.g. GPH 2 will start games at X:00 and X:30)"""
+Starts games from a league with a given name, provided that league has been saved on the website and has been claimed using claimleague. The games per hour sets how often the games will start (e.g. GPH 2 will start games at X:00 and X:30). By default it will play the entire season followed by the postseason and then stop but this can be customized using the flags.
+Not every team will play every series, due to how the scheduling algorithm is coded but it will all even out by the end."""
 
     async def execute(self, msg, command):
         if config()["game_freeze"]:
@@ -883,7 +884,7 @@ class LeagueDisplayCommand(Command):
 class LeagueLeadersCommand(Command):
     name = "leagueleaders"
     template = "m;leagueleaders [league name]\n[stat name/abbreviation]"
-    description = "Displays a league's leaders in the given stats. A list of the allowed stats can be found on the github readme."
+    description = "Displays a league's leaders in the given stat. A list of the allowed stats can be found on the github readme."
 
     async def execute(self, msg, command):
         if league_exists(command.split("\n")[0].strip()):
@@ -952,7 +953,7 @@ class LeagueWildcardCommand(Command):
 class LeaguePauseCommand(Command):
     name = "pauseleague"
     template = "m;pauseleague [league name]"
-    description = "Tells a currently running league to stop running automatically after the current series."
+    description = "Tells a currently running league to stop running after the current series."
 
     async def execute(self, msg, command):
         league_name = command.strip()
