@@ -1219,7 +1219,7 @@ async def on_reaction_add(reaction, user):
 @client.event
 async def on_message(msg):
 
-    if msg.author == client.user:
+    if msg.author == client.user or not msg.webhook_id is None:
         return
 
     command_b = False
