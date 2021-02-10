@@ -2010,7 +2010,7 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
         else:
             league.active = False
 
-    if league.autoplay == 0 or config()["game_freeze"]: #if number of series to autoplay has been reached
+    if league.autoplay <= 0 or config()["game_freeze"]: #if number of series to autoplay has been reached
         if league in active_standings.keys():
             await active_standings[league].unpin()
         active_standings[league] = await channel.send(embed=league.standings_embed())
