@@ -1164,6 +1164,7 @@ active_tournaments = []
 active_leagues = []
 active_standings = {}
 setupmessages = {}
+watching = False
 
 thread1 = threading.Thread(target=main_controller.update_loop)
 thread1.start()
@@ -1195,8 +1196,10 @@ def config():
 async def on_ready():
     db.initialcheck()
     print(f"logged in as {client.user} with token {config()['token']} to {len(client.guilds)} servers")
-    watch_task = asyncio.create_task(game_watcher())
-    await watch_task
+    if not watching:
+        watching = True
+        watch_task = asyncio.create_task(game_watcher())
+        await watch_task
 
 
 @client.event
