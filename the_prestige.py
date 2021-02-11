@@ -145,6 +145,12 @@ class StartGameCommand(Command):
             await msg.channel.send("Make sure you put an integer after the -d flag.")
             return
 
+        weather_name = None
+        if "-w " in command.split("\n")[0]:
+            weather_name = command.split("\n")[0].split("-w ")[1].split("-")[0].strip()
+        elif "--weather " in command.split("\n")[0]: 
+            weather_name = command.split("\n")[0].split("--weather ")[1].split("-")[0].strip()
+
         innings = None
         try:
             team_name1 = command.split("\n")[1].strip()
@@ -183,6 +189,10 @@ class StartGameCommand(Command):
                 game.teams['home'].set_pitcher(rotation_slot = day)
             channel = msg.channel
             
+            if weather_name is not None and weather_name in games.all_weathers().keys():
+                game.weather = games.all_weathers()[weather_name]
+                
+
             game_task = asyncio.create_task(watch_game(channel, game, user=msg.author, league=league))
             await game_task
         else:
@@ -1158,13 +1168,14 @@ commands = [
     DraftPlayerCommand()
 ]
 
+watching = False
 client = discord.Client()
 gamesarray = []
 active_tournaments = []
 active_leagues = []
 active_standings = {}
 setupmessages = {}
-watching = False
+
 
 thread1 = threading.Thread(target=main_controller.update_loop)
 thread1.start()
@@ -1194,6 +1205,7 @@ def config():
 
 @client.event
 async def on_ready():
+    global watching
     db.initialcheck()
     print(f"logged in as {client.user} with token {config()['token']} to {len(client.guilds)} servers")
     if not watching:
@@ -1396,7 +1408,7 @@ async def watch_game(channel, newgame, user = None, league = None):
     main_controller.master_games_dic[id] = (newgame, state_init, discrim_string)
 
 def prepare_game(newgame, league = None, weather_name = None):
-    if weather_name is None:
+    if weather_name is None and newgame.weather.name == "Sunny": #if no weather name supplied and the game's weather is default, pick random weather
         weathers = games.all_weathers()
         newgame.weather = weathers[random.choice(list(weathers.keys()))]
 
