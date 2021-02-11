@@ -417,7 +417,7 @@ class league_structure(object):
 
     def stat_embed(self, stat_name):
         this_embed = Embed(color=Color.purple(), title=f"{self.name} Season {self.season} {stat_name} Leaders")
-        stats = league_db.get_stats(self.name, stat_name.lower())        
+        stats = league_db.get_stats(self.name, stat_name.lower(), day = self.day)        
         if stats is None:
             return None
         else:
