@@ -182,7 +182,6 @@ class StartGameCommand(Command):
                 game.teams['away'].set_pitcher(rotation_slot = day)
                 game.teams['home'].set_pitcher(rotation_slot = day)
             channel = msg.channel
-            await msg.delete()
             
             game_task = asyncio.create_task(watch_game(channel, game, user=msg.author, league=league))
             await game_task
@@ -201,7 +200,6 @@ class StartRandomGameCommand(Command):
             return
 
         channel = msg.channel
-        await msg.delete()
         await channel.send("Rolling the bones... This might take a while.")
         teamslist = games.get_all_teams()
 
