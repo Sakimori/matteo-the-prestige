@@ -1169,6 +1169,69 @@ class LeagueSwapTeamCommand(Command):
                 leagues.save_league_as_new(league)
                 await msg.channel.send(embed=league.standings_embed())
                 await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
+            else:
+                await msg.channel.send("That league isn't yours, chief.")
+        else:
+            await msg.channel.send("We can't find that league.")
+
+class LeagueRenameCommand(Command):
+    name = "leaguerename"
+    template = "m;leaguerename [league name]\n[old subleague/division name]\n[new subleague/division name]"
+    description = "Changes the name of an existing subleague or division. Can only be executed by a league owner, and only before the start of a new season."
+         
+    async def execute(self, msg, command):
+        league_name = command.split("\n")[0].strip()
+        if league_exists(league_name):
+            league = leagues.load_league_file(league_name)
+            if league.day != 1:
+                await msg.channel.send("That league hasn't finished its current season yet, chief. Either reset it, or be patient.")
+                return
+            if (league.owner is not None and msg.author.id in league.owner) or (league.owner is not None and msg.author.id in config()["owners"]):
+                try:
+                    old_name = command.split("\n")[1].strip()
+                    new_name = command.split("\n")[2].strip()
+                except IndexError:
+                    await msg.channel.send("Three lines, boss. Make sure you give us the old name, then the new name, on their own lines.")
+                    return
+
+                if old_name == new_name:
+                    await msg.channel.send("Quit being cheeky. They have to be different names, clearly.")
+
+
+                found = False
+                for subleague in league.league.keys():
+                    if subleague == new_name:
+                        found = True
+                        break
+                    for division in league.league[subleague]:
+                        if division == new_name:
+                            found = True
+                            break
+                if found:
+                    await msg.channel.send(f"{new_name} is already present in that league, chief. They have to be different.")
+
+                found = False
+                for subleague in league.league.keys():
+                    if subleague == old_name:
+                        league.league[new_name] = league.league.pop(old_name)
+                        found = True
+                        break
+                    for division in league.league[subleague]:
+                        if division == old_name:
+                            league.league[subleague][new_name] = league.league[subleague].pop(old_name)
+                            found = True
+                            break
+                if not found:
+                    await msg.channel.send(f"We couldn't find {old_name} anywhere in that league, boss.")
+                    return
+                leagues.save_league_as_new(league)
+                await msg.channel.send(embed=league.standings_embed())
+                await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
+            else:
+                await msg.channel.send("That league isn't yours, chief.")
+        else:
+            await msg.channel.send("We can't find that league.")
+
 
 commands = [
     IntroduceCommand(),
@@ -1204,6 +1267,7 @@ commands = [
     LeagueTeamScheduleCommand(),
     LeagueRegenerateScheduleCommand(),
     LeagueSwapTeamCommand(),
+    LeagueRenameCommand(),
     LeagueForceStopCommand(),
     CreditCommand(),
     RomanCommand(),
