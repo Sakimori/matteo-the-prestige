@@ -91,6 +91,9 @@ def state(league_name):
         return json.load(state_file)
 
 def init_league_db(league):
+    if os.path.exists(os.path.join(data_dir, league_dir, league.name, f"{league.name}.db")):
+        os.remove(os.path.join(data_dir, league_dir, league.name, f"{league.name}.db"))
+
     conn = create_connection(league.name)
 
     player_stats_table_check_string = """ CREATE TABLE IF NOT EXISTS stats (

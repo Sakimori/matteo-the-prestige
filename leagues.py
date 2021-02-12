@@ -89,11 +89,13 @@ class league_structure(object):
             tournaments.append(tourney)
         return tournaments
 
-    def find_team(self, team_name):
+    def find_team(self, team_search):
         for subleague in iter(self.league.keys()):
             for division in iter(self.league[subleague].keys()):
-                if team_name in self.league[subleague][division]:
-                    return (subleague, division)
+                for team in self.league[subleague][division]:
+                    if team.name == team_search.name:
+                        return (subleague, division)
+        return (None, None)
 
     def teams_in_league(self):
         teams = []
@@ -546,6 +548,13 @@ def save_league(this_league):
         with open(os.path.join(data_dir, league_dir, this_league.name, f"{this_league.name}.league"), "w") as league_file:
             league_json_string = jsonpickle.encode(this_league.league, keys=True)
             json.dump(league_json_string, league_file, indent=4)
+    league_db.save_league(this_league)
+
+def save_league_as_new(this_league):
+    league_db.init_league_db(this_league)
+    with open(os.path.join(data_dir, league_dir, this_league.name, f"{this_league.name}.league"), "w") as league_file:
+        league_json_string = jsonpickle.encode(this_league.league, keys=True)
+        json.dump(league_json_string, league_file, indent=4)
     league_db.save_league(this_league)
 
 def load_league_file(league_name):

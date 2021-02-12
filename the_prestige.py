@@ -1123,9 +1123,43 @@ class LeagueForceStopCommand(Command):
                 await msg.channel.send("League halted, boss. We hope you did that on purpose.")
                 return
         await msg.channel.send("That league either doesn't exist or isn't in the active list. So, huzzah?")
-            
-            
 
+class LeagueSwapTeamCommand(Command):
+    name = "leagueswapteam"
+    template = "m;leagueswapteam [league name]\n[team to remove]\n[team to add]"
+    description = "Adds a team to a league, removing the old one in the process. Can only be executed by a league owner, and only before the start of a new season."
+         
+    async def execute(self, msg, command):
+        league_name = command.split("\n")[0].strip()
+        if league_exists(league_name):
+            league = leagues.load_league_file(league_name)
+            if league.day != 1:
+                await msg.channel.send("That league hasn't finished its current season yet, chief. Either reset it, or be patient.")
+                return
+            if (league.owner is not None and msg.author.id in league.owner) or (league.owner is not None and msg.author.id in config()["owners"]):
+                try:
+                    team_del = get_team_fuzzy_search(command.split("\n")[1].strip())
+                    team_add = get_team_fuzzy_search(command.split("\n")[2].strip())
+                except IndexError:
+                    await msg.channel.send("Three lines, boss. Make sure you give us the team to remove, then the team to add.")
+                    return
+
+                if team_del is None or team_add is None:
+                    await msg.channel.send("We couldn't find one or both of those teams, boss. Try again.")
+                    return
+                subleague, division = league.find_team(team_del)
+                if subleague is None or division is None:
+                    await msg.channel.send("That first team isn't in that league, chief. So, that's good, right?")
+                    return
+                for index in range(0, len(league.league[subleague][division])):
+                    if league.league[subleague][division][index].name == team_del.name:
+                        league.league[subleague][division].pop(index)
+                        league.league[subleague][division].append(team_add)
+                league.schedule = {}
+                league.generate_schedule()
+                leagues.save_league_as_new(league)
+                await msg.channel.send(embed=league.standings_embed())
+                await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
 
 commands = [
     IntroduceCommand(),
@@ -1160,6 +1194,7 @@ commands = [
     LeagueScheduleCommand(),
     LeagueTeamScheduleCommand(),
     LeagueRegenerateScheduleCommand(),
+    LeagueSwapTeamCommand(),
     LeagueForceStopCommand(),
     CreditCommand(),
     RomanCommand(),
