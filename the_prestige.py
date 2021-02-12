@@ -1143,14 +1143,23 @@ class LeagueSwapTeamCommand(Command):
                 except IndexError:
                     await msg.channel.send("Three lines, boss. Make sure you give us the team to remove, then the team to add.")
                     return
+                if team_add.name == team_del.name:
+                    await msg.channel.send("Quit being cheeky. The teams have to be different.")
+                    return
 
                 if team_del is None or team_add is None:
                     await msg.channel.send("We couldn't find one or both of those teams, boss. Try again.")
                     return
-                subleague, division = league.find_team(team_del)
+                subleague, division = league.find_team(team_del)               
+
                 if subleague is None or division is None:
                     await msg.channel.send("That first team isn't in that league, chief. So, that's good, right?")
                     return
+
+                if league.find_team(team_add)[0] is not None:
+                    await msg.channel.send("That second team is already in that league, chief. No doubles.")
+                    return
+
                 for index in range(0, len(league.league[subleague][division])):
                     if league.league[subleague][division][index].name == team_del.name:
                         league.league[subleague][division].pop(index)
