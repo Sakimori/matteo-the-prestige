@@ -1701,7 +1701,7 @@ async def tourney_round_watcher(channel, tourney, games_list, filter_url, finals
 
     if finals: #if this last round was finals
         embed = discord.Embed(color = discord.Color.dark_purple(), title = f"{winner_list[0]} win the {tourney.name} finals!")
-        if tourney.day > tourney.league.day:
+        if tourney.league is not None and tourney.day > tourney.league.day:
             tourney.league.day = tourney.day
         await channel.send(embed=embed)
         tourney.winner = get_team_fuzzy_search(winner_list[0])
