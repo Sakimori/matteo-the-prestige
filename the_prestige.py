@@ -1398,7 +1398,7 @@ async def watch_game(channel, newgame, user = None, league = None):
 def prepare_game(newgame, league = None, weather_name = None):
     if weather_name is None:
         weathers = weather.all_weathers()
-        newgame.weather = weathers[random.choice(list(weathers.keys()))]()
+        newgame.weather = weathers[random.choice(list(weathers.keys()))](newgame)
 
     state_init = {
         "away_name" : newgame.teams['away'].name,
@@ -1418,9 +1418,6 @@ def prepare_game(newgame, league = None, weather_name = None):
     else:
         state_init["is_league"] = True
 
-    if newgame.weather.name == "Heavy Snow":
-        newgame.weather.counter_away = random.randint(0,len(newgame.teams['away'].lineup)-1)
-        newgame.weather.counter_home = random.randint(0,len(newgame.teams['home'].lineup)-1)
     return newgame, state_init
 
 async def start_tournament_round(channel, tourney, seeding = None):

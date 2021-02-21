@@ -3,6 +3,7 @@ from leagues import league_structure
 from league_storage import league_exists
 from flask import Flask, url_for, Response, render_template, request, jsonify, send_from_directory, abort
 from flask_socketio import SocketIO, emit
+from gametext import base_string
 import database as db
 
 app = Flask("the-prestige", static_folder='simmadome/build')
@@ -156,7 +157,7 @@ def update_loop():
                         state["display_inning"] -= 1
                         state["display_top_of_inning"] = False
 
-                if state["update_pause"] == 1:
+                if state["update_pause"] == 1: #generate the top of the inning message before displaying the at bat result
                     state["update_emoji"] = "🍿"
                     if this_game.over:
                         state["display_inning"] -= 1
@@ -222,8 +223,8 @@ def update_loop():
                         
 
                         if "fc_out" in this_game.last_update[0].keys():
-                            name, base_string = this_game.last_update[0]['fc_out']
-                            updatestring = f"{this_game.last_update[0]['batter']} {this_game.last_update[0]['text'].value.format(name, base_string)} {this_game.last_update[0]['defender']}{punc}"
+                            name, out_at_base_string = this_game.last_update[0]['fc_out']
+                            updatestring = f"{this_game.last_update[0]['batter']} {this_game.last_update[0]['text'].value.format(name, out_at_base_string)} {this_game.last_update[0]['defender']}{punc}"
                         else:
                             updatestring = f"{this_game.last_update[0]['batter']} {this_game.last_update[0]['text'].value} {this_game.last_update[0]['defender']}{punc}"
                         if this_game.last_update[1] > 0:
@@ -234,7 +235,7 @@ def update_loop():
                         
                         if "veil" in this_game.last_update[0].keys():
                             state["update_emoji"] = "🌌"                            
-                            state["update_text"] += f" {this_game.last_update[0]['batter']}'s will manifests on {gametext.base_string(this_game.last_update[1])} base."
+                            state["update_text"] += f" {this_game.last_update[0]['batter']}'s will manifests on {base_string(this_game.last_update[1])} base."
                         elif "error" in this_game.last_update[0].keys():
                             state["update_emoji"] = "👻"
                             state["update_text"] = f"{this_game.last_update[0]['batter']}'s hit goes ethereal, and {this_game.last_update[0]['defender']} can't catch it! {this_game.last_update[0]['batter']} reaches base safely."

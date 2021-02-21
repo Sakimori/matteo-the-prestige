@@ -1,12 +1,11 @@
 import random
+import math
 from gametext import appearance_outcomes
 
 class Weather:
-    def __init__(self):
+    def __init__(self, game):
         self.name = "Sunny"
         self.emoji = "🌞" + "\uFE00"
-        self.counter_away = 0
-        self.counter_home = 0
 
     def __str__(self):
         return f"{self.emoji} {self.name}"
@@ -15,43 +14,44 @@ class Weather:
         # activates after the batter calculation. modify result, or just return another thing
         pass
 
-    def modify_stats_preroll(self, bat_stat, pitch_stat): # ugly
-      # Activates before batting and pitch
-      return bat_stat, pitch_stat
-
     def on_flip_inning(self, game):
         pass
 
     def on_choose_next_batter(self, game):
         pass
 
+    def modify_steal_stats(self, roll):
+        pass
+
+    def modify_atbat_stats(self, player_rolls):
+        # Activates before batting
+        pass
+
+    def modify_atbat_roll(self, outcome, roll, defender):
+        pass
+
 class Supernova(Weather): # todo
-    def __init__(self):
-        super().__init__()
+    def __init__(self, game):
         self.name = "Supernova"
         self.emoji = "🌟" + "\uFE00"
-    def activate(self, game, result):
-        pass
 
-    def modify_stats_preroll(self, bat_stat, pitch_stat):
-        if self.weather.name == "Supernova":
-            pitch_stat = pitch_stat * 0.9
+    def modify_atbat_stats(self, roll):
+        roll["pitch_stat"] *= 0.9
 
 class Midnight(Weather): # todo
-    def __init__(self):
-        super().__init__()
+    def __init__(self, game):
         self.name = "Midnight"
         self.emoji = "🕶" + "\uFE00"
-    def activate(self, game, result):
-        pass
+
+    def modify_steal_stats(self, roll):
+        roll["run_stars"] *= 2
 
 class SlightTailwind(Weather):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, game):
         self.name = "Slight Tailwind"
         self.emoji = "🏌️‍♀️" + "\uFE00"
+
     def activate(self, game, result):
-        
         if game.top_of_inning:
             offense_team = game.teams["away"]
             weather_count = self.counter_away
@@ -67,10 +67,11 @@ class SlightTailwind(Weather):
                 result["mulligan"] = True
 
 class HeavySnow(Weather):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, game):
         self.name = "Heavy Snow"
         self.emoji = "❄" + "\uFE00"
+        self.counter_away = random.randint(0,len(game.teams['away'].lineup)-1)
+        self.counter_home = random.randint(0,len(game.teams['home'].lineup)-1)
 
     def activate(self, game, result):        
         if game.top_of_inning:
@@ -107,16 +108,23 @@ class HeavySnow(Weather):
             game.current_batter = bat_team.pitcher
 
 class Twilight(Weather):
-    def __init__(self):
-        super().__init__()
+    def __init__(self,game):
         self.name = "Twilight"
         self.emoji = "👻" + "\uFE00"
     def activate(self, game, result):
         pass
 
+
+    def modify_atbat_roll(self, outcome, roll, defender):
+        error_line = - (math.log(defender.stlats["defense_stars"] + 1)/50) + 1
+        error_roll = random.random()
+        if error_roll > error_line:
+            outcome["error"] = True
+            outcome["defender"] = defender
+            roll["pb_system_stat"] = 0.1
+
 class ThinnedVeil(Weather):
-    def __init__(self):
-        super().__init__()
+    def __init__(self,game):
         self.name = "Thinned Veil"
         self.emoji = "🌌" + "\uFE00"
 
@@ -126,22 +134,21 @@ class ThinnedVeil(Weather):
                 result["veil"] = True
 
 class HeatWave(Weather):
-    def __init__(self):
-        super().__init__()
+    def __init__(self,game):
         self.name = "Heat Wave"
         self.emoji = "🌄" + "\uFE00"
 
-        self.counter_away = random.randint(2,4)
-        self.counter_home = random.randint(2,4)
+        self.counter_away = -1# random.randint(2,4)
+        self.counter_home = -1 # random.randint(2,4)
 
     def on_flip_inning(self, game):
         current_pitcher = game.get_pitcher()
         if game.top_of_inning:
-            bat_team = game.teams["away"]
-            counter = self.counter_away
-        else:
             bat_team = game.teams["home"]
             counter = self.counter_home
+        else:
+            bat_team = game.teams["away"]
+            counter = self.counter_away
 
         should_change_pitcher = False
         if game.inning >= counter:
@@ -158,8 +165,7 @@ class HeatWave(Weather):
                 tries += 1
 
 class Drizzle(Weather):
-    def __init__(self):
-        super().__init__()
+    def __init__(self,game):
         self.name = "Drizzle"
         self.emoji = "🌧"
 
@@ -173,9 +179,10 @@ class Drizzle(Weather):
         game.bases[2] = lineup[(game.teams[next_team].lineup_position-1) % len(lineup)]
 
 class Sun2(Weather):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, game):
         self.name = "Sun 2"
+
+
     def activate(self, game):
         for teamtype in game.teams:
             team = game.teams[teamtype]
@@ -184,15 +191,15 @@ class Sun2(Weather):
             # no win counting yet :(
             result.clear()
             result.update({
-             "text": "The {} collect 10! Sun 2 smiles.".format(team.name),
+                "text": "The {} collect 10! Sun 2 smiles.".format(team.name),
                 "text_only": True,
             })
 
 class NameSwappyWeather(Weather):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, game):
         self.name = "Literacy"
         self.activation_chance = 0.01
+
     def activate(self, game):
         if random.random() < self.activation_chance:
             teamtype = random.choice(["away","home"])
@@ -220,11 +227,11 @@ class NameSwappyWeather(Weather):
             })
 
 class Feedback(Weather):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, game):
         self.name = "Feedback"
         self.activation_chance = 0.01
         self.swap_batter_vs_pitcher_chance = 0.8
+
     def activate(self, game, result):
         if random.random() < self.activation_chance:
             # feedback time
@@ -261,8 +268,8 @@ def all_weathers():
         #"Midnight": Midnight,
         #"Slight Tailwind": SlightTailwind,
         "Heavy Snow": HeavySnow,
-#        "Twilight" : Twilight,
-#        "Thinned Veil" : ThinnedVeil,
+    #    "Twilight" : Twilight, # works
+    #    "Thinned Veil" : ThinnedVeil, # works
         "Heat Wave" : HeatWave,
         "Drizzle" : Drizzle, # works
 #    Sun2,

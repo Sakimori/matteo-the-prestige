@@ -222,7 +222,7 @@ class game(object):
         else:
             self.max_innings = config()["default_length"]
         self.bases = {1 : None, 2 : None, 3 : None}
-        self.weather = weather.Weather()
+        self.weather = weather.Weather(self)
         self.current_batter = None
 
     def choose_next_batter(self):
@@ -261,38 +261,34 @@ class game(object):
         outcome["batter"] = batter
         outcome["defender"] = ""
 
-        bat_stat = random_star_gen("batting_stars", batter)
-        pitch_stat = random_star_gen("pitching_stars", pitcher)
+        player_rolls = {}
+        player_rolls["bat_stat"] = random_star_gen("batting_stars", batter)
+        player_rolls["pitch_stat"] = random_star_gen("pitching_stars", pitcher)
 
-        bat_stat, pitch_stat = self.weather.modify_stats_preroll(bat_stat, pitch_stat)
+        self.weather.modify_atbat_stats(player_rolls)
 
-        pb_system_stat = (random.gauss(1*math.erf((bat_stat - pitch_stat)*1.5)-1.8,2.2))
-        hitnum = random.gauss(2*math.erf(bat_stat/4)-1,3)
+        roll = {}
+        roll["pb_system_stat"] = (random.gauss(1*math.erf((player_rolls["bat_stat"] - player_rolls["pitch_stat"])*1.5)-1.8,2.2))
+        roll["hitnum"] = random.gauss(2*math.erf(player_rolls["bat_stat"]/4)-1,3)
 
-        if self.weather.name == "Twilight":
-            error_line = - (math.log(defender.stlats["defense_stars"] + 1)/50) + 1
-            error_roll = random.random()
-            if error_roll > error_line:
-                outcome["error"] = True
-                outcome["defender"] = defender
-                pb_system_stat = 0.1
+        self.weather.modify_atbat_roll(outcome, roll, defender)
 
         
-        if pb_system_stat <= 0:
+        if roll["pb_system_stat"] <= 0:
             outcome["ishit"] = False
             fc_flag = False
-            if hitnum < -1.5:
+            if roll["hitnum"] < -1.5:
                 outcome["text"] = random.choice([appearance_outcomes.strikeoutlooking, appearance_outcomes.strikeoutswinging])
-            elif hitnum < 1:
+            elif roll["hitnum"] < 1:
                 outcome["text"] = appearance_outcomes.groundout
                 outcome["defender"] = defender
-            elif hitnum < 4: 
+            elif roll["hitnum"] < 4: 
                 outcome["text"] = appearance_outcomes.flyout
                 outcome["defender"] = defender
             else:
                 outcome["text"] = appearance_outcomes.walk
 
-            if self.bases[1] is not None and hitnum < -2 and self.outs != 2:
+            if self.bases[1] is not None and roll["hitnum"] < -2 and self.outs != 2:
                 outcome["text"] = appearance_outcomes.doubleplay
                 outcome["defender"] = ""
 
@@ -309,20 +305,20 @@ class game(object):
 
             if self.outs < 2 and len(runners) > 1: #fielder's choice replaces not great groundouts if any forceouts are present
                 def_stat = random_star_gen("defense_stars", defender)
-                if -1.5 <= hitnum and hitnum < -0.5: #poorly hit groundouts
+                if -1.5 <= roll["hitnum"] and roll["hitnum"] < -0.5: #poorly hit groundouts
                     outcome["text"] = appearance_outcomes.fielderschoice
                     outcome["defender"] = ""
             
-            if 2.5 <= hitnum and self.outs < 2: #well hit flyouts can lead to sacrifice flies/advanced runners
+            if 2.5 <= roll["hitnum"] and self.outs < 2: #well hit flyouts can lead to sacrifice flies/advanced runners
                 if self.bases[2] is not None or self.bases[3] is not None:
                     outcome["advance"] = True
         else:
             outcome["ishit"] = True
-            if hitnum < 1:
+            if roll["hitnum"] < 1:
                 outcome["text"] = appearance_outcomes.single
-            elif hitnum < 2.85 or "error" in outcome.keys():
+            elif roll["hitnum"] < 2.85 or "error" in outcome.keys():
                 outcome["text"] = appearance_outcomes.double
-            elif hitnum < 3.1:
+            elif roll["hitnum"] < 3.1:
                 outcome["text"] = appearance_outcomes.triple
             else:
                 if self.bases[1] is not None and self.bases[2] is not None and self.bases[3] is not None:
@@ -339,13 +335,16 @@ class game(object):
                 if self.bases[base+1] is None: #if there's somewhere to go
                     thieves.append((self.bases[base], base))
         for baserunner, start_base in thieves:
-            run_stars = random_star_gen("baserunning_stars", baserunner)*config()["stolen_base_chance_mod"]
-            if self.weather.name == "Midnight":
-                run_stars = run_stars*2
-            def_stars = random_star_gen("defense_stars", self.get_pitcher())
-            if run_stars >= (def_stars - 1.5): #if baserunner isn't worse than pitcher
+            stats = {
+                "run_stars": random_star_gen("baserunning_stars", baserunner)*config()["stolen_base_chance_mod"],
+                "def_stars": random_star_gen("defense_stars", self.get_pitcher())
+            }
+
+            self.weather.modify_steal_stats(stats)
+
+            if stats["run_stars"] >= (stats["def_stars"] - 1.5): #if baserunner isn't worse than pitcher
                 roll = random.random()
-                if roll >= (-(((run_stars+1)/14)**2)+1): #plug it into desmos or something, you'll see
+                if roll >= (-(((stats["run_stars"]+1)/14)**2)+1): #plug it into desmos or something, you'll see
                     attempts.append((baserunner, start_base))
 
         if len(attempts) == 0:
