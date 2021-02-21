@@ -65,6 +65,7 @@ class SlightTailwind(Weather):
             mulligan_roll_target = -((((self.get_batter().stlats["batting_stars"])-5)/6)**2)+1
             if random.random() > mulligan_roll_target and self.get_batter().stlats["batting_stars"] <= 5:
                 result["mulligan"] = True
+                result["weather_message"] = True
 
 class HeavySnow(Weather):
     def __init__(self, game):
@@ -84,9 +85,9 @@ class HeavySnow(Weather):
         if weather_count == offense_team.lineup_position and "snow_atbat" not in game.last_update[0].keys():
             result.clear()
             result.update({
-                "snow_atbat": True,
                 "text": f"{offense_team.lineup[offense_team.lineup_position % len(offense_team.lineup)].name}'s hands are too cold! {game.get_batter().name} is forced to bat!",
                 "text_only": True,
+                "weather_message": True,
             })
 
     def on_flip_inning(self, game):
@@ -111,15 +112,13 @@ class Twilight(Weather):
     def __init__(self,game):
         self.name = "Twilight"
         self.emoji = "👻" + "\uFE00"
-    def activate(self, game, result):
-        pass
-
 
     def modify_atbat_roll(self, outcome, roll, defender):
         error_line = - (math.log(defender.stlats["defense_stars"] + 1)/50) + 1
         error_roll = random.random()
         if error_roll > error_line:
             outcome["error"] = True
+            outcome["weather_message"] = True
             outcome["defender"] = defender
             roll["pb_system_stat"] = 0.1
 
@@ -132,6 +131,7 @@ class ThinnedVeil(Weather):
         if result["ishit"]:
            if result["text"] == appearance_outcomes.homerun or result["text"] == appearance_outcomes.grandslam:
                 result["veil"] = True
+                result["weather_message"] = True
 
 class HeatWave(Weather):
     def __init__(self,game):
@@ -198,9 +198,10 @@ class Sun2(Weather):
 class NameSwappyWeather(Weather):
     def __init__(self, game):
         self.name = "Literacy"
+        self.emoji = "📚"
         self.activation_chance = 0.01
 
-    def activate(self, game):
+    def activate(self, game, result):
         if random.random() < self.activation_chance:
             teamtype = random.choice(["away","home"])
             team = game.teams[teamtype]
@@ -210,32 +211,37 @@ class NameSwappyWeather(Weather):
                 names = player.name.split(" ")
                 first_first_letter = names[0][0]
                 last_first_letter = names[-1][0]
-                names[0][0] = last_first_letter
-                names[-1][0] = first_first_letter
+                names[0] = last_first_letter + names[0][1:]
+                names[-1] = first_first_letter + names[-1][1:]
                 player.name = ' '.join(names)
             else:
                 #name is one word, so turn 'bartholemew' into 'martholebew'
                 first_letter = player.name[0]
                 last_letter = player.name[-1]
-                player.name[0] = last_letter
-                player.name[-1] = first_letter
+                player.name = last_letter + player.name[1:-1] + last_letter
+
+            book_adjectives = ["action-packed", "historical", "friendly", "rude", "mystery", "thriller", "horror", "sci-fi", "fantasy", "spooky","romantic"]
+            book_types = ["novel","novella","poem","anthology","fan fiction","tablet","carving", "autobiography"]
+            book = "{} {}".format(random.choice(book_adjectives),random.choice(book_types))
 
             result.clear()
             result.update({
-                "text": "{} is Literate! {} is now {}!".format(old_player_name,old_player_name, player.name),
+                "text": "{} stopped to read a {} and became Literate! {} is now {}!".format(old_player_name, book, old_player_name, player.name),
                 "text_only": True,
+                "weather_message": True
             })
+
 
 class Feedback(Weather):
     def __init__(self, game):
         self.name = "Feedback"
-        self.activation_chance = 0.01
+        self.emoji = "🎤"
+        self.activation_chance = 0.25
         self.swap_batter_vs_pitcher_chance = 0.8
 
     def activate(self, game, result):
         if random.random() < self.activation_chance:
             # feedback time
-            result = {}
             player1 = None
             player2 = None
             if random.random() < self.swap_batter_vs_pitcher_chance:
@@ -260,6 +266,7 @@ class Feedback(Weather):
             result.update({
                 "text": "{} and {} switched teams in the feedback!".format(player1.name,player2.name),
                 "text_only": True,
+                "weather_message": True,
             })
 
 def all_weathers():
@@ -267,14 +274,14 @@ def all_weathers():
         #"Supernova" : Supernova,
         #"Midnight": Midnight,
         #"Slight Tailwind": SlightTailwind,
-        "Heavy Snow": HeavySnow,
+#        "Heavy Snow": HeavySnow,
     #    "Twilight" : Twilight, # works
-    #    "Thinned Veil" : ThinnedVeil, # works
-        "Heat Wave" : HeatWave,
-        "Drizzle" : Drizzle, # works
-#    Sun2,
-#    Feedback,
-#    NameSwappyWeather,
+        "Thinned Veil" : ThinnedVeil, # works
+#        "Heat Wave" : HeatWave,
+#        "Drizzle" : Drizzle, # works
+#    "Sun 2": Sun2,
+#        "Feedback": Feedback,
+        "Literacy": NameSwappyWeather,
         }
     return weathers_dic
 

@@ -141,7 +141,7 @@ def update_loop():
             state["away_score"] = this_game.teams["away"].score #top_of_inning = True
             state["home_score"] = this_game.teams["home"].score #update_pause = 0
                                                                 #victory_lap = False
-            if test_string == "Game not started.":              #weather_emoji
+            if not this_game.play_has_begun:                    #weather_emoji
                 state["update_emoji"] = "🍿"                    #weather_text
                 state["update_text"] = "Play blall!"            #they also need a timestamp
                 state["start_delay"] -= 1
@@ -192,7 +192,11 @@ def update_loop():
                             state["update_emoji"] = "🌄"
                             state["update_text"] += f' {this_game.weather.away_pitcher} is exhausted from the heat. {state["pitcher"]} is forced to pitch!'
 
-                elif state["update_pause"] != 1 and test_string != "Game not started.":
+                elif state["update_pause"] != 1 and this_game.play_has_begun:
+
+                    if "weather_message" in this_game.last_update[0].keys():
+                        state["update_emoji"] = this_game.weather.emoji
+
                     if "steals" in this_game.last_update[0].keys():
                         updatestring = ""
                         for attempt in this_game.last_update[0]["steals"]:
@@ -207,20 +211,15 @@ def update_loop():
                         if this_game.last_update[0]["defender"] != "":
                             punc = ", "
 
-                        state["update_emoji"] = "🏌️‍♀️"
                         state["update_text"] = f"{this_game.last_update[0]['batter']} would have gone out, but they took a mulligan!"
 
-                    elif "snow_atbat" in this_game.last_update[0].keys():
-                        state["update_emoji"] = "❄"
+                    elif "text_only" in this_game.last_update[0].keys():
                         state["update_text"] = this_game.last_update[0]["text"]
-
                     else:
                         updatestring = ""
                         punc = ""
                         if this_game.last_update[0]["defender"] != "":
                             punc = ". "
-
-                        
 
                         if "fc_out" in this_game.last_update[0].keys():
                             name, out_at_base_string = this_game.last_update[0]['fc_out']
@@ -233,11 +232,9 @@ def update_loop():
                         state["update_emoji"] = "🏏"
                         state["update_text"] = updatestring
                         
-                        if "veil" in this_game.last_update[0].keys():
-                            state["update_emoji"] = "🌌"                            
+                        if "veil" in this_game.last_update[0].keys():          
                             state["update_text"] += f" {this_game.last_update[0]['batter']}'s will manifests on {base_string(this_game.last_update[1])} base."
                         elif "error" in this_game.last_update[0].keys():
-                            state["update_emoji"] = "👻"
                             state["update_text"] = f"{this_game.last_update[0]['batter']}'s hit goes ethereal, and {this_game.last_update[0]['defender']} can't catch it! {this_game.last_update[0]['batter']} reaches base safely."
                             if this_game.last_update[1] > 0:
                                 updatestring += f"{this_game.last_update[1]} runs scored!"

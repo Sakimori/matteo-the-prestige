@@ -214,8 +214,8 @@ class game(object):
         self.outs = 0
         self.top_of_inning = True
         self.last_update = ({},0) #this is a ({outcome}, runs) tuple
+        self.play_has_begun = False
         self.owner = None
-        self.ready = False
         self.victory_lap = False
         if length is not None:
             self.max_innings = length
@@ -653,37 +653,20 @@ class game(object):
 
 
     def gamestate_update_full(self):
+        self.play_has_begun = True
         attempts = self.thievery_attempts()
         if attempts == False:
             self.last_update = self.batterup()
+            print(self.last_update[0]) ############# DEBUG REMOVE ME #################
         else:
             self.last_update = attempts
         return self.gamestate_display_full()
 
     def gamestate_display_full(self):
-        if "steals" in self.last_update[0].keys():
+        if not self.over:
             return "Still in progress."
         else:
-            try:
-                punc = ""
-                if self.last_update[0]["defender"] != "":
-                    punc = "."
-                if not self.over:
-                    if self.top_of_inning:
-                        inningtext = "top"
-                    else:
-                        inningtext = "bottom"
-
-                    updatestring = "this isn't used but i don't want to break anything"
-
-                    return "this isn't used but i don't want to break anything"
-                else:
-                    return f"""Game over! Final score: **{self.teams['away'].score} - {self.teams['home'].score}**
-        Last update: {self.last_update[0]['batter']} {self.last_update[0]['text'].value} {self.last_update[0]['defender']}{punc}"""
-            except TypeError:
-                return "Game not started."
-            except KeyError:
-                return "Game not started."
+            return f"""Game over! Final score: **{self.teams['away'].score} - {self.teams['home'].score}**"""
 
     def add_stats(self):
         players = self.get_stats()
