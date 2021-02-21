@@ -5,6 +5,7 @@ from league_storage import league_exists, season_save, season_restart
 from the_draft import Draft, DRAFT_ROUNDS
 from flask import Flask
 from uuid import uuid4
+import weather
 
 data_dir = "data"
 config_filename = os.path.join(data_dir, "config.json")
@@ -1396,8 +1397,8 @@ async def watch_game(channel, newgame, user = None, league = None):
 
 def prepare_game(newgame, league = None, weather_name = None):
     if weather_name is None:
-        weathers = games.all_weathers()
-        newgame.weather = weathers[random.choice(list(weathers.keys()))]
+        weathers = weather.all_weathers()
+        newgame.weather = weathers[random.choice(list(weathers.keys()))]()
 
     state_init = {
         "away_name" : newgame.teams['away'].name,
@@ -1420,9 +1421,6 @@ def prepare_game(newgame, league = None, weather_name = None):
     if newgame.weather.name == "Heavy Snow":
         newgame.weather.counter_away = random.randint(0,len(newgame.teams['away'].lineup)-1)
         newgame.weather.counter_home = random.randint(0,len(newgame.teams['home'].lineup)-1)
-    elif newgame.weather.name == "Heat Wave":
-        newgame.weather.counter_away = random.randint(2,4)
-        newgame.weather.counter_home = random.randint(2,4)
     return newgame, state_init
 
 async def start_tournament_round(channel, tourney, seeding = None):

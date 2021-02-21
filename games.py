@@ -1,6 +1,7 @@
 import json, random, os, math, jsonpickle
-from enum import Enum
 import database as db
+import weather
+from gametext import base_string, appearance_outcomes
 
 data_dir = "data"
 games_config_file = os.path.join(data_dir, "games_config.json")
@@ -28,33 +29,6 @@ def config():
         with open(games_config_file) as config_file:
             return json.load(config_file)
 
-def all_weathers():
-    weathers_dic = {
-        #"Supernova" : weather("Supernova", "🌟"),
-        #"Midnight": weather("Midnight", "🕶"),
-        #"Slight Tailwind": weather("Slight Tailwind", "🏌️‍♀️"),
-        "Heavy Snow": weather("Heavy Snow", "❄"),
-        "Twilight" : weather("Twilight", "👻"),
-        "Thinned Veil" : weather("Thinned Veil", "🌌"),
-        "Heat Wave" : weather("Heat Wave", "🌄"),
-        "Drizzle" : weather("Drizzle", "🌧")
-        }
-    return weathers_dic
-
-class appearance_outcomes(Enum):
-    strikeoutlooking = "strikes out looking."
-    strikeoutswinging = "strikes out swinging."
-    groundout = "grounds out to"
-    flyout = "flies out to"
-    fielderschoice = "reaches on fielder's choice. {} is out at {} base." #requires .format(player, base_string)
-    doubleplay = "grounds into a double play!"
-    sacrifice = "hits a sacrifice fly towards"
-    walk = "draws a walk."
-    single = "hits a single!"
-    double = "hits a double!"
-    triple = "hits a triple!"
-    homerun = "hits a dinger!"
-    grandslam = "hits a grand slam!"
 
 
 class player(object):
@@ -248,19 +222,22 @@ class game(object):
         else:
             self.max_innings = config()["default_length"]
         self.bases = {1 : None, 2 : None, 3 : None}
-        self.weather = weather("Sunny","🌞")
+        self.weather = weather.Weather()
+        self.current_batter = None
 
-    def get_batter(self):
+    def choose_next_batter(self):
         if self.top_of_inning:
             bat_team = self.teams["away"]
-            counter = self.weather.counter_away
         else:
             bat_team = self.teams["home"]
-            counter = self.weather.counter_home
 
-        if self.weather.name == "Heavy Snow" and counter == bat_team.lineup_position:
-            return bat_team.pitcher
-        return bat_team.lineup[bat_team.lineup_position % len(bat_team.lineup)]
+        self.current_batter = bat_team.lineup[bat_team.lineup_position % len(bat_team.lineup)]
+        self.weather.on_choose_next_batter(self)
+
+    def get_batter(self):
+        if self.current_batter == None:
+            self.choose_next_batter()
+        return self.current_batter
 
     def get_pitcher(self):
         if self.top_of_inning:
@@ -286,8 +263,8 @@ class game(object):
 
         bat_stat = random_star_gen("batting_stars", batter)
         pitch_stat = random_star_gen("pitching_stars", pitcher)
-        if weather.name == "Supernova":
-            pitch_stat = pitch_stat * 0.9
+
+        bat_stat, pitch_stat = self.weather.modify_stats_preroll(bat_stat, pitch_stat)
 
         pb_system_stat = (random.gauss(1*math.erf((bat_stat - pitch_stat)*1.5)-1.8,2.2))
         hitnum = random.gauss(2*math.erf(bat_stat/4)-1,3)
@@ -533,25 +510,19 @@ class game(object):
     def batterup(self):
         scores_to_add = 0
         result = self.at_bat()
+
+        self.weather.activate(self, result) # possibly modify result in-place
+
+        if "text_only" in result:
+            return (result, 0)            
+    
         if self.top_of_inning:
             offense_team = self.teams["away"]
-            weather_count = self.weather.counter_away
             defense_team = self.teams["home"]
         else:
             offense_team = self.teams["home"]
-            weather_count = self.weather.counter_home
             defense_team = self.teams["away"]
 
-        if self.weather.name == "Slight Tailwind" and "mulligan" not in self.last_update[0].keys() and not result["ishit"] and result["text"] != appearance_outcomes.walk: 
-            mulligan_roll_target = -((((self.get_batter().stlats["batting_stars"])-5)/6)**2)+1
-            if random.random() > mulligan_roll_target and self.get_batter().stlats["batting_stars"] <= 5:
-                result["mulligan"] = True
-                return (result, 0)
-
-        if self.weather.name == "Heavy Snow" and weather_count == offense_team.lineup_position and "snow_atbat" not in self.last_update[0].keys():
-            result["snow_atbat"] = True
-            result["text"] = f"{offense_team.lineup[offense_team.lineup_position % len(offense_team.lineup)].name}'s hands are too cold! {self.get_batter().name} is forced to bat!"
-            return (result, 0)
 
         defenders = defense_team.lineup.copy()
         defenders.append(defense_team.pitcher)
@@ -570,8 +541,6 @@ class game(object):
             elif result["text"] == appearance_outcomes.homerun or result["text"] == appearance_outcomes.grandslam:
                 self.get_batter().game_stats["total_bases"] += 4
                 self.get_batter().game_stats["home_runs"] += 1
-                if self.weather.name == "Thinned Veil":
-                    result["veil"] = True
 
 
 
@@ -636,27 +605,10 @@ class game(object):
         self.get_batter().game_stats["rbis"] += scores_to_add
         self.get_pitcher().game_stats["runs_allowed"] += scores_to_add
         offense_team.lineup_position += 1 #put next batter up
+        self.choose_next_batter()
         if self.outs >= 3:
             self.flip_inning()
-            if self.weather.name == "Heat Wave":
-                if self.top_of_inning:
-                    self.weather.home_pitcher = self.get_pitcher()
-                    if self.inning >= self.weather.counter_home:
-                        self.weather.counter_home = self.weather.counter_home - (self.weather.counter_home % 5) + 5 + random.randint(1,4) #rounds down to last 5, adds up to next 5. then adds a random number 2<=x<=5 to determine next pitcher                       
-                        tries = 0
-                        while self.get_pitcher() == self.weather.home_pitcher and tries < 3:
-                            self.teams["home"].set_pitcher(use_lineup = True)
-                            tries += 1
-
- 
-                else:
-                    self.weather.away_pitcher = self.get_pitcher()
-                    if self.inning >= self.weather.counter_away:
-                        self.weather.counter_away = self.weather.counter_away - (self.weather.counter_away % 5) + 5 + random.randint(1,4)                  
-                        tries = 0
-                        while self.get_pitcher() == self.weather.away_pitcher and tries < 3:
-                            self.teams["away"].set_pitcher(use_lineup = True)
-                            tries += 1
+            
          
 
         return (result, scores_to_add) #returns ab information and scores
@@ -665,22 +617,17 @@ class game(object):
         for base in self.bases.keys():
             self.bases[base] = None
         self.outs = 0
-        if self.top_of_inning and self.weather.name == "Heavy Snow" and self.weather.counter_away < self.teams["away"].lineup_position:
-            self.weather.counter_away = self.pitcher_insert(self.teams["away"])
+
+        self.top_of_inning = not self.top_of_inning
+
+        self.weather.on_flip_inning(self)
+
+        self.choose_next_batter()
 
         if not self.top_of_inning:
-            if self.weather.name == "Heavy Snow" and self.weather.counter_home < self.teams["home"].lineup_position:
-                self.weather.counter_home = self.pitcher_insert(self.teams["home"])
             self.inning += 1
             if self.inning > self.max_innings and self.teams["home"].score != self.teams["away"].score: #game over
                 self.over = True
-        self.top_of_inning = not self.top_of_inning
-
-        if self.weather.name == "Drizzle":
-            if self.top_of_inning:
-                self.bases[2] = self.teams["away"].lineup[(self.teams["away"].lineup_position-1) % len(self.teams["away"].lineup)]
-            else:
-                self.bases[2] = self.teams["home"].lineup[(self.teams["home"].lineup_position-1) % len(self.teams["home"].lineup)]
 
     def pitcher_insert(self, this_team):
         rounds = math.ceil(this_team.lineup_position / len(this_team.lineup))
@@ -868,25 +815,3 @@ def search_team(search_term):
         teams.append(team_json)
     return teams
 
-def base_string(base):
-    if base == 1:
-        return "first"
-    elif base == 2:
-        return "second"
-    elif base == 3:
-        return "third"
-    elif base == 4:
-        return "None"
-
-class weather(object):
-    name = "Sunny"
-    emoji = "🌞"
-
-    def __init__(self, new_name, new_emoji):
-        self.name = new_name
-        self.emoji = new_emoji + "\uFE00"
-        self.counter_away = 0
-        self.counter_home = 0
-
-    def __str__(self):
-        return f"{self.emoji} {self.name}"

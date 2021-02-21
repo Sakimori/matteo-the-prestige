@@ -174,7 +174,7 @@ def update_loop():
                         state["update_text"] = f"Top of {this_game.inning}. {this_game.teams['away'].name} batting!"
                         if this_game.weather.name == "Drizzle":
                             state["update_emoji"] = "🌧"
-                            state["update_text"] += f' Due to inclement weather, {this_game.teams["away"].lineup[(this_game.teams["away"].lineup_position-1) % len(this_game.teams["away"].lineup)].name} is placed on second base.'
+                            state["update_text"] += f'Due to inclement weather, {this_game.teams["away"].lineup[(this_game.teams["away"].lineup_position-1) % len(this_game.teams["away"].lineup)].name} is placed on second base.'
                         elif this_game.weather.name == "Heat Wave" and hasattr(this_game.weather, "home_pitcher") and this_game.weather.home_pitcher.name != state["pitcher"]:
                             state["update_emoji"] = "🌄"
                             state["update_text"] += f' {this_game.weather.home_pitcher} is exhausted from the heat. {state["pitcher"]} is forced to pitch!'
@@ -234,7 +234,7 @@ def update_loop():
                         
                         if "veil" in this_game.last_update[0].keys():
                             state["update_emoji"] = "🌌"                            
-                            state["update_text"] += f" {this_game.last_update[0]['batter']}'s will manifests on {games.base_string(this_game.last_update[1])} base."
+                            state["update_text"] += f" {this_game.last_update[0]['batter']}'s will manifests on {gametext.base_string(this_game.last_update[1])} base."
                         elif "error" in this_game.last_update[0].keys():
                             state["update_emoji"] = "👻"
                             state["update_text"] = f"{this_game.last_update[0]['batter']}'s hit goes ethereal, and {this_game.last_update[0]['defender']} can't catch it! {this_game.last_update[0]['batter']} reaches base safely."
