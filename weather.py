@@ -85,6 +85,7 @@ class HeavySnow(Weather):
         if weather_count == offense_team.lineup_position and "snow_atbat" not in game.last_update[0].keys():
             result.clear()
             result.update({
+                "snow_atbat": True,
                 "text": f"{offense_team.lineup[offense_team.lineup_position % len(offense_team.lineup)].name}'s hands are too cold! {game.get_batter().name} is forced to bat!",
                 "text_only": True,
                 "weather_message": True,
@@ -138,7 +139,7 @@ class HeatWave(Weather):
         self.name = "Heat Wave"
         self.emoji = "🌄" + "\uFE00"
 
-        self.counter_away = -1# random.randint(2,4)
+        self.counter_away = -1 # random.randint(2,4)
         self.counter_home = -1 # random.randint(2,4)
 
     def on_flip_inning(self, game):
@@ -152,7 +153,7 @@ class HeatWave(Weather):
 
         should_change_pitcher = False
         if game.inning >= counter:
-            change_pitcher = True
+            should_change_pitcher = True
             if game.top_of_inning:
                 self.counter_home = self.counter_home - (self.counter_home % 5) + 5 + random.randint(1,4) #rounds down to last 5, adds up to next 5. then adds a random number 2<=x<=5 to determine next pitcher                       
             else:
@@ -236,7 +237,7 @@ class Feedback(Weather):
     def __init__(self, game):
         self.name = "Feedback"
         self.emoji = "🎤"
-        self.activation_chance = 0.25
+        self.activation_chance = 0.02
         self.swap_batter_vs_pitcher_chance = 0.8
 
     def activate(self, game, result):
@@ -244,24 +245,29 @@ class Feedback(Weather):
             # feedback time
             player1 = None
             player2 = None
+            team1 = game.teams["home"]
+            team2 = game.teams["away"]
             if random.random() < self.swap_batter_vs_pitcher_chance:
                 # swapping batters
                 # theoretically this could swap players already on base :(
-                homePlayerIndex = random.randint(len(teams["home"].lineup))
-                awayPlayerIndex = random.randint(len(teams["away"].lineup))
+                team1 = game.teams["home"]
+                team2 = game.teams["away"]
+                homePlayerIndex = random.randint(0,len(team1.lineup)-1)
+                awayPlayerIndex = random.randint(0,len(team2.lineup)-1)
 
-                homePlayer = teams["home"].lineup[homePlayerIndex]
-                awayPlayer = teams["away"].lineup[awayPlayerIndex]
+                player1 = team1.lineup[homePlayerIndex]
+                player2 = team2.lineup[awayPlayerIndex]
 
-                teams["home"].lineup[homePlayerIndex] = awayPlayer
-                teams["away"].lineup[awayPlayerIndex] = homePlayer
+                team1.lineup[homePlayerIndex] = player2
+                team2.lineup[awayPlayerIndex] = player1
             else:
                 # swapping pitchers
-                player1 = teams["home"].pitcher
-                player2 = teams["away"].pitcher
-                teams["home"].set_pitcher(player2)
-                teams["away"].set_pitcher(player1)
-          
+                player1 = team1.pitcher
+                player2 = team2.pitcher
+
+                team1.pitcher = player2
+                team2.pitcher = player1
+
             result.clear()
             result.update({
                 "text": "{} and {} switched teams in the feedback!".format(player1.name,player2.name),
@@ -274,13 +280,13 @@ def all_weathers():
         #"Supernova" : Supernova,
         #"Midnight": Midnight,
         #"Slight Tailwind": SlightTailwind,
-#        "Heavy Snow": HeavySnow,
-    #    "Twilight" : Twilight, # works
-        "Thinned Veil" : ThinnedVeil, # works
-#        "Heat Wave" : HeatWave,
-#        "Drizzle" : Drizzle, # works
-#    "Sun 2": Sun2,
-#        "Feedback": Feedback,
+       "Heavy Snow": HeavySnow, # works
+        "Twilight" : Twilight, # works
+       "Thinned Veil" : ThinnedVeil, # works
+        "Heat Wave" : HeatWave,
+        "Drizzle" : Drizzle, # works
+#        "Sun 2": Sun2,
+        "Feedback": Feedback,
         "Literacy": NameSwappyWeather,
         }
     return weathers_dic
