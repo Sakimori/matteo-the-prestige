@@ -158,6 +158,7 @@ these folks are helping me a *ton* via patreon, and i cannot possibly thank them
 - Evie Diver
 - iliana etaoin
 - yooori
+- Bend
 
 ## Attribution
 

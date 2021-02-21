@@ -30,7 +30,6 @@ def config():
             return json.load(config_file)
 
 
-
 class player(object):
     def __init__(self, json_string):
         self.stlats = json.loads(json_string)
@@ -791,4 +790,3 @@ def search_team(search_term):
 
         teams.append(team_json)
     return teams
-

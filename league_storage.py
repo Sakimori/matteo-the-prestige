@@ -34,11 +34,16 @@ def statements():
 	ROUND(total_bases*1.0 / (plate_appearances - (walks_taken + sacrifices)*1.0),3) as SLG,
 	ROUND((walks_taken + hits)*1.0/plate_appearances*1.0,3) as OBP,
 	ROUND((walks_taken + hits)*1.0/plate_appearances*1.0,3) + ROUND(total_bases*1.0 / (plate_appearances - (walks_taken + sacrifices)*1.0),3) as OPS
-FROM stats WHERE plate_appearances > 8""",
+FROM stats WHERE plate_appearances > """,
+                "bat_base_req": 3,
                 "avg" : ["ORDER BY BA DESC;", "bat_base"],
                 "slg" : ["ORDER BY SLG DESC;", "bat_base"],
                 "obp" : ["ORDER BY OBP DESC;", "bat_base"],
                 "ops" : ["ORDER BY OPS DESC;", "bat_base"],
+                "bat_count_base": "SELECT name, team_name,\n\tplate_appearances - (walks_taken + sacrifices) as ABs,\nwalks_taken as BB,\nhits as H,\nhome_runs as HR,\nrbis as RBIs,\nstrikeouts_taken as K,\nsacrifices\nFROM stats WHERE plate_appearances > 8",
+	            "home runs": ["ORDER BY HR DESC;", "bat_count_base"],
+	            "walks drawn": ["ORDER BY BB DESC;", "bat_count_base"],
+                "bat_count_base_req" : 3,
                 "pitch_base" : """SELECT name, team_name,
     ROUND(((outs_pitched*1.0)/3.0),1) as IP,
 	ROUND(runs_allowed*27.0/(outs_pitched*1.0),3) as ERA,
@@ -46,8 +51,9 @@ FROM stats WHERE plate_appearances > 8""",
 	ROUND(walks_allowed*27.0/(outs_pitched*1.0),3) as BBper9,
 	ROUND(strikeouts_given*27.0/(outs_pitched*1.0),3) as Kper9,
 	ROUND(strikeouts_given*1.0/walks_allowed*1.0,3) as KperBB
-FROM stats WHERE outs_pitched > 20
+FROM stats WHERE outs_pitched > 
 """,
+                "pitch_base_req": 2,
                 "era" : ["ORDER BY ERA ASC;", "pitch_base"],
                 "whip" : ["ORDER BY WHIP ASC;", "pitch_base"],
                 "kper9" : ["ORDER BY Kper9 DESC;", "pitch_base"],
@@ -85,6 +91,9 @@ def state(league_name):
         return json.load(state_file)
 
 def init_league_db(league):
+    if os.path.exists(os.path.join(data_dir, league_dir, league.name, f"{league.name}.db")):
+        os.remove(os.path.join(data_dir, league_dir, league.name, f"{league.name}.db"))
+
     conn = create_connection(league.name)
 
     player_stats_table_check_string = """ CREATE TABLE IF NOT EXISTS stats (
@@ -169,7 +178,7 @@ def add_stats(league_name, player_game_stats_list):
         conn.commit()
     conn.close()
 
-def get_stats(league_name, stat, is_batter=True):
+def get_stats(league_name, stat, is_batter=True, day = 10):
     conn = create_connection(league_name)
     stats = None
     if conn is not None:
@@ -177,7 +186,8 @@ def get_stats(league_name, stat, is_batter=True):
         c=conn.cursor()
 
         if stat in statements().keys():
-            c.execute(statements()[statements()[stat][1]]+"\n"+statements()[stat][0])
+            req_number = str(day * int(statements()[statements()[stat][1]+"_req"]))
+            c.execute(statements()[statements()[stat][1]]+req_number+"\n"+statements()[stat][0])
             stats = c.fetchall()
     conn.close()
     return stats

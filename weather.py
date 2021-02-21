@@ -5,7 +5,7 @@ from gametext import appearance_outcomes, base_string
 class Weather:
     def __init__(self, game):
         self.name = "Sunny"
-        self.emoji = "🌞" + "\uFE00"
+        self.emoji = "🌞"
 
     def __str__(self):
         return f"{self.emoji} {self.name}"
@@ -38,18 +38,18 @@ class Weather:
         pass
 
 
-class Supernova(Weather): # todo
+class Supernova(Weather):
     def __init__(self, game):
         self.name = "Supernova"
-        self.emoji = "🌟" + "\uFE00"
+        self.emoji = "🌟"
 
     def modify_atbat_stats(self, roll):
         roll["pitch_stat"] *= 0.9
 
-class Midnight(Weather): # todo
+class Midnight(Weather):
     def __init__(self, game):
         self.name = "Midnight"
-        self.emoji = "🕶" + "\uFE00"
+        self.emoji = "🕶"
 
     def modify_steal_stats(self, roll):
         roll["run_stars"] *= 2
@@ -57,7 +57,7 @@ class Midnight(Weather): # todo
 class SlightTailwind(Weather):
     def __init__(self, game):
         self.name = "Slight Tailwind"
-        self.emoji = "🏌️‍♀️" + "\uFE00"
+        self.emoji = "🏌️‍♀️"
 
     def activate(self, game, result):
         if game.top_of_inning:
@@ -82,7 +82,7 @@ class SlightTailwind(Weather):
 class HeavySnow(Weather):
     def __init__(self, game):
         self.name = "Heavy Snow"
-        self.emoji = "❄" + "\uFE00"
+        self.emoji = "❄"
         self.counter_away = random.randint(0,len(game.teams['away'].lineup)-1)
         self.counter_home = random.randint(0,len(game.teams['home'].lineup)-1)
 
@@ -127,7 +127,7 @@ class HeavySnow(Weather):
 class Twilight(Weather):
     def __init__(self,game):
         self.name = "Twilight"
-        self.emoji = "👻" + "\uFE00"
+        self.emoji = "👻"
 
     def modify_atbat_roll(self, outcome, roll, defender):
         error_line = - (math.log(defender.stlats["defense_stars"] + 1)/50) + 1
@@ -143,12 +143,12 @@ class Twilight(Weather):
         if "error" in result.keys():
             state["update_text"] = f"{result['batter']}'s hit goes ethereal, and {result['defender']} can't catch it! {result['batter']} reaches base safely."
             if this_game.last_update[1] > 0:
-                state["update_text"] += f"{this_game.last_update[1]} runs scored!"
+                state["update_text"] += f" {this_game.last_update[1]} runs scored!"
 
 class ThinnedVeil(Weather):
     def __init__(self,game):
         self.name = "Thinned Veil"
-        self.emoji = "🌌" + "\uFE00"
+        self.emoji = "🌌"
 
     def activate(self, game, result):
         if result["ishit"]:
@@ -163,7 +163,7 @@ class ThinnedVeil(Weather):
 class HeatWave(Weather):
     def __init__(self,game):
         self.name = "Heat Wave"
-        self.emoji = "🌄" + "\uFE00"
+        self.emoji = "🌄"
 
         self.counter_away = random.randint(2,4)
         self.counter_home = random.randint(2,4)
@@ -225,7 +225,7 @@ class Drizzle(Weather):
         placed_player = game.teams[next_team].lineup[(game.teams[next_team].lineup_position-1) % len(game.teams[next_team].lineup)]
 
         state["update_emoji"] = self.emoji
-        state["update_text"] += f'Due to inclement weather, {placed_player.name} is placed on second base.'
+        state["update_text"] += f' Due to inclement weather, {placed_player.name} is placed on second base.'
 
 
 class Sun2(Weather):
@@ -327,9 +327,9 @@ class Feedback(Weather):
 
 def all_weathers():
     weathers_dic = {
-        #"Supernova" : Supernova,
-        #"Midnight": Midnight,
-        #"Slight Tailwind": SlightTailwind,
+            "Supernova" : Supernova,
+            "Midnight": Midnight,
+            "Slight Tailwind": SlightTailwind,
             "Heavy Snow": HeavySnow,
             "Twilight" : Twilight,
             "Thinned Veil" : ThinnedVeil,

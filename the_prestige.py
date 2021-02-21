@@ -146,6 +146,12 @@ class StartGameCommand(Command):
             await msg.channel.send("Make sure you put an integer after the -d flag.")
             return
 
+        weather_name = None
+        if "-w " in command.split("\n")[0]:
+            weather_name = command.split("\n")[0].split("-w ")[1].split("-")[0].strip()
+        elif "--weather " in command.split("\n")[0]: 
+            weather_name = command.split("\n")[0].split("--weather ")[1].split("-")[0].strip()
+
         innings = None
         try:
             team_name1 = command.split("\n")[1].strip()
@@ -183,8 +189,11 @@ class StartGameCommand(Command):
                 game.teams['away'].set_pitcher(rotation_slot = day)
                 game.teams['home'].set_pitcher(rotation_slot = day)
             channel = msg.channel
-            await msg.delete()
             
+            if weather_name is not None and weather_name in weather.all_weathers().keys():
+                game.weather = weather.all_weathers()[weather_name](game)
+                
+
             game_task = asyncio.create_task(watch_game(channel, game, user=msg.author, league=league))
             await game_task
         else:
@@ -202,7 +211,6 @@ class StartRandomGameCommand(Command):
             return
 
         channel = msg.channel
-        await msg.delete()
         await channel.send("Rolling the bones... This might take a while.")
         teamslist = games.get_all_teams()
 
@@ -1116,8 +1124,114 @@ class LeagueForceStopCommand(Command):
                 await msg.channel.send("League halted, boss. We hope you did that on purpose.")
                 return
         await msg.channel.send("That league either doesn't exist or isn't in the active list. So, huzzah?")
-            
-            
+
+class LeagueSwapTeamCommand(Command):
+    name = "leagueswapteam"
+    template = "m;leagueswapteam [league name]\n[team to remove]\n[team to add]"
+    description = "Adds a team to a league, removing the old one in the process. Can only be executed by a league owner, and only before the start of a new season."
+         
+    async def execute(self, msg, command):
+        league_name = command.split("\n")[0].strip()
+        if league_exists(league_name):
+            league = leagues.load_league_file(league_name)
+            if league.day != 1:
+                await msg.channel.send("That league hasn't finished its current season yet, chief. Either reset it, or be patient.")
+                return
+            if (league.owner is not None and msg.author.id in league.owner) or (league.owner is not None and msg.author.id in config()["owners"]):
+                try:
+                    team_del = get_team_fuzzy_search(command.split("\n")[1].strip())
+                    team_add = get_team_fuzzy_search(command.split("\n")[2].strip())
+                except IndexError:
+                    await msg.channel.send("Three lines, boss. Make sure you give us the team to remove, then the team to add.")
+                    return
+                if team_add.name == team_del.name:
+                    await msg.channel.send("Quit being cheeky. The teams have to be different.")
+                    return
+
+                if team_del is None or team_add is None:
+                    await msg.channel.send("We couldn't find one or both of those teams, boss. Try again.")
+                    return
+                subleague, division = league.find_team(team_del)               
+
+                if subleague is None or division is None:
+                    await msg.channel.send("That first team isn't in that league, chief. So, that's good, right?")
+                    return
+
+                if league.find_team(team_add)[0] is not None:
+                    await msg.channel.send("That second team is already in that league, chief. No doubles.")
+                    return
+
+                for index in range(0, len(league.league[subleague][division])):
+                    if league.league[subleague][division][index].name == team_del.name:
+                        league.league[subleague][division].pop(index)
+                        league.league[subleague][division].append(team_add)
+                league.schedule = {}
+                league.generate_schedule()
+                leagues.save_league_as_new(league)
+                await msg.channel.send(embed=league.standings_embed())
+                await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
+            else:
+                await msg.channel.send("That league isn't yours, chief.")
+        else:
+            await msg.channel.send("We can't find that league.")
+
+class LeagueRenameCommand(Command):
+    name = "leaguerename"
+    template = "m;leaguerename [league name]\n[old subleague/division name]\n[new subleague/division name]"
+    description = "Changes the name of an existing subleague or division. Can only be executed by a league owner, and only before the start of a new season."
+         
+    async def execute(self, msg, command):
+        league_name = command.split("\n")[0].strip()
+        if league_exists(league_name):
+            league = leagues.load_league_file(league_name)
+            if league.day != 1:
+                await msg.channel.send("That league hasn't finished its current season yet, chief. Either reset it, or be patient.")
+                return
+            if (league.owner is not None and msg.author.id in league.owner) or (league.owner is not None and msg.author.id in config()["owners"]):
+                try:
+                    old_name = command.split("\n")[1].strip()
+                    new_name = command.split("\n")[2].strip()
+                except IndexError:
+                    await msg.channel.send("Three lines, boss. Make sure you give us the old name, then the new name, on their own lines.")
+                    return
+
+                if old_name == new_name:
+                    await msg.channel.send("Quit being cheeky. They have to be different names, clearly.")
+
+
+                found = False
+                for subleague in league.league.keys():
+                    if subleague == new_name:
+                        found = True
+                        break
+                    for division in league.league[subleague]:
+                        if division == new_name:
+                            found = True
+                            break
+                if found:
+                    await msg.channel.send(f"{new_name} is already present in that league, chief. They have to be different.")
+
+                found = False
+                for subleague in league.league.keys():
+                    if subleague == old_name:
+                        league.league[new_name] = league.league.pop(old_name)
+                        found = True
+                        break
+                    for division in league.league[subleague]:
+                        if division == old_name:
+                            league.league[subleague][new_name] = league.league[subleague].pop(old_name)
+                            found = True
+                            break
+                if not found:
+                    await msg.channel.send(f"We couldn't find {old_name} anywhere in that league, boss.")
+                    return
+                leagues.save_league_as_new(league)
+                await msg.channel.send(embed=league.standings_embed())
+                await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
+            else:
+                await msg.channel.send("That league isn't yours, chief.")
+        else:
+            await msg.channel.send("We can't find that league.")
 
 
 commands = [
@@ -1153,6 +1267,8 @@ commands = [
     LeagueScheduleCommand(),
     LeagueTeamScheduleCommand(),
     LeagueRegenerateScheduleCommand(),
+    LeagueSwapTeamCommand(),
+    LeagueRenameCommand(),
     LeagueForceStopCommand(),
     CreditCommand(),
     RomanCommand(),
@@ -1161,12 +1277,14 @@ commands = [
     DraftPlayerCommand()
 ]
 
+watching = False
 client = discord.Client()
 gamesarray = []
 active_tournaments = []
 active_leagues = []
 active_standings = {}
 setupmessages = {}
+
 
 thread1 = threading.Thread(target=main_controller.update_loop)
 thread1.start()
@@ -1196,10 +1314,13 @@ def config():
 
 @client.event
 async def on_ready():
+    global watching
     db.initialcheck()
     print(f"logged in as {client.user} with token {config()['token']} to {len(client.guilds)} servers")
-    watch_task = asyncio.create_task(game_watcher())
-    await watch_task
+    if not watching:
+        watching = True
+        watch_task = asyncio.create_task(game_watcher())
+        await watch_task
 
 
 @client.event
@@ -1396,7 +1517,7 @@ async def watch_game(channel, newgame, user = None, league = None):
     main_controller.master_games_dic[id] = (newgame, state_init, discrim_string)
 
 def prepare_game(newgame, league = None, weather_name = None):
-    if weather_name is None:
+    if weather_name is None and newgame.weather.name == "Sunny":
         weathers = weather.all_weathers()
         newgame.weather = weathers[random.choice(list(weathers.keys()))](newgame)
 
@@ -1575,7 +1696,7 @@ async def tourney_round_watcher(channel, tourney, games_list, filter_url, finals
 
     if finals: #if this last round was finals
         embed = discord.Embed(color = discord.Color.dark_purple(), title = f"{winner_list[0]} win the {tourney.name} finals!")
-        if tourney.day > tourney.league.day:
+        if tourney.league is not None and tourney.day > tourney.league.day:
             tourney.league.day = tourney.day
         await channel.send(embed=embed)
         tourney.winner = get_team_fuzzy_search(winner_list[0])
@@ -2005,7 +2126,7 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
         else:
             league.active = False
 
-    if league.autoplay == 0 or config()["game_freeze"]: #if number of series to autoplay has been reached
+    if league.autoplay <= 0 or config()["game_freeze"]: #if number of series to autoplay has been reached
         if league in active_standings.keys():
             await active_standings[league].unpin()
         active_standings[league] = await channel.send(embed=league.standings_embed())
