@@ -30,9 +30,9 @@ def config():
 
 def all_weathers():
     weathers_dic = {
-        #"Supernova" : weather("Supernova", "🌟"),
-        #"Midnight": weather("Midnight", "🕶"),
-        #"Slight Tailwind": weather("Slight Tailwind", "🏌️‍♀️"),
+        "Supernova" : weather("Supernova", "🌟"),
+        "Midnight": weather("Midnight", "🕶"),
+        "Slight Tailwind": weather("Slight Tailwind", "🏌️‍♀️"),
         "Heavy Snow": weather("Heavy Snow", "❄"),
         "Twilight" : weather("Twilight", "👻"),
         "Thinned Veil" : weather("Thinned Veil", "🌌"),
@@ -884,7 +884,7 @@ class weather(object):
 
     def __init__(self, new_name, new_emoji):
         self.name = new_name
-        self.emoji = new_emoji + "\uFE00"
+        self.emoji = new_emoji
         self.counter_away = 0
         self.counter_home = 0
 
