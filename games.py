@@ -628,10 +628,6 @@ class game(object):
             if self.inning > self.max_innings and self.teams["home"].score != self.teams["away"].score: #game over
                 self.over = True
 
-    def pitcher_insert(self, this_team):
-        rounds = math.ceil(this_team.lineup_position / len(this_team.lineup))
-        position = random.randint(0, len(this_team.lineup)-1)
-        return rounds * len(this_team.lineup) + position
 
     def end_of_game_report(self):
         return {
@@ -657,7 +653,6 @@ class game(object):
         attempts = self.thievery_attempts()
         if attempts == False:
             self.last_update = self.batterup()
-            print(self.last_update[0]) ############# DEBUG REMOVE ME #################
         else:
             self.last_update = attempts
         return self.gamestate_display_full()

@@ -3,7 +3,6 @@ from leagues import league_structure
 from league_storage import league_exists
 from flask import Flask, url_for, Response, render_template, request, jsonify, send_from_directory, abort
 from flask_socketio import SocketIO, emit
-from gametext import base_string
 import database as db
 
 app = Flask("the-prestige", static_folder='simmadome/build')
@@ -159,7 +158,7 @@ def update_loop():
 
                 if state["update_pause"] == 1: #generate the top of the inning message before displaying the at bat result
                     state["update_emoji"] = "🍿"
-                    if this_game.over:
+                    if this_game.over: # game over message
                         state["display_inning"] -= 1
                         state["display_top_of_inning"] = False
                         winning_team = this_game.teams['home'].name if this_game.teams['home'].score > this_game.teams['away'].score else this_game.teams['away'].name
@@ -171,26 +170,17 @@ def update_loop():
                             state["update_text"] = f"{winning_team} wins!"
                         state["pitcher"] = "-"
                         state["batter"] = "-"
-                    elif this_game.top_of_inning:
-                        state["update_text"] = f"Top of {this_game.inning}. {this_game.teams['away'].name} batting!"
-                        if this_game.weather.name == "Drizzle":
-                            state["update_emoji"] = "🌧"
-                            state["update_text"] += f'Due to inclement weather, {this_game.teams["away"].lineup[(this_game.teams["away"].lineup_position-1) % len(this_game.teams["away"].lineup)].name} is placed on second base.'
-                        elif this_game.weather.name == "Heat Wave" and hasattr(this_game.weather, "home_pitcher") and this_game.weather.home_pitcher.name != state["pitcher"]:
-                            state["update_emoji"] = "🌄"
-                            state["update_text"] += f' {this_game.weather.home_pitcher} is exhausted from the heat. {state["pitcher"]} is forced to pitch!'
-                            
                     else:
-                        if this_game.inning >= this_game.max_innings:
-                            if this_game.teams["home"].score > this_game.teams["away"].score:
-                                this_game.victory_lap = True
-                        state["update_text"] = f"Bottom of {this_game.inning}. {this_game.teams['home'].name} batting!"
-                        if this_game.weather.name == "Drizzle":
-                            state["update_emoji"] = "🌧"
-                            state["update_text"] += f' Due to inclement weather, {this_game.teams["home"].lineup[(this_game.teams["home"].lineup_position-1) % len(this_game.teams["home"].lineup)].name} is placed on second base.'
-                        elif this_game.weather.name == "Heat Wave" and hasattr(this_game.weather, "away_pitcher") and this_game.weather.away_pitcher.name != state["pitcher"]:
-                            state["update_emoji"] = "🌄"
-                            state["update_text"] += f' {this_game.weather.away_pitcher} is exhausted from the heat. {state["pitcher"]} is forced to pitch!'
+                        if this_game.top_of_inning: 
+                            state["update_text"] = f"Top of {this_game.inning}. {this_game.teams['away'].name} batting!"
+                        else:
+                            if this_game.inning >= this_game.max_innings:
+                                if this_game.teams["home"].score > this_game.teams["away"].score:
+                                    this_game.victory_lap = True
+                            state["update_text"] = f"Bottom of {this_game.inning}. {this_game.teams['home'].name} batting!"
+
+                        this_game.weather.modify_top_of_inning_message(this_game, state)
+
 
                 elif state["update_pause"] != 1 and this_game.play_has_begun:
 
@@ -205,15 +195,7 @@ def update_loop():
                         state["update_emoji"] = "💎" 
                         state["update_text"] = updatestring
 
-                    elif "mulligan" in this_game.last_update[0].keys():
-                        updatestring = ""
-                        punc = ""
-                        if this_game.last_update[0]["defender"] != "":
-                            punc = ", "
-
-                        state["update_text"] = f"{this_game.last_update[0]['batter']} would have gone out, but they took a mulligan!"
-
-                    elif "text_only" in this_game.last_update[0].keys():
+                    elif "text_only" in this_game.last_update[0].keys(): #this handles many weather messages
                         state["update_text"] = this_game.last_update[0]["text"]
                     else:
                         updatestring = ""
@@ -231,13 +213,8 @@ def update_loop():
 
                         state["update_emoji"] = "🏏"
                         state["update_text"] = updatestring
-                        
-                        if "veil" in this_game.last_update[0].keys():          
-                            state["update_text"] += f" {this_game.last_update[0]['batter']}'s will manifests on {base_string(this_game.last_update[1])} base."
-                        elif "error" in this_game.last_update[0].keys():
-                            state["update_text"] = f"{this_game.last_update[0]['batter']}'s hit goes ethereal, and {this_game.last_update[0]['defender']} can't catch it! {this_game.last_update[0]['batter']} reaches base safely."
-                            if this_game.last_update[1] > 0:
-                                updatestring += f"{this_game.last_update[1]} runs scored!"
+
+                        this_game.weather.modify_atbat_message(this_game, state)
 
             state["bases"] = this_game.named_bases()
 

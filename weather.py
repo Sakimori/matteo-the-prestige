@@ -1,6 +1,6 @@
 import random
 import math
-from gametext import appearance_outcomes
+from gametext import appearance_outcomes, base_string
 
 class Weather:
     def __init__(self, game):
@@ -10,25 +10,33 @@ class Weather:
     def __str__(self):
         return f"{self.emoji} {self.name}"
 
-    def activate(self, game, result):
-        # activates after the batter calculation. modify result, or just return another thing
-        pass
-
-    def on_flip_inning(self, game):
-        pass
-
-    def on_choose_next_batter(self, game):
+    def modify_atbat_stats(self, player_rolls):
+        # Activates before batting
         pass
 
     def modify_steal_stats(self, roll):
         pass
 
-    def modify_atbat_stats(self, player_rolls):
-        # Activates before batting
+    def modify_atbat_roll(self, outcome, roll, defender):
+        # activates after batter roll
         pass
 
-    def modify_atbat_roll(self, outcome, roll, defender):
+    def activate(self, game, result):
+        # activates after the batter calculation. modify result, or just return another thing
         pass
+
+    def on_choose_next_batter(self, game):
+        pass
+
+    def on_flip_inning(self, game):
+        pass
+
+    def modify_top_of_inning_message(self, game, state):
+        pass
+
+    def modify_atbat_message(self, game, state):
+        pass
+
 
 class Supernova(Weather): # todo
     def __init__(self, game):
@@ -64,8 +72,12 @@ class SlightTailwind(Weather):
         if "mulligan" not in game.last_update[0].keys() and not result["ishit"] and result["text"] != appearance_outcomes.walk: 
             mulligan_roll_target = -((((self.get_batter().stlats["batting_stars"])-5)/6)**2)+1
             if random.random() > mulligan_roll_target and self.get_batter().stlats["batting_stars"] <= 5:
-                result["mulligan"] = True
-                result["weather_message"] = True
+                result.clear()
+                result.update({
+                    "text": f"{this_game.last_update[0]['batter']} would have gone out, but they took a mulligan!",
+                    "text_only": True,
+                    "weather_message": True,
+                })
 
 class HeavySnow(Weather):
     def __init__(self, game):
@@ -74,29 +86,31 @@ class HeavySnow(Weather):
         self.counter_away = random.randint(0,len(game.teams['away'].lineup)-1)
         self.counter_home = random.randint(0,len(game.teams['home'].lineup)-1)
 
-    def activate(self, game, result):        
-        if game.top_of_inning:
-            offense_team = game.teams["away"]
-            weather_count = self.counter_away
-        else:
-            offense_team = game.teams["home"]
-            weather_count = self.counter_home
+        self.swapped_batter_data = None
 
-        if weather_count == offense_team.lineup_position and "snow_atbat" not in game.last_update[0].keys():
+    def activate(self, game, result):        
+        if self.swapped_batter_data:
+            original, sub = self.swapped_batter_data
+            self.swapped_batter_data = None
             result.clear()
             result.update({
                 "snow_atbat": True,
-                "text": f"{offense_team.lineup[offense_team.lineup_position % len(offense_team.lineup)].name}'s hands are too cold! {game.get_batter().name} is forced to bat!",
+                "text": f"{original.name}'s hands are too cold! {sub.name} is forced to bat!",
                 "text_only": True,
                 "weather_message": True,
             })
 
     def on_flip_inning(self, game):
         if game.top_of_inning and self.counter_away < game.teams["away"].lineup_position:
-            self.counter_away = game.pitcher_insert(game.teams["away"])
+            self.counter_away = self.pitcher_insert_index(game.teams["away"])
 
         if not game.top_of_inning and self.counter_home < game.teams["home"].lineup_position:
-            self.counter_home = game.pitcher_insert(game.teams["home"])
+            self.counter_home = self.pitcher_insert_index(game.teams["home"])
+
+    def pitcher_insert_index(self, this_team):
+        rounds = math.ceil(this_team.lineup_position / len(this_team.lineup))
+        position = random.randint(0, len(this_team.lineup)-1)
+        return rounds * len(this_team.lineup) + position
 
     def on_choose_next_batter(self, game):
         if game.top_of_inning:
@@ -106,7 +120,8 @@ class HeavySnow(Weather):
             bat_team = game.teams["home"]
             counter = self.counter_home
 
-        if counter == bat_team.lineup_position:
+        if bat_team.lineup_position == counter:
+            self.swapped_batter_data = (game.current_batter, bat_team.pitcher) # store this to generate the message during activate()
             game.current_batter = bat_team.pitcher
 
 class Twilight(Weather):
@@ -123,6 +138,13 @@ class Twilight(Weather):
             outcome["defender"] = defender
             roll["pb_system_stat"] = 0.1
 
+    def modify_atbat_message(self, this_game, state):
+        result = this_game.last_update[0]
+        if "error" in result.keys():
+            state["update_text"] = f"{result['batter']}'s hit goes ethereal, and {result['defender']} can't catch it! {result['batter']} reaches base safely."
+            if this_game.last_update[1] > 0:
+                state["update_text"] += f"{this_game.last_update[1]} runs scored!"
+
 class ThinnedVeil(Weather):
     def __init__(self,game):
         self.name = "Thinned Veil"
@@ -132,18 +154,24 @@ class ThinnedVeil(Weather):
         if result["ishit"]:
            if result["text"] == appearance_outcomes.homerun or result["text"] == appearance_outcomes.grandslam:
                 result["veil"] = True
-                result["weather_message"] = True
+
+    def modify_atbat_message(self, game, state):
+        if "veil" in game.last_update[0].keys():
+            state["update_emoji"] = self.emoji    
+            state["update_text"] += f" {game.last_update[0]['batter']}'s will manifests on {base_string(game.last_update[1])} base."
 
 class HeatWave(Weather):
     def __init__(self,game):
         self.name = "Heat Wave"
         self.emoji = "🌄" + "\uFE00"
 
-        self.counter_away = -1 # random.randint(2,4)
-        self.counter_home = -1 # random.randint(2,4)
+        self.counter_away = random.randint(2,4)
+        self.counter_home = random.randint(2,4)
+
+        self.swapped_pitcher_data = None
 
     def on_flip_inning(self, game):
-        current_pitcher = game.get_pitcher()
+        original_pitcher = game.get_pitcher()
         if game.top_of_inning:
             bat_team = game.teams["home"]
             counter = self.counter_home
@@ -151,19 +179,28 @@ class HeatWave(Weather):
             bat_team = game.teams["away"]
             counter = self.counter_away
 
-        should_change_pitcher = False
-        if game.inning >= counter:
-            should_change_pitcher = True
+        if game.inning == counter:
             if game.top_of_inning:
                 self.counter_home = self.counter_home - (self.counter_home % 5) + 5 + random.randint(1,4) #rounds down to last 5, adds up to next 5. then adds a random number 2<=x<=5 to determine next pitcher                       
             else:
                 self.counter_away = self.counter_away - (self.counter_away % 5) + 5 + random.randint(1,4)      
 
-        if should_change_pitcher:
+            #swap, accounting for teams where where someone's both batter and pitcher
             tries = 0
-            while game.get_pitcher() == current_pitcher and tries < 3:
+            while game.get_pitcher() == original_pitcher and tries < 3:
                 bat_team.set_pitcher(use_lineup = True)
                 tries += 1
+            if game.get_pitcher() != original_pitcher:
+                self.swapped_pitcher_data = (original_pitcher, game.get_pitcher())
+
+    def modify_top_of_inning_message(self, game, state):
+        if self.swapped_pitcher_data:
+            original, sub = self.swapped_pitcher_data
+            self.swapped_pitcher_data = None
+            state["update_emoji"] = self.emoji
+            state["update_text"] += f' {original} is exhausted from the heat. {sub} is forced to pitch!'
+             
+                
 
 class Drizzle(Weather):
     def __init__(self,game):
@@ -178,6 +215,18 @@ class Drizzle(Weather):
 
         lineup = game.teams[next_team].lineup
         game.bases[2] = lineup[(game.teams[next_team].lineup_position-1) % len(lineup)]
+
+    def modify_top_of_inning_message(self, game, state):
+        if game.top_of_inning:
+            next_team = "away"
+        else:
+            next_team = "home"
+
+        placed_player = game.teams[next_team].lineup[(game.teams[next_team].lineup_position-1) % len(game.teams[next_team].lineup)]
+
+        state["update_emoji"] = self.emoji
+        state["update_text"] += f'Due to inclement weather, {placed_player.name} is placed on second base.'
+
 
 class Sun2(Weather):
     def __init__(self, game):
@@ -194,6 +243,7 @@ class Sun2(Weather):
             result.update({
                 "text": "The {} collect 10! Sun 2 smiles.".format(team.name),
                 "text_only": True,
+                "weather_message": True
             })
 
 class NameSwappyWeather(Weather):
@@ -280,14 +330,14 @@ def all_weathers():
         #"Supernova" : Supernova,
         #"Midnight": Midnight,
         #"Slight Tailwind": SlightTailwind,
-       "Heavy Snow": HeavySnow, # works
-        "Twilight" : Twilight, # works
-       "Thinned Veil" : ThinnedVeil, # works
-        "Heat Wave" : HeatWave,
-        "Drizzle" : Drizzle, # works
+            "Heavy Snow": HeavySnow,
+            "Twilight" : Twilight,
+            "Thinned Veil" : ThinnedVeil,
+            "Heat Wave" : HeatWave,
+            "Drizzle" : Drizzle,
 #        "Sun 2": Sun2,
-        "Feedback": Feedback,
-        "Literacy": NameSwappyWeather,
+            "Feedback": Feedback,
+            "Literacy": NameSwappyWeather,
         }
     return weathers_dic
 
