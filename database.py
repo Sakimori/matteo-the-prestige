@@ -77,7 +77,8 @@ def initialcheck():
                                             team_name text NOT NULL,
                                             teams_beaten_list text,
                                             current_opponent_pool text,
-                                            obl_points int DEFAULT 0
+                                            obl_points int DEFAULT 0,
+                                            rival_name text
     );"""
 
     if conn is not None:
@@ -393,15 +394,15 @@ def save_obl_results(winning_team, losing_team):
         conn.close()
     return
 
-def get_obl_stats(team, beaten = False):
+def get_obl_stats(team, full = False):
     conn = create_connection()
     if conn is not None:
         c=conn.cursor()
         opponents_string = None
         while opponents_string is None:
-            c.execute("SELECT teams_beaten_list, current_opponent_pool FROM one_big_league WHERE team_name = ?", (team.name,))
+            c.execute("SELECT teams_beaten_list, current_opponent_pool, rival_name FROM one_big_league WHERE team_name = ?", (team.name,))
             try:
-                beaten_string, opponents_string = c.fetchone()
+                beaten_string, opponents_string, rival_name = c.fetchone()
             except TypeError: #add team to OBL
                 add_team_obl(team)
             
@@ -411,10 +412,10 @@ def get_obl_stats(team, beaten = False):
 
         teams_list = [name for name, points in obl_leaderboards()]
         rank = teams_list.index(team.name) + 1
-        if not beaten:
+        if not full:
             return (obl_points, opponent_teams, rank)
         else:
-            return (obl_points, beaten_teams, rank)
+            return (obl_points, beaten_teams, opponent_teams, rank, rival_name)
         conn.close()
     return (None, None)
 
@@ -428,6 +429,15 @@ def obl_leaderboards():
         return teams_list #element (team_name, obl_points)
         conn.close()
     return False
+
+def set_obl_rival(base_team, rival):
+    conn = create_connectio()
+    if conn is not None:
+        c=conn.cursor()
+
+        c.execute("UPDATE one_big_league SET rival_name = ? WHERE team_name = ?", (rival.name, base_team.name))
+        conn.commit()
+    conn.close()
 
 def list_to_newline_string(list):
     string = ""

@@ -1273,19 +1273,43 @@ class OBLTeamCommand(Command):
             await msg.channel.send("Sorry boss, we can't find that team.")
             return
 
-        points, opponents_string, rank = db.get_obl_stats(team)
+        rival_team = None
+        points, beaten_teams_list, opponents_string, rank, rival_name = db.get_obl_stats(team, full=True)
         opponents_list = db.newline_string_to_list(opponents_string)
         for index in range(0, len(opponents_list)):
             oppteam = get_team_fuzzy_search(opponents_list[index])
             opplist = db.get_obl_stats(oppteam)[1]
             if team.name in opplist:
                 opponents_list[index] = opponents_list[index] + " 🤼"
+        if rival_name is not None:
+            rival_team = games.get_team(rival_name)
 
         embed = discord.Embed(color=discord.Color.red(), title=f"{team.name} in the One Big League")
         embed.add_field(name="OBL Points", value=points)
         embed.add_field(name="Rank", value=rank)
         embed.add_field(name="Opponent Pool", value=opponents_string, inline=False)
+        if rival_team is not None:
+            embed.add_field(name="Rival", value=f"{rival_team.name}\n{rival_team.slogan}")
         await msg.channel.send(embed=embed)
+
+class OBLSetRivalCommand(Command):
+    name = "oblteam"
+    template = "m;oblrival\n[your team name]\n[rival team name]"
+    description = "Sets your team's OBL rival. Can be changed at any time. Requires ownership."
+
+    async def execute(self, msg, command):
+        team_i = get_team_fuzzy_search(command.split("\n")[1].strip())
+        team_r = get_team_fuzzy_search(command.split("\n")[2].strip())
+        team, owner_id = games.get_team_and_owner(team_i.name)
+        if team is None or team_r is None:
+            await msg.channel.send("Can't find one of those teams, boss. Typo?")
+            return
+        elif owner_id != msg.author.id and msg.author.id not in config()["owners"]:
+            await msg.channel.send("You're not authorized to mess with this team. Sorry, boss.")
+            return
+        try:
+            db.set_obl_rival(team, team_r)
+            await msg.channel.send("One pair of mortal enemies, coming right up. Unless you're more of the 'enemies to lovers' type. We can manage that too, don't worry.")
 
 class OBLConqueredCommand(Command):
     name = "oblwins"
@@ -1298,7 +1322,7 @@ class OBLConqueredCommand(Command):
             await msg.channel.send("Sorry boss, we can't find that team.")
             return
 
-        points, teams, rank = db.get_obl_stats(team, beaten=True)
+        points, teams, oppTeams, rank, rivalName = db.get_obl_stats(team, full=True)
         pages = []
         page_max = math.ceil(len(teams)/25)
 
