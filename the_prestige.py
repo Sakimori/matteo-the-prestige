@@ -1233,6 +1233,60 @@ class LeagueRenameCommand(Command):
         else:
             await msg.channel.send("We can't find that league.")
 
+class OBLExplainCommand(Command):
+    name = "oblhelp"
+    template = "m;oblhelp"
+    description = "Explains the One Big League!"
+
+    async def execute(self, msg, command):
+        await msg.channel.send("""The One Big League, or OBL, is an asynchronous league that includes every team in the simsim's database. To participate, just use the m;oblteam command with your team of choice. No signup is required! This will give a list of five opponents; playing against one of them and winning nets you a point, and will refresh the list with five new opponents.  Each meta-season will last for a few weeks, after which the leaderboards are reset to start the race again!
+
+Look out for the people wrestling emoji, which indicates the potential for a :people_wrestling:Wrassle Match:people_wrestling:, where both teams are on each others' lists and both have the opportunity to score a point. Team rankings and points can also be viewed in the oblteam command, and the overall OBL leaderboard can be checked with the m;oblstandings command. Best of luck!!
+""")
+
+class OBLLeaderboardCommand(Command):
+    name = "oblstandings"
+    template = "m;oblstandings"
+    description = "Displays the 15 teams with the most OBL points in this meta-season."
+         
+    async def execute(self, msg, command):
+        leaders_list = db.obl_leaderboards()[:15]
+        leaders = {}
+        rank = 1
+        for team, points in leaders_list:
+            leaders[team] = {"rank" : rank, "points" : points}
+            rank += 1
+
+        embed = discord.Embed(color=discord.Color.red(), title="The One Big League")
+        for team in leaders.keys():
+            embed.add_field(name=f"{leaders[team]['rank']}. {team}", value=f"{leaders[team]['points']} points" , inline = False)
+        await msg.channel.send(embed=embed)
+
+class OBLTeamCommand(Command):
+    name = "oblteam"
+    template = "m;oblteam [team name]"
+    description = "Displays a team's rank, current OBL points, and current opponent selection."
+
+    async def execute(self, msg, command):
+        team = get_team_fuzzy_search(command.strip())
+        if team is None:
+            await msg.channel.send("Sorry boss, we can't find that team.")
+            return
+
+        points, opponents_string, rank = db.get_obl_stats(team)
+        opponents_list = db.newline_string_to_list(opponents_string)
+        for index in range(0, len(opponents_list)):
+            oppteam = get_team_fuzzy_search(opponents_list[index])
+            opplist = db.get_obl_stats(oppteam)[1]
+            if team.name in opplist:
+                opponents_list[index] = opponents_list[index] + " 🤼"
+
+        embed = discord.Embed(color=discord.Color.red(), title=f"{team.name} in the One Big League")
+        embed.add_field(name="OBL Points", value=points)
+        embed.add_field(name="Rank", value=rank)
+        embed.add_field(name="Opponent Pool", value=opponents_string, inline=False)
+        await msg.channel.send(embed=embed)
+
 
 commands = [
     IntroduceCommand(),
@@ -1256,6 +1310,9 @@ commands = [
     StartGameCommand(),
     StartRandomGameCommand(),
     StartTournamentCommand(),
+    OBLExplainCommand(),
+    OBLTeamCommand(),
+    OBLLeaderboardCommand(),
     LeagueClaimCommand(),
     LeagueAddOwnersCommand(),
     StartLeagueCommand(),

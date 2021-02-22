@@ -626,7 +626,7 @@ class game(object):
             self.inning += 1
             if self.inning > self.max_innings and self.teams["home"].score != self.teams["away"].score: #game over
                 self.over = True
-                #do the One Big League stuff here
+                db.save_obl_results(self.teams["home"] if self.teams["home"].score > self.teams["away"].score else self.teams["away"], self.teams["home"] if self.teams["home"].score < self.teams["away"].score else self.teams["away"])
 
 
     def end_of_game_report(self):
@@ -790,4 +790,12 @@ def search_team(search_term):
             return None
 
         teams.append(team_json)
+    return teams
+
+def get_filtered_teams(teams_to_remove):
+    teams = []
+    for team_pickle in db.get_all_teams():
+        this_team = jsonpickle.decode(team_pickle[0], keys=True, classes=team)
+        if this_team.name not in teams_to_remove:
+            teams.append(this_team)
     return teams
