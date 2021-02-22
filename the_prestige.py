@@ -1292,7 +1292,12 @@ class OBLTeamCommand(Command):
         embed.add_field(name="Rank", value=rank)
         embed.add_field(name="Bounty Board", value=opponents_string, inline=False)
         if rival_team is not None:
-            embed.add_field(name="Rival", value=f"**{rival_team.name}**\n{rival_team.slogan}")
+            r_points, r_beaten_teams_list, r_opponents_string, r_rank, r_rival_name = db.get_obl_stats(rival_team, full=True)
+            embed.add_field(name="Rival", value=f"**{rival_team.name}**: Rank {r_rank}\n{rival_team.slogan}\nPoints: {r_points}")
+            if r_rival_name == team.name:
+                embed.set_footer(text="🔥")
+        else:
+            embed.set_footer(text="Set a rival with m;oblrival!")
         await msg.channel.send(embed=embed)
 
 class OBLSetRivalCommand(Command):
