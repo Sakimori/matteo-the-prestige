@@ -622,7 +622,7 @@ class game(object):
 
         self.choose_next_batter()
 
-        if not self.top_of_inning:
+        if self.top_of_inning:
             self.inning += 1
             if self.inning > self.max_innings and self.teams["home"].score != self.teams["away"].score: #game over
                 self.over = True
