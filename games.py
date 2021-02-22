@@ -674,6 +674,7 @@ class game(object):
             self.inning += 1
             if self.inning > self.max_innings and self.teams["home"].score != self.teams["away"].score: #game over
                 self.over = True
+                #do the One Big League stuff here
         self.top_of_inning = not self.top_of_inning
 
         if self.weather.name == "Drizzle":
