@@ -244,10 +244,10 @@ class Sun2(Weather):
                 "weather_message": True
             })
 
-class NameSwappyWeather(Weather):
+class Breezy(Weather):
     def __init__(self, game):
-        self.name = "Literacy"
-        self.emoji = "📚"
+        self.name = "Breezy"
+        self.emoji = "🎐"
         self.activation_chance = 0.05
 
     def activate(self, game, result):
@@ -335,7 +335,7 @@ def all_weathers():
             "Drizzle" : Drizzle,
 #        "Sun 2": Sun2,
             "Feedback": Feedback,
-            "Literacy": NameSwappyWeather,
+            "Breezy": Breezy,
         }
     return weathers_dic
 
