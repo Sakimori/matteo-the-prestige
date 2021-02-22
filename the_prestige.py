@@ -1239,7 +1239,7 @@ class OBLExplainCommand(Command):
     description = "Explains the One Big League!"
 
     async def execute(self, msg, command):
-        await msg.channel.send("""The One Big League, or OBL, is an asynchronous league that includes every team in the simsim's database. To participate, just use the m;oblteam command with your team of choice. No signup is required! This will give a list of five opponents; playing against one of them and winning nets you a point, and will refresh the list with five new opponents.  Each meta-season will last for a few weeks, after which the leaderboards are reset to start the race again!
+        await msg.channel.send("""The One Big League, or OBL, is an asynchronous league that includes every team in the simsim's database. To participate, just use the m;oblteam command with your team of choice. **No signup is required!** This will give you a list of five opponents; playing against one of them and winning nets you a point, and will refresh the list with five new opponents. **Losing results in no penalty!** Each meta-season will last for a few weeks, after which the leaderboards are reset to start the race again!
 
 Look out for the people wrestling emoji, which indicates the potential for a :people_wrestling:Wrassle Match:people_wrestling:, where both teams are on each others' lists and both have the opportunity to score a point. Team rankings and points can also be viewed in the oblteam command, and the overall OBL leaderboard can be checked with the m;oblstandings command. Best of luck!!
 """)
