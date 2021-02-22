@@ -62,19 +62,17 @@ class SlightTailwind(Weather):
     def activate(self, game, result):
         if game.top_of_inning:
             offense_team = game.teams["away"]
-            weather_count = self.counter_away
             defense_team = game.teams["home"]
         else:
             offense_team = game.teams["home"]
-            weather_count = self.counter_home
             defense_team = game.teams["away"]
 
         if "mulligan" not in game.last_update[0].keys() and not result["ishit"] and result["text"] != appearance_outcomes.walk: 
-            mulligan_roll_target = -((((self.get_batter().stlats["batting_stars"])-5)/6)**2)+1
-            if random.random() > mulligan_roll_target and self.get_batter().stlats["batting_stars"] <= 5:
+            mulligan_roll_target = -((((game.get_batter().stlats["batting_stars"])-5)/6)**2)+1
+            if random.random() > mulligan_roll_target and game.get_batter().stlats["batting_stars"] <= 5:
                 result.clear()
                 result.update({
-                    "text": f"{this_game.last_update[0]['batter']} would have gone out, but they took a mulligan!",
+                    "text": f"{game.get_batter()} would have gone out, but they took a mulligan!",
                     "text_only": True,
                     "weather_message": True,
                 })
@@ -250,7 +248,7 @@ class NameSwappyWeather(Weather):
     def __init__(self, game):
         self.name = "Literacy"
         self.emoji = "📚"
-        self.activation_chance = 0.01
+        self.activation_chance = 0.05
 
     def activate(self, game, result):
         if random.random() < self.activation_chance:
@@ -331,7 +329,7 @@ def all_weathers():
             "Midnight": Midnight,
             "Slight Tailwind": SlightTailwind,
             "Heavy Snow": HeavySnow,
-            "Twilight" : Twilight,
+            "Twilight" : Twilight, 
             "Thinned Veil" : ThinnedVeil,
             "Heat Wave" : HeatWave,
             "Drizzle" : Drizzle,
