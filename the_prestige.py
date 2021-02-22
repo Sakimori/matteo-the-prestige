@@ -1281,19 +1281,22 @@ class OBLTeamCommand(Command):
             opplist = db.get_obl_stats(oppteam)[1]
             if team.name in opplist:
                 opponents_list[index] = opponents_list[index] + " 🤼"
+            if rival_name == opponents_list[index]:
+                opponents_list[index] = opponents_list[index] + " 😈"
         if rival_name is not None:
             rival_team = games.get_team(rival_name)
+        opponents_string = db.list_to_newline_string(opponents_list)
 
         embed = discord.Embed(color=discord.Color.red(), title=f"{team.name} in the One Big League")
         embed.add_field(name="OBL Points", value=points)
         embed.add_field(name="Rank", value=rank)
-        embed.add_field(name="Opponent Pool", value=opponents_string, inline=False)
+        embed.add_field(name="Bounty Board", value=opponents_string, inline=False)
         if rival_team is not None:
-            embed.add_field(name="Rival", value=f"{rival_team.name}\n{rival_team.slogan}")
+            embed.add_field(name="Rival", value=f"**{rival_team.name}**\n{rival_team.slogan}")
         await msg.channel.send(embed=embed)
 
 class OBLSetRivalCommand(Command):
-    name = "oblteam"
+    name = "oblrival"
     template = "m;oblrival\n[your team name]\n[rival team name]"
     description = "Sets your team's OBL rival. Can be changed at any time. Requires ownership."
 
@@ -1307,9 +1310,11 @@ class OBLSetRivalCommand(Command):
         elif owner_id != msg.author.id and msg.author.id not in config()["owners"]:
             await msg.channel.send("You're not authorized to mess with this team. Sorry, boss.")
             return
-        try:
-            db.set_obl_rival(team, team_r)
-            await msg.channel.send("One pair of mortal enemies, coming right up. Unless you're more of the 'enemies to lovers' type. We can manage that too, don't worry.")
+        #try:
+        db.set_obl_rival(team, team_r)
+        await msg.channel.send("One pair of mortal enemies, coming right up. Unless you're more of the 'enemies to lovers' type. We can manage that too, don't worry.")
+        #except:
+            #await msg.channel.send("Hm. We don't think that team has tried to do anything in the One Big League yet, so you'll have to wait for consent. Get them to check their bounty board.")
 
 class OBLConqueredCommand(Command):
     name = "oblwins"
@@ -1389,6 +1394,7 @@ commands = [
     StartTournamentCommand(),
     OBLExplainCommand(),
     OBLTeamCommand(),
+    OBLSetRivalCommand(),
     OBLConqueredCommand(),
     OBLLeaderboardCommand(),
     LeagueClaimCommand(),

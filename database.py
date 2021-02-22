@@ -431,7 +431,7 @@ def obl_leaderboards():
     return False
 
 def set_obl_rival(base_team, rival):
-    conn = create_connectio()
+    conn = create_connection()
     if conn is not None:
         c=conn.cursor()
 
