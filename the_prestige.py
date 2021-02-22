@@ -1287,6 +1287,59 @@ class OBLTeamCommand(Command):
         embed.add_field(name="Opponent Pool", value=opponents_string, inline=False)
         await msg.channel.send(embed=embed)
 
+class OBLConqueredCommand(Command):
+    name = "oblwins"
+    template = "m;oblwins [team name]"
+    description = "Displays all teams that a given team has won points off of."
+
+    async def execute(self, msg, command):
+        team = get_team_fuzzy_search(command.strip())
+        if team is None:
+            await msg.channel.send("Sorry boss, we can't find that team.")
+            return
+
+        points, teams, rank = db.get_obl_stats(team, beaten=True)
+        pages = []
+        page_max = math.ceil(len(teams)/25)
+
+        title_text = f"Rank {rank}: {team.name}"
+
+        for page in range(0,page_max):
+            embed = discord.Embed(color=discord.Color.red(), title=title_text)
+            embed.set_footer(text = f"{points} OBL Points")
+            for i in range(0,25):             
+                try:
+                    thisteam = games.get_team(teams[i+25*page])
+                    if thisteam.slogan.strip() != "":
+                        embed.add_field(name=thisteam.name, value=thisteam.slogan)
+                    else:
+                        embed.add_field(name=thisteam.name, value="404: Slogan not found")
+                except:
+                    break
+            pages.append(embed)
+
+        teams_list = await msg.channel.send(embed=pages[0])
+        current_page = 0
+
+        if page_max > 1:
+            await teams_list.add_reaction("◀")
+            await teams_list.add_reaction("▶")
+
+            def react_check(react, user):
+                return user == msg.author and react.message == teams_list
+
+            while True:
+                try:
+                    react, user = await client.wait_for('reaction_add', timeout=60.0, check=react_check)
+                    if react.emoji == "◀" and current_page > 0:
+                        current_page -= 1
+                        await react.remove(user)
+                    elif react.emoji == "▶" and current_page < (page_max-1):
+                        current_page += 1
+                        await react.remove(user)
+                    await teams_list.edit(embed=pages[current_page])
+                except asyncio.TimeoutError:
+                    return
 
 commands = [
     IntroduceCommand(),
@@ -1312,6 +1365,7 @@ commands = [
     StartTournamentCommand(),
     OBLExplainCommand(),
     OBLTeamCommand(),
+    OBLConqueredCommand(),
     OBLLeaderboardCommand(),
     LeagueClaimCommand(),
     LeagueAddOwnersCommand(),

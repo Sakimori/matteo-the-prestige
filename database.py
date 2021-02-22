@@ -393,7 +393,7 @@ def save_obl_results(winning_team, losing_team):
         conn.close()
     return
 
-def get_obl_stats(team):
+def get_obl_stats(team, beaten = False):
     conn = create_connection()
     if conn is not None:
         c=conn.cursor()
@@ -411,8 +411,10 @@ def get_obl_stats(team):
 
         teams_list = [name for name, points in obl_leaderboards()]
         rank = teams_list.index(team.name) + 1
-
-        return (obl_points, opponent_teams, rank)
+        if not beaten:
+            return (obl_points, opponent_teams, rank)
+        else:
+            return (obl_points, beaten_teams, rank)
         conn.close()
     return (None, None)
 
