@@ -29,6 +29,7 @@
     <Compile Include="debug storage.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="gametext.py" />
     <Compile Include="leagues.py">
       <SubType>Code</SubType>
     </Compile>
@@ -46,6 +47,7 @@
     </Compile>
     <Compile Include="roman.py" />
     <Compile Include="the_prestige.py" />
+    <Compile Include="weather.py" />
   </ItemGroup>
   <ItemGroup>
     <Interpreter Include="matteo_env\">
