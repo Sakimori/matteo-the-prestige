@@ -250,13 +250,13 @@ class Breezy(Weather):
                 last_letter = player.name[-1]
                 player.name = last_letter + player.name[1:-1] + last_letter
 
-            book_adjectives = ["action-packed", "historical", "friendly", "rude", "mystery", "thriller", "horror", "sci-fi", "fantasy", "spooky","romantic"]
-            book_types = ["novel","novella","poem","anthology","fan fiction","tablet","carving", "autobiography"]
+            book_adjectives = ["action-packed", "historical", "mystery", "thriller", "horror", "sci-fi", "fantasy", "spooky","romantic"]
+            book_types = ["novel", "novella", "poem", "anthology", "fan fiction", "autobiography"]
             book = "{} {}".format(random.choice(book_adjectives),random.choice(book_types))
 
             result.clear()
             result.update({
-                "text": "{} stopped to read a {} and became Literate! {} is now {}!".format(old_player_name, book, old_player_name, player.name),
+                "text": "{} stopped to enjoy a {} in the nice breeze! {} is now {}!".format(old_player_name, book, old_player_name, player.name),
                 "text_only": True,
                 "weather_message": True
             })
