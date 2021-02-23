@@ -70,9 +70,10 @@ accepting pull requests, check the issues for to-dos.
   - shows a paginated list of all teams available for games which can be scrolled through.	
   
 ### game commands:
-- m;startgame --day # or -d #
+- m;startgame --day # or -d #, -w [weather name] or --weather [weather name]
   - starts a game with premade teams made using saveteam. provides a link to the website where you can watch the game. 
-  - the --day/-d is optional, if used it'll force the game to use the #th spot in each team's rotations. if this number is larger than the number of pitchers in one or both of the teams' rotations it'll wrap around. if it is not used pitchers will be chosen randomly from the teams' rotations.
+  - the --day/-d is an optional flag, if used it'll force the game to use the #th spot in each team's rotations. if this number is larger than the number of pitchers in one or both of the teams' rotations it'll wrap around. if it is not used pitchers will be chosen randomly from the teams' rotations.
+  - the -w/--weather is the same, if used it'll force the game to be the specified weather.
   - use this command at the top of a list with entries separated by new lines:
 	- the away team's name.
 	- the home team's name.
@@ -80,25 +81,24 @@ accepting pull requests, check the issues for to-dos.
   -	this command has fuzzy search so you don't need to type the full name of the team as long as you give enough to identify the team you're looking for.
 - m;randomgame
   - starts a 9-inning game between 2 entirely random teams. embrace chaos!
-- m;starttournament --rounddelay #
-  - starts a randomly seeded tournament with the provided teams, automatically adding byes as necessary. all series have a 5 minute break between games. the current format is: best of 5 until the finals which are best of 7. 
+- m;starttournament --rounddelay #, --bestof #, --finalsbestof #
+  - starts a randomly seeded tournament with the provided teams, automatically adding byes as necessary. all series have a 5 minute break between games. the current default format is best of 5 until the finals which are best of 7 but this can be adjusted by adding the bestof and finalsbestof flags. 
   - the --rounddelay is optional, if used, # must be between 1 and 120 and it'll set the delay between rounds to be # minutes. if not included it will default to 10.
   - use this command at the top of a list with entries separated by new lines:
     - the name of the tournament.
 	- the name of each participating team on its own line.
-
-### draft commands
-- m;startdraft
-  - starts a draft with an arbitrary number of participants. use this command at the top of a list with entries separated by new lines:
-	- for each participant's entry you need three lines:
-	  - their discord @
-	  - their team name
-	  - their team slogan
-	- post this with all three of these things for all participants and the draft will begin.
-  - the draft will begin once all participants have given a 👍 and will proceed in the order that participants were entered. each participant will select 12 hitters and 1 pitcher from a pool of 20 random players which will refresh automatically when it becomes small.
-- m;draft [name]
-  - use this on your turn during a draft to pick your player.
-  - you can also just use a 'd' instead of the full command.
+	
+### obl commands:
+- m;oblhelp
+  - shows the explanation for what the obl is and how to participate.
+- m;oblteam [team name]
+  - displays a team's rank, current OBL points, and current opponent selection.
+- m;oblrival [team name] [rival team]
+  - sets your team's obl rival, this can be changed at any time and requires ownership. your rival is purely cosmetic but will show on your team card and be marked with a special marker if they're on your list of opponents. each team needs to be on a new line below the command.
+- m;oblwins [team name]
+  - displays a trophy case with all teams that the given team has won points off of.
+- m;oblstandings
+  - displays the 15 teams with the most obl points in this meta-season.
 
 ### league commands
 - all of these commands are for leagues that have already been started. to start a league, click the 'create a league' button on the website and fill out the info for your league there, then use the m;claimleague command in discord to set yourself as the owner.
@@ -131,6 +131,20 @@ accepting pull requests, check the issues for to-dos.
 	- the currently available starts are:
 	  - for batters: avg (batting average), slg (slugging percentage), obp (on-base percentage), ops (on-base plus slugging). 
 	  - for pitchers era (earned run average), whip (walks and hits per innings pitched), kper9 (strikeouts per 9 innings), bbper9 (walks per 9 innings), kperbb (strikeout to walk ratio).
+
+### draft commands
+- m;startdraft
+  - starts a draft with an arbitrary number of participants. use this command at the top of a list with entries separated by new lines:
+	- for each participant's entry you need three lines:
+	  - their discord @
+	  - their team name
+	  - their team slogan
+	- post this with all three of these things for all participants and the draft will begin.
+  - the draft will begin once all participants have given a 👍 and will proceed in the order that participants were entered. each participant will select 12 hitters and 1 pitcher from a pool of 20 random players which will refresh automatically when it becomes small.
+- m;draft [name]
+  - use this on your turn during a draft to pick your player.
+  - you can also just use a 'd' instead of the full command.
+
 ### player commands:	 
 - m;showplayer [name]
   - displays any name's stars, there's a limit of 70 characters. that should be *plenty*. note: if you want to lookup a lot of different players you can do it on onomancer instead of spamming this command a bunch and clogging up discord: https://onomancer.sibr.dev/reflect
