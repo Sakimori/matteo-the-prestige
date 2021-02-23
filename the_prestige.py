@@ -1306,8 +1306,12 @@ class OBLSetRivalCommand(Command):
     description = "Sets your team's OBL rival. Can be changed at any time. Requires ownership."
 
     async def execute(self, msg, command):
-        team_i = get_team_fuzzy_search(command.split("\n")[1].strip())
-        team_r = get_team_fuzzy_search(command.split("\n")[2].strip())
+        try:
+            team_i = get_team_fuzzy_search(command.split("\n")[1].strip())
+            team_r = get_team_fuzzy_search(command.split("\n")[2].strip())
+        except IndexError:
+            await msg.channel.send("You didn't give us enough lines. Command on the top, your team in the middle, and your rival at the bottom.")
+            return
         team, owner_id = games.get_team_and_owner(team_i.name)
         if team is None or team_r is None:
             await msg.channel.send("Can't find one of those teams, boss. Typo?")
