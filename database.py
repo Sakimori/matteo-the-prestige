@@ -374,21 +374,23 @@ def save_obl_results(winning_team, losing_team):
     conn = create_connection()
     if conn is not None:
         c=conn.cursor()
-        c.execute("SELECT teams_beaten_list, current_opponent_pool, obl_points FROM one_big_league WHERE team_name = ?", (winning_team.name,))
         try:
+            c.execute("SELECT teams_beaten_list, current_opponent_pool, obl_points FROM one_big_league WHERE team_name = ?", (winning_team.name,))
             beaten_string, opponents_string, obl_points = c.fetchone()
-        except TypeError: #add team to OBL
-            add_team_obl(winning_team)
-            add_team_obl(losing_team)
-        else:
-            beaten_teams = newline_string_to_list(beaten_string)
-            opponent_teams = newline_string_to_list(opponents_string)
-            if losing_team.name in opponent_teams:
-                beaten_teams.append(losing_team.name)
-                opponent_teams = sample(get_filtered_teams([winning_team.name]), 5)
-                obl_points += 1
+        except:
+            return
 
-                c.execute("UPDATE one_big_league SET teams_beaten_list = ?, current_opponent_pool = ?, obl_points = ? WHERE team_name = ?", (list_to_newline_string(beaten_teams), list_to_newline_string(opponent_teams), obl_points, winning_team.name))
+        beaten_teams = newline_string_to_list(beaten_string)
+        opponent_teams = newline_string_to_list(opponents_string)
+        if re.sub('[^A-Za-z0-9 %]+', '', losing_team.name) in opponent_teams:
+            beaten_teams.append(losing_team.name)
+            try:
+                opponent_teams = sample(get_filtered_teams([re.sub('[^A-Za-z0-9 %]+', '', winning_team.name)]), 5)
+            except ValueError:
+                opponent_teams = get_filtered_teams([re.sub('[^A-Za-z0-9 %]+', '', winning_team.name)])
+            obl_points += 1
+
+            c.execute("UPDATE one_big_league SET teams_beaten_list = ?, current_opponent_pool = ?, obl_points = ? WHERE team_name = ?", (list_to_newline_string(beaten_teams), list_to_newline_string(opponent_teams), obl_points, winning_team.name))
 
         conn.commit()
         conn.close()
