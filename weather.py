@@ -225,25 +225,6 @@ class Drizzle(Weather):
         state["update_emoji"] = self.emoji
         state["update_text"] += f' Due to inclement weather, {placed_player.name} is placed on second base.'
 
-
-class Sun2(Weather):
-    def __init__(self, game):
-        self.name = "Sun 2"
-
-
-    def activate(self, game):
-        for teamtype in game.teams:
-            team = game.teams[teamtype]
-            if team.score >= 10:
-                team.score -= 10
-            # no win counting yet :(
-            result.clear()
-            result.update({
-                "text": "The {} collect 10! Sun 2 smiles.".format(team.name),
-                "text_only": True,
-                "weather_message": True
-            })
-
 class Breezy(Weather):
     def __init__(self, game):
         self.name = "Breezy"
@@ -280,49 +261,6 @@ class Breezy(Weather):
                 "weather_message": True
             })
 
-
-class Feedback(Weather):
-    def __init__(self, game):
-        self.name = "Feedback"
-        self.emoji = "🎤"
-        self.activation_chance = 0.02
-        self.swap_batter_vs_pitcher_chance = 0.8
-
-    def activate(self, game, result):
-        if random.random() < self.activation_chance:
-            # feedback time
-            player1 = None
-            player2 = None
-            team1 = game.teams["home"]
-            team2 = game.teams["away"]
-            if random.random() < self.swap_batter_vs_pitcher_chance:
-                # swapping batters
-                # theoretically this could swap players already on base :(
-                team1 = game.teams["home"]
-                team2 = game.teams["away"]
-                homePlayerIndex = random.randint(0,len(team1.lineup)-1)
-                awayPlayerIndex = random.randint(0,len(team2.lineup)-1)
-
-                player1 = team1.lineup[homePlayerIndex]
-                player2 = team2.lineup[awayPlayerIndex]
-
-                team1.lineup[homePlayerIndex] = player2
-                team2.lineup[awayPlayerIndex] = player1
-            else:
-                # swapping pitchers
-                player1 = team1.pitcher
-                player2 = team2.pitcher
-
-                team1.pitcher = player2
-                team2.pitcher = player1
-
-            result.clear()
-            result.update({
-                "text": "{} and {} switched teams in the feedback!".format(player1.name,player2.name),
-                "text_only": True,
-                "weather_message": True,
-            })
-
 def all_weathers():
     weathers_dic = {
             "Supernova" : Supernova,
@@ -333,9 +271,7 @@ def all_weathers():
             "Thinned Veil" : ThinnedVeil,
             "Heat Wave" : HeatWave,
             "Drizzle" : Drizzle,
-#        "Sun 2": Sun2,
-            "Feedback": Feedback,
-            "Breezy": Breezy,
+            "Breezy": Breezy
         }
     return weathers_dic
 
