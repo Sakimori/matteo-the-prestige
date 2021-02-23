@@ -92,7 +92,7 @@ accepting pull requests, check the issues for to-dos.
 - m;oblhelp
   - shows the explanation for what the obl is and how to participate.
 - m;oblteam [team name]
-  - displays a team's rank, current OBL points, and current opponent selection.
+  - displays a team's rank, current OBL points, and current bounty board.
 - m;oblrival [team name] [rival team]
   - sets your team's obl rival, this can be changed at any time and requires ownership. your rival is purely cosmetic but will show on your team card and be marked with a special marker if they're on your list of opponents. each team needs to be on a new line below the command.
 - m;oblwins [team name]
