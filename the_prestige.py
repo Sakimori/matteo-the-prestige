@@ -2265,10 +2265,7 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
             wait_seconds = (next_start - now).seconds
                 
             leagues.save_league(league)
-            if league in active_standings.keys():
-                await active_standings[league].unpin()
             active_standings[league] = await channel.send(embed=league.standings_embed())
-            active_standings[league].pin()
             await channel.send(f"The day {league.day} games for the {league.name} will start in {math.ceil(wait_seconds/60)} minutes.")
             await asyncio.sleep(wait_seconds)
             await channel.send(f"A {league.name} series is continuing now at {filter_url}")
@@ -2276,11 +2273,8 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
         else:
             league.active = False
 
-    if league.autoplay <= 0 or config()["game_freeze"]: #if number of series to autoplay has been reached
-        if league in active_standings.keys():
-            await active_standings[league].unpin()
+    if league.autoplay == 0 or config()["game_freeze"]: #if number of series to autoplay has been reached
         active_standings[league] = await channel.send(embed=league.standings_embed())
-        active_standings[league].pin()
         await channel.send(f"The {league.name} is no longer autoplaying.")
         if config()["game_freeze"]:
             await channel.send("Patch incoming.")
