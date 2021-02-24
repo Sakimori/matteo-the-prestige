@@ -44,7 +44,7 @@ class Supernova(Weather):
         self.emoji = "🌟"
 
     def modify_atbat_stats(self, roll):
-        roll["pitch_stat"] *= 0.9
+        roll["pitch_stat"] *= 0.8
 
 class Midnight(Weather):
     def __init__(self, game):
@@ -73,6 +73,7 @@ class SlightTailwind(Weather):
                 result.clear()
                 result.update({
                     "text": f"{game.get_batter()} would have gone out, but they took a mulligan!",
+                    "mulligan": True,
                     "text_only": True,
                     "weather_message": True,
                 })

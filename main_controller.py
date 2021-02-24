@@ -186,6 +186,8 @@ def update_loop():
 
                     if "weather_message" in this_game.last_update[0].keys():
                         state["update_emoji"] = this_game.weather.emoji
+                    else:
+                        state["update_emoji"] = "🏏"
 
                     if "steals" in this_game.last_update[0].keys():
                         updatestring = ""
@@ -211,7 +213,7 @@ def update_loop():
                         if this_game.last_update[1] > 0:
                                 updatestring += f"{this_game.last_update[1]} runs scored!"
 
-                        state["update_emoji"] = "🏏"
+
                         state["update_text"] = updatestring
 
                         this_game.weather.modify_atbat_message(this_game, state)

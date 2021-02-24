@@ -1319,11 +1319,11 @@ class OBLSetRivalCommand(Command):
         elif owner_id != msg.author.id and msg.author.id not in config()["owners"]:
             await msg.channel.send("You're not authorized to mess with this team. Sorry, boss.")
             return
-        #try:
-        db.set_obl_rival(team, team_r)
-        await msg.channel.send("One pair of mortal enemies, coming right up. Unless you're more of the 'enemies to lovers' type. We can manage that too, don't worry.")
-        #except:
-            #await msg.channel.send("Hm. We don't think that team has tried to do anything in the One Big League yet, so you'll have to wait for consent. Get them to check their bounty board.")
+        try:
+            db.set_obl_rival(team, team_r)
+            await msg.channel.send("One pair of mortal enemies, coming right up. Unless you're more of the 'enemies to lovers' type. We can manage that too, don't worry.")
+        except:
+            await msg.channel.send("Hm. We don't think that team has tried to do anything in the One Big League yet, so you'll have to wait for consent. Get them to check their bounty board.")
 
 class OBLConqueredCommand(Command):
     name = "oblwins"
