@@ -240,6 +240,10 @@ class Breezy(Weather):
             player.stlats["batting_stars"] = player.stlats["pitching_stars"]
             player.stlats["pitching_stars"] = player.stlats["baserunning_stars"]
             old_player_name = player.name
+
+            if not hasattr(player, "stat_name"):
+                player.stat_name = old_player_name
+
             if ' ' in player.name:
                 names = player.name.split(" ")
                 first_first_letter = names[0][0]
