@@ -684,11 +684,23 @@ class game(object):
             self.teams["home"].name : []
             }
         for this_player in self.teams["away"].lineup:
-            players[self.teams["away"].name].append((this_player.stat_name, this_player.game_stats))
+            try:
+                players[self.teams["away"].name].append((this_player.stat_name, this_player.game_stats))
+            except AttributeError:
+                players[self.teams["away"].name].append((this_player.name, this_player.game_stats))
         for this_player in self.teams["home"].lineup:
-            players[self.teams["home"].name].append((this_player.stat_name, this_player.game_stats))
-        players[self.teams["home"].name].append((self.teams["home"].pitcher.stat_name, self.teams["home"].pitcher.game_stats))
-        players[self.teams["away"].name].append((self.teams["away"].pitcher.stat_name, self.teams["away"].pitcher.game_stats))
+            try:
+                players[self.teams["home"].name].append((this_player.stat_name, this_player.game_stats))
+            except AttributeError:
+                players[self.teams["home"].name].append((this_player.name, this_player.game_stats))
+        try:
+            players[self.teams["home"].name].append((self.teams["home"].pitcher.stat_name, self.teams["home"].pitcher.game_stats))
+        except AttributeError:
+            players[self.teams["home"].name].append((self.teams["home"].pitcher.name, self.teams["home"].pitcher.game_stats))
+        try:
+            players[self.teams["away"].name].append((self.teams["away"].pitcher.stat_name, self.teams["away"].pitcher.game_stats))
+        except AttributeError:
+            players[self.teams["away"].name].append((self.teams["away"].pitcher.name, self.teams["away"].pitcher.game_stats))
         return players
         
 
