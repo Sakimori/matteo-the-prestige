@@ -320,9 +320,10 @@ def get_all_team_names():
     conn.close()
     return None
 
-def get_filtered_teams(filter_list):
+def get_filtered_teams(i_filter_list):
     teams_list = get_all_team_names()
     out_list = []
+    filter_list = [re.sub('[^A-Za-z0-9 %]+', '', filter_team) for filter_team in i_filter_list]
     for team in teams_list:
         if re.sub('[^A-Za-z0-9 %]+', '', team) not in filter_list:
             out_list.append(team)
