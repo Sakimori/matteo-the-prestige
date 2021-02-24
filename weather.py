@@ -237,6 +237,8 @@ class Breezy(Weather):
             teamtype = random.choice(["away","home"])
             team = game.teams[teamtype]
             player = random.choice(team.lineup)
+            player.stlats["batting_stars"] = player.stlats["pitching_stars"]
+            player.stlats["pitching_stars"] = player.stlats["baserunning_stars"]
             old_player_name = player.name
             if ' ' in player.name:
                 names = player.name.split(" ")
