@@ -385,9 +385,9 @@ def save_obl_results(winning_team, losing_team):
         if re.sub('[^A-Za-z0-9 %]+', '', losing_team.name) in opponent_teams:
             beaten_teams.append(losing_team.name)
             try:
-                opponent_teams = sample(get_filtered_teams([re.sub('[^A-Za-z0-9 %]+', '', winning_team.name)]), 5)
+                opponent_teams = sample(get_filtered_teams([winning_team.name] + beaten_teams), 5)
             except ValueError:
-                opponent_teams = get_filtered_teams([re.sub('[^A-Za-z0-9 %]+', '', winning_team.name)])
+                opponent_teams = get_filtered_teams([winning_team.name] + beaten_teams)
             obl_points += 1
 
             c.execute("UPDATE one_big_league SET teams_beaten_list = ?, current_opponent_pool = ?, obl_points = ? WHERE team_name = ?", (list_to_newline_string(beaten_teams), list_to_newline_string(opponent_teams), obl_points, winning_team.name))
