@@ -44,7 +44,7 @@ class Supernova(Weather):
         self.emoji = "🌟"
 
     def modify_atbat_stats(self, roll):
-        roll["pitch_stat"] *= 0.9
+        roll["pitch_stat"] *= 0.8
 
 class Midnight(Weather):
     def __init__(self, game):
@@ -73,6 +73,7 @@ class SlightTailwind(Weather):
                 result.clear()
                 result.update({
                     "text": f"{game.get_batter()} would have gone out, but they took a mulligan!",
+                    "mulligan": True,
                     "text_only": True,
                     "weather_message": True,
                 })
@@ -229,13 +230,15 @@ class Breezy(Weather):
     def __init__(self, game):
         self.name = "Breezy"
         self.emoji = "🎐"
-        self.activation_chance = 0.05
+        self.activation_chance = 0.08
 
     def activate(self, game, result):
         if random.random() < self.activation_chance:
             teamtype = random.choice(["away","home"])
             team = game.teams[teamtype]
             player = random.choice(team.lineup)
+            player.stlats["batting_stars"] = player.stlats["pitching_stars"]
+            player.stlats["pitching_stars"] = player.stlats["baserunning_stars"]
             old_player_name = player.name
             if ' ' in player.name:
                 names = player.name.split(" ")
@@ -245,10 +248,10 @@ class Breezy(Weather):
                 names[-1] = first_first_letter + names[-1][1:]
                 player.name = ' '.join(names)
             else:
-                #name is one word, so turn 'bartholemew' into 'martholebew'
+                #name is one word, so turn 'bartholemew' into 'martholemeb'
                 first_letter = player.name[0]
                 last_letter = player.name[-1]
-                player.name = last_letter + player.name[1:-1] + last_letter
+                player.name = last_letter + player.name[1:-1] + first_letter
 
             book_adjectives = ["action-packed", "historical", "mystery", "thriller", "horror", "sci-fi", "fantasy", "spooky","romantic"]
             book_types = ["novel", "novella", "poem", "anthology", "fan fiction", "autobiography"]

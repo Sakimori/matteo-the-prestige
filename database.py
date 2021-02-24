@@ -320,11 +320,12 @@ def get_all_team_names():
     conn.close()
     return None
 
-def get_filtered_teams(filter_list):
+def get_filtered_teams(i_filter_list):
     teams_list = get_all_team_names()
     out_list = []
+    filter_list = [re.sub('[^A-Za-z0-9 %]+', '', filter_team) for filter_team in i_filter_list]
     for team in teams_list:
-        if team not in filter_list:
+        if re.sub('[^A-Za-z0-9 %]+', '', team) not in filter_list:
             out_list.append(team)
     return out_list
 
@@ -385,9 +386,9 @@ def save_obl_results(winning_team, losing_team):
         if re.sub('[^A-Za-z0-9 %]+', '', losing_team.name) in opponent_teams:
             beaten_teams.append(losing_team.name)
             try:
-                opponent_teams = sample(get_filtered_teams([re.sub('[^A-Za-z0-9 %]+', '', winning_team.name)]), 5)
+                opponent_teams = sample(get_filtered_teams([winning_team.name] + beaten_teams), 5)
             except ValueError:
-                opponent_teams = get_filtered_teams([re.sub('[^A-Za-z0-9 %]+', '', winning_team.name)])
+                opponent_teams = get_filtered_teams([winning_team.name] + beaten_teams)
             obl_points += 1
 
             c.execute("UPDATE one_big_league SET teams_beaten_list = ?, current_opponent_pool = ?, obl_points = ? WHERE team_name = ?", (list_to_newline_string(beaten_teams), list_to_newline_string(opponent_teams), obl_points, winning_team.name))

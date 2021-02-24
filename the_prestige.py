@@ -1241,7 +1241,7 @@ class OBLExplainCommand(Command):
     async def execute(self, msg, command):
         await msg.channel.send("""The One Big League, or OBL, is an asynchronous league that includes every team in the simsim's database. To participate, just use the m;oblteam command with your team of choice. **No signup is required!** This will give you a list of five opponents; playing against one of them and winning nets you a point, and will refresh the list with five new opponents. **Losing results in no penalty!** Each meta-season will last for a few weeks, after which the leaderboards are reset to start the race again!
 
-Look out for the people wrestling emoji, which indicates the potential for a :people_wrestling:Wrassle Match:people_wrestling:, where both teams are on each others' lists and both have the opportunity to score a point. Team rankings and points can also be viewed in the oblteam command, and the overall OBL leaderboard can be checked with the m;oblstandings command. Best of luck!!
+Look out for the people wrestling emoji, which indicates the potential for a :people_wrestling:Wrassle Match:people_wrestling:, where both teams are on each others' lists and both have the opportunity to score a point. Team rankings and points can also be viewed in the m;oblteam command, and the overall OBL leaderboard can be checked with the m;oblstandings command. Best of luck!!
 """)
 
 class OBLLeaderboardCommand(Command):
@@ -1319,11 +1319,11 @@ class OBLSetRivalCommand(Command):
         elif owner_id != msg.author.id and msg.author.id not in config()["owners"]:
             await msg.channel.send("You're not authorized to mess with this team. Sorry, boss.")
             return
-        #try:
-        db.set_obl_rival(team, team_r)
-        await msg.channel.send("One pair of mortal enemies, coming right up. Unless you're more of the 'enemies to lovers' type. We can manage that too, don't worry.")
-        #except:
-            #await msg.channel.send("Hm. We don't think that team has tried to do anything in the One Big League yet, so you'll have to wait for consent. Get them to check their bounty board.")
+        try:
+            db.set_obl_rival(team, team_r)
+            await msg.channel.send("One pair of mortal enemies, coming right up. Unless you're more of the 'enemies to lovers' type. We can manage that too, don't worry.")
+        except:
+            await msg.channel.send("Hm. We don't think that team has tried to do anything in the One Big League yet, so you'll have to wait for consent. Get them to check their bounty board.")
 
 class OBLConqueredCommand(Command):
     name = "oblwins"
