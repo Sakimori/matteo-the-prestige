@@ -324,7 +324,7 @@ def get_filtered_teams(filter_list):
     teams_list = get_all_team_names()
     out_list = []
     for team in teams_list:
-        if team not in filter_list:
+        if re.sub('[^A-Za-z0-9 %]+', '', team) not in filter_list:
             out_list.append(team)
     return out_list
 
