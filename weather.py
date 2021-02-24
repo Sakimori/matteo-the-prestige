@@ -157,7 +157,7 @@ class ThinnedVeil(Weather):
     def modify_atbat_message(self, game, state):
         if "veil" in game.last_update[0].keys():
             state["update_emoji"] = self.emoji    
-            state["update_text"] += f"{game.last_update[0]['batter']}'s will manifests on {base_string(game.last_update[1])} base."
+            state["update_text"] += f" {game.last_update[0]['batter']}'s will manifests on {base_string(game.last_update[1])} base."
 
 class HeatWave(Weather):
     def __init__(self,game):
@@ -197,7 +197,7 @@ class HeatWave(Weather):
             original, sub = self.swapped_pitcher_data
             self.swapped_pitcher_data = None
             state["update_emoji"] = self.emoji
-            state["update_text"] += f'{original} is exhausted from the heat. {sub} is forced to pitch!'
+            state["update_text"] += f' {original} is exhausted from the heat. {sub} is forced to pitch!'
              
                 
 
