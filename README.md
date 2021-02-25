@@ -173,6 +173,7 @@ these folks are helping me a *ton* via patreon, and i cannot possibly thank them
 - iliana etaoin
 - yooori
 - Bend
+- ALC
 
 ## Attribution
 
