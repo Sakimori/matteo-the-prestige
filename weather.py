@@ -293,6 +293,33 @@ class Breezy(Weather):
                 "weather_message": True
             })
 
+class MeteorShower(Weather):
+    def __init__(self, game):
+        self.name = "Meteor Shower"
+        self.emoji = "🌠"
+        self.activation_chance = 1
+
+    def activate(self, game, result):
+        if random.random() < self.activation_chance and game.occupied_bases() != {}:
+            base, runner = random.choice(list(game.occupied_bases().items()))
+            runner = game.bases[base]
+            game.bases[base] = None
+
+            if game.top_of_inning:
+                bat_team = game.teams["away"]
+            else:
+                bat_team = game.teams["home"]
+
+            bat_team.score += 1
+            result.clear()
+            result.update({
+                    "text": f"{runner.name} wished upon one of the shooting stars, and was warped to None base!! 1 runs score!",
+                    "text_only": True,
+                    "weather_message": True
+                })
+            
+
+
 def all_weathers():
     weathers_dic = {
             "Supernova" : Supernova,
@@ -304,7 +331,8 @@ def all_weathers():
             "Heat Wave" : HeatWave,
             "Drizzle" : Drizzle,
             "Breezy": Breezy,
-            "Starlight" : Starlight
+            "Starlight" : Starlight,
+            "Meteor Shower" : MeteorShower
         }
     return weathers_dic
 

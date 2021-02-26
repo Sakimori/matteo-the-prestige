@@ -225,6 +225,13 @@ class game(object):
         self.weather = weather.Weather(self)
         self.current_batter = None
 
+    def occupied_bases(self):
+        occ_dic = {}
+        for base in self.bases.keys():
+            if self.bases[base] is not None:
+                occ_dic[base] = self.bases[base]
+        return occ_dic
+
     def choose_next_batter(self):
         if self.top_of_inning:
             bat_team = self.teams["away"]
