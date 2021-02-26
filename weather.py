@@ -297,7 +297,7 @@ class MeteorShower(Weather):
     def __init__(self, game):
         self.name = "Meteor Shower"
         self.emoji = "🌠"
-        self.activation_chance = 1
+        self.activation_chance = 0.13
 
     def activate(self, game, result):
         if random.random() < self.activation_chance and game.occupied_bases() != {}:
