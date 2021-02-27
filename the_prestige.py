@@ -1251,15 +1251,15 @@ class OBLLeaderboardCommand(Command):
          
     async def execute(self, msg, command):
         leaders_list = db.obl_leaderboards()[:15]
-        leaders = {}
+        leaders = []
         rank = 1
         for team, points in leaders_list:
-            leaders[team] = {"rank" : rank, "points" : points}
+            leaders.append({"name" : team, "points" : points})
             rank += 1
 
         embed = discord.Embed(color=discord.Color.red(), title="The One Big League")
-        for team in leaders.keys():
-            embed.add_field(name=f"{leaders[team]['rank']}. {team}", value=f"{leaders[team]['points']} points" , inline = False)
+        for index in range(0, len(leaders)):
+            embed.add_field(name=f"{index+1}. {leaders[index]['name']}", value=f"{leaders[index]['points']} points" , inline = False)
         await msg.channel.send(embed=embed)
 
 class OBLTeamCommand(Command):
