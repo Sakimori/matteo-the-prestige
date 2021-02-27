@@ -919,7 +919,7 @@ class LeagueLeadersCommand(Command):
 
 class LeagueDivisionDisplayCommand(Command):
     name = "divisionstandings"
-    template = "m;divisionstandings [league name]\n[team name]"
+    template = "m;divisionstandings [league name]\n[division name]"
     description = "Displays the current standings for the given division in the given league."
 
     async def execute(self, msg, command):
