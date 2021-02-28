@@ -314,7 +314,7 @@ class MeteorShower(Weather):
             bat_team.score += 1
             result.clear()
             result.update({
-                    "text": f"{runner.name} wished upon one of the shooting stars, and was warped to None base!! 1 runs score!",
+                    "text": f"{runner.name} wished upon one of the shooting stars, and was warped to None base!! 1 runs scored!",
                     "text_only": True,
                     "weather_message": True
                 })
