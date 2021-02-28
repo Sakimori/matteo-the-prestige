@@ -60,12 +60,6 @@ class SlightTailwind(Weather):
         self.emoji = "🏌️‍♀️"
 
     def activate(self, game, result):
-        if game.top_of_inning:
-            offense_team = game.teams["away"]
-            defense_team = game.teams["home"]
-        else:
-            offense_team = game.teams["home"]
-            defense_team = game.teams["away"]
 
         if "mulligan" not in game.last_update[0].keys() and not result["ishit"] and result["text"] != appearance_outcomes.walk: 
             mulligan_roll_target = -((((game.get_batter().stlats["batting_stars"])-5)/6)**2)+1
@@ -77,6 +71,37 @@ class SlightTailwind(Weather):
                     "text_only": True,
                     "weather_message": True,
                 })
+
+class Starlight(Weather):
+    def __init__(self, game):
+        self.name = "Starlight"
+        self.emoji = "🌃"
+
+    def activate(self, game, result):
+
+        if (result["text"] == appearance_outcomes.homerun or result["text"] == appearance_outcomes.grandslam):
+            result["weather_message"] = True
+            dinger_roll = random.random()
+            if "dragon" in game.get_batter().name.lower():
+                result["dragin_the_park"] = True
+
+            elif dinger_roll < 0.941:
+                result.clear()
+                result.update({
+                    "text": f"{game.get_batter()} hits a dinger, but the stars do not approve! The ball pulls foul.",
+                    "text_only": True
+                })
+            else:
+                result["in_the_park"] = True
+
+
+    def modify_atbat_message(self, game, state):
+        result = game.last_update[0]
+        if "in_the_park" in result.keys():
+            state["update_text"] = f"The stars are pleased with {result['batter']}, and allow a dinger! {game.last_update[1]} runs scored!"
+        elif "dragin_the_park" in result.keys():
+            state["update_text"] = f"The stars enjoy watching dragons play baseball, and allow {result['batter']} to hit a dinger! {game.last_update[1]} runs scored!"
+               
 
 class HeavySnow(Weather):
     def __init__(self, game):
@@ -268,6 +293,33 @@ class Breezy(Weather):
                 "weather_message": True
             })
 
+class MeteorShower(Weather):
+    def __init__(self, game):
+        self.name = "Meteor Shower"
+        self.emoji = "🌠"
+        self.activation_chance = 0.13
+
+    def activate(self, game, result):
+        if random.random() < self.activation_chance and game.occupied_bases() != {}:
+            base, runner = random.choice(list(game.occupied_bases().items()))
+            runner = game.bases[base]
+            game.bases[base] = None
+
+            if game.top_of_inning:
+                bat_team = game.teams["away"]
+            else:
+                bat_team = game.teams["home"]
+
+            bat_team.score += 1
+            result.clear()
+            result.update({
+                    "text": f"{runner.name} wished upon one of the shooting stars, and was warped to None base!! 1 runs score!",
+                    "text_only": True,
+                    "weather_message": True
+                })
+            
+
+
 def all_weathers():
     weathers_dic = {
             "Supernova" : Supernova,
@@ -278,7 +330,9 @@ def all_weathers():
             "Thinned Veil" : ThinnedVeil,
             "Heat Wave" : HeatWave,
             "Drizzle" : Drizzle,
-            "Breezy": Breezy
+            "Breezy": Breezy,
+            "Starlight" : Starlight,
+            "Meteor Shower" : MeteorShower
         }
     return weathers_dic
 

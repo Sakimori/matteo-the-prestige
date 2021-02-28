@@ -161,6 +161,20 @@ accepting pull requests, check the issues for to-dos.
 - m;roman [number]
   - converts any natural number less than 4,000,000 into roman numerals, this one is just for fun.
 
+## weathers
+- all current simsim weathers are listed here with a short description of their effects except for the most recent weathers whose effects remain a mystery.
+  - supernova 🌟: makes all pitchers pitch worse.
+  - midnight 🕶: significantly increased the chance that players will attempt to steal a base.
+  - heavy snow ❄: occasionally causes the team's pitcher to bat in place of the scheduled batter.
+  - slight tailwind 🏌️‍♀: occasionally batters get a mulligan and start the at bat over if they would have gotten out, significantly more likely to happen for weaker batters. 
+  - thinned veil 🌌: when a player hits a dinger, they end up on the base corresponding to the number of runs the dinger scored, 1st base if it's a solo home run, up to none base if it's a grand slam, resulting in 5 runs scoring.
+  - twilight 👻: occasionally turns outs into hit by causing the ball to go ethereal, preventing the fielder from catching it.
+  - drizzle 🌧: causes each inning to start with the previous inning's final batter on second base.
+  - heat wave 🌄: occasionally causes pitchers to be relieved by a random player from the lineup.
+  - breezy 🎐: occasionally swaps letters of a player's name, altering their name for the remainder of the game and changing their stats.
+  - starlight 🌃: current patch weather, effects will be revealed the next time weathers are added.
+  - meteor shower 🌠: current patch weather, effects will be revealed the next time weathers are added.
+
 ## patreon!
 
 these folks are helping me a *ton* via patreon, and i cannot possibly thank them enough:
@@ -173,6 +187,7 @@ these folks are helping me a *ton* via patreon, and i cannot possibly thank them
 - iliana etaoin
 - yooori
 - Bend
+- ALC
 
 ## Attribution
 
