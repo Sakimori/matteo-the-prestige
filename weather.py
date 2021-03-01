@@ -318,6 +318,55 @@ class MeteorShower(Weather):
                     "text_only": True,
                     "weather_message": True
                 })
+
+class Hurricane(Weather):
+    def __init__(self, game):
+        self.name = "Hurricane"
+        self.emoji = "🌀"
+        self.swaplength = random.randint(2,4)
+        self.swapped = False
+
+    def on_flip_inning(self, game):
+        if game.top_of_inning and (game.inning % self.swaplength) == 0:
+            self.swaplength = random.randint(2,4)
+            self.swapped = True
+
+    def modify_top_of_inning_message(self, game, state):
+        if self.swapped:
+            game.teams["home"].score, game.teams["away"].score = (game.teams["away"].score, game.teams["home"].score) #swap scores
+            state["away_score"], state["home_score"] = (game.teams["away"].score, game.teams["home"].score)
+            state["update_emoji"] = self.emoji
+            state["update_text"] += " The hurricane rages on, flipping the scoreboard!"
+            self.swapped = False
+
+class Tornado(Weather):
+    def __init__(self, game):
+        self.name = "Tornado"
+        self.emoji = "🌪"
+        self.activation_chance = 1
+        self.counter = 0
+
+    def activate(self, game, result):
+        if self.counter == 0 and random.random() < self.activation_chance and game.occupied_bases() != {}:
+            runners = list(game.bases.values())
+            current_runners = runners.copy()
+            self.counter = 5
+            while runners == current_runners and self.counter > 0:
+                random.shuffle(runners)
+                self.counter -= 1
+            for index in range(1,4):
+                game.bases[index] = runners[index-1]
+
+            result.clear()
+            result.update({
+                    "text": f"The tornado sweeps across the field and pushes {'the runners' if len(game.occupied_bases().values())>1 else list(game.occupied_bases().values())[0].name} to a different base!",
+                    "text_only": True,
+                    "weather_message": True
+                })
+            self.counter = 2
+
+        elif self.counter > 0:
+            self.counter -= 1
             
 
 
@@ -333,7 +382,9 @@ def all_weathers():
             "Drizzle" : Drizzle,
             "Breezy": Breezy,
             "Starlight" : Starlight,
-            "Meteor Shower" : MeteorShower
+            "Meteor Shower" : MeteorShower,
+            "Hurricane" : Hurricane,
+            "Tornado" : Tornado
         }
     return weathers_dic
 
