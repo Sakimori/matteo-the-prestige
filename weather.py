@@ -343,7 +343,7 @@ class Tornado(Weather):
     def __init__(self, game):
         self.name = "Tornado"
         self.emoji = "🌪"
-        self.activation_chance = 1
+        self.activation_chance = 0.25
         self.counter = 0
 
     def activate(self, game, result):
