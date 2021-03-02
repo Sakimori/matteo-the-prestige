@@ -1,4 +1,4 @@
-import asyncio, time, datetime, games, json, threading, jinja2, leagues, os, leagues
+import asyncio, time, datetime, games, json, threading, jinja2, leagues, os, leagues, gametext
 from leagues import league_structure
 from league_storage import league_exists
 from flask import Flask, url_for, Response, render_template, request, jsonify, send_from_directory, abort
@@ -187,8 +187,12 @@ def update_loop():
 
                     if "weather_message" in this_game.last_update[0].keys():
                         state["update_emoji"] = this_game.weather.emoji
-                    else:
+                    elif "ishit" in this_game.last_update[0].keys() and this_game.last_update[0]["ishit"]:
                         state["update_emoji"] = "🏏"
+                    elif "text" in this_game.last_update[0].keys() and this_game.last_update[0]["text"] == gametext.appearance_outcomes.walk:
+                        state["update_emoji"] = "👟"
+                    else:
+                        state["update_emoji"] = "🗞"
 
                     if "steals" in this_game.last_update[0].keys():
                         updatestring = ""
