@@ -5,15 +5,15 @@ from flask import Flask, url_for, Response, render_template, request, jsonify, s
 from flask_socketio import SocketIO, emit
 import database as db
 
-app = Flask("the-prestige", static_folder='simmadome/build')
+app = Flask("the-prestige", static_folder='simmadome/build/', subdomain_matching=True)
 app.config['SECRET KEY'] = 'dev'
 #url = "sakimori.space:5000"
 #app.config['SERVER_NAME'] = url
 socketio = SocketIO(app)
 
 # Serve React App
-@app.route('/', defaults={'path': ''}, subdomain = "simsim")
-@app.route('/<path:path>', subdomain = "simsim")
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
 def serve(path):
     if path != "" and os.path.exists(app.static_folder + '/' + path):
         return send_from_directory(app.static_folder, path)
@@ -22,7 +22,7 @@ def serve(path):
 
 ### API
 
-@app.route('/api/teams/search', subdomain = "simsim")
+@app.route('/api/teams/search')
 def search_teams():
     query = request.args.get('query')
     page_len = int(request.args.get('page_len'))
@@ -42,7 +42,7 @@ def search_teams():
 MAX_SUBLEAGUE_DIVISION_TOTAL = 22;
 MAX_TEAMS_PER_DIVISION = 12;
 
-@app.route('/api/leagues', methods=['POST'], subdomain = "simsim")
+@app.route('/api/leagues', methods=['POST'])
 def create_league():
     config = json.loads(request.data)
 
@@ -114,7 +114,7 @@ def create_league():
 
 ### SOCKETS
 
-thread2 = threading.Thread(target=socketio.run,args=(app,'sakimori.space:5000'))
+thread2 = threading.Thread(target=socketio.run,args=(app,"0.0.0.0", "80"))
 thread2.start()
 
 master_games_dic = {} #key timestamp : (game game, {} state)
