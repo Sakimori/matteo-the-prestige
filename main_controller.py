@@ -186,9 +186,9 @@ def update_loop():
 
                     if "weather_message" in this_game.last_update[0].keys():
                         state["update_emoji"] = this_game.weather.emoji
-                    elif "ishit" in this_game.last_update[0] and this_game.last_update[0]["ishit"]:
+                    elif "ishit" in this_game.last_update[0].keys() and this_game.last_update[0]["ishit"]:
                         state["update_emoji"] = "🏏"
-                    elif this_game.last_update[0]["text"] == gametext.appearance_outcomes.walk:
+                    elif "text" in this_game.last_update[0].keys() and this_game.last_update[0]["text"] == gametext.appearance_outcomes.walk:
                         state["update_emoji"] = "👟"
                     else:
                         state["update_emoji"] = "🗞"
