@@ -2112,7 +2112,9 @@ def game_over_embed(game):
         title_string += ".\n"
 
     winning_team = game.teams['home'].name if game.teams['home'].score > game.teams['away'].score else game.teams['away'].name
-    winstring = f"{game.teams['away'].score} to {game.teams['home'].score}\n"
+    homestring = str(game.teams["home"].score) + ("☄" if game.teams["home"].score == 16 else "")
+    awaystring = ("☄" if game.teams["away"].score == 16 else "") + str(game.teams["away"].score)
+    winstring = f"{awaystring} to {homestring}\n"
     if game.victory_lap and winning_team == game.teams['home'].name:
         winstring += f"{winning_team} wins with a victory lap!"
     elif winning_team == game.teams['home'].name:

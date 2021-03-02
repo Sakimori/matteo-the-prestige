@@ -635,7 +635,13 @@ class game(object):
             if self.inning > self.max_innings and self.teams["home"].score != self.teams["away"].score: #game over
                 self.over = True
                 if self.max_innings >= 9:
-                    db.save_obl_results(self.teams["home"] if self.teams["home"].score > self.teams["away"].score else self.teams["away"], self.teams["home"] if self.teams["home"].score < self.teams["away"].score else self.teams["away"])
+                    if self.teams["home"].score == 16:
+                        this_xvi_team = self.teams["home"]
+                    elif self.teams["away"].score == 16:
+                        this_xvi_team = self.teams["away"]
+                    else:
+                        this_xvi_team = None
+                    db.save_obl_results(self.teams["home"] if self.teams["home"].score > self.teams["away"].score else self.teams["away"], self.teams["home"] if self.teams["home"].score < self.teams["away"].score else self.teams["away"], xvi_team=this_xvi_team)
 
 
     def end_of_game_report(self):
