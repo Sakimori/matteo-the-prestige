@@ -89,7 +89,8 @@ class Starlight(Weather):
                 result.clear()
                 result.update({
                     "text": f"{game.get_batter()} hits a dinger, but the stars do not approve! The ball pulls foul.",
-                    "text_only": True
+                    "text_only": True,
+                    "weather_message": True
                 })
             else:
                 result["in_the_park"] = True
@@ -313,7 +314,7 @@ class MeteorShower(Weather):
             bat_team.score += 1
             result.clear()
             result.update({
-                    "text": f"{runner.name} wished upon one of the shooting stars, and was warped to None base!! 1 runs score!",
+                    "text": f"{runner.name} wished upon one of the shooting stars, and was warped to None base!! 1 runs scored!",
                     "text_only": True,
                     "weather_message": True
                 })
