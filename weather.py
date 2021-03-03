@@ -1,5 +1,4 @@
-import random
-import math
+import random, math, roman
 from gametext import appearance_outcomes, base_string
 
 class Weather:
@@ -375,14 +374,15 @@ class Tornado(Weather):
 
 class Downpour(Weather):
     def __init__(self, game):
-        self.name = "Torrential Downpour"
-        self.emoji = '⛈'
         self.target = game.max_innings
+        self.name = f"Torrential Downpour: {roman.roman_convert(str(self.target))}"
+        self.emoji = '⛈'
+        
 
     def on_flip_inning(self, game):
         high_score = game.teams["home"].score if game.teams["home"].score > game.teams["away"].score else game.teams["away"].score
         if high_score >= self.target and game.teams["home"].score != game.teams["away"].score:
-            game.max_innings = 0
+            game.max_innings = game.inning
         else:
             game.max_innings = game.inning + 1
 
