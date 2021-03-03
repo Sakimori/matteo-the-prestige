@@ -147,6 +147,8 @@ def update_loop():
             
             state["display_top_of_inning"] = state["top_of_inning"]
 
+            this_game.weather.modify_gamestate(this_game, state)
+
             if state["start_delay"] <= 0:
                 if this_game.top_of_inning != state["top_of_inning"]:
                     state["update_pause"] = 2
