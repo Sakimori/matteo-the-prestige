@@ -172,8 +172,11 @@ accepting pull requests, check the issues for to-dos.
   - drizzle 🌧: causes each inning to start with the previous inning's final batter on second base.
   - heat wave 🌄: occasionally causes pitchers to be relieved by a random player from the lineup.
   - breezy 🎐: occasionally swaps letters of a player's name, altering their name for the remainder of the game and changing their stats.
-  - starlight 🌃: current patch weather, effects will be revealed the next time weathers are added.
-  - meteor shower 🌠: current patch weather, effects will be revealed the next time weathers are added.
+  - starlight 🌃: the stars are displeased with dingers and will cancel most of them out by pulling them foul.
+  - meteor shower 🌠: has a chance to warp runners on base to none base causing them to score.
+  - hurricane 🌀: current patch weather, its effects will be revealed when new weathers are added.
+  - tornado 🌪: current patch weather, its effects will be revealed when new weathers are added.
+  - torrential downpour ⛈: current patch weather, its effects will be revealed when new weathers are added.
 
 ## patreon!
 
