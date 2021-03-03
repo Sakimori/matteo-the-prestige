@@ -172,6 +172,8 @@ def update_loop():
                             state["update_text"] = f"{winning_team} wins!"
                         state["pitcher"] = "-"
                         state["batter"] = "-"
+
+                        this_game.weather.modify_game_end_message(this_game, state)
                     else:
                         if this_game.top_of_inning: 
                             state["update_text"] = f"Top of {this_game.inning}. {this_game.teams['away'].name} batting!"

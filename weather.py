@@ -39,6 +39,9 @@ class Weather:
     def modify_gamestate(self, game, state):
         pass
 
+    def modify_game_end_message(self, game, state):
+        pass
+
 
 class Supernova(Weather):
     def __init__(self, game):
@@ -388,6 +391,14 @@ class Downpour(Weather):
 
     def modify_gamestate(self, game, state):
         state["max_innings"] = "∞"
+
+    def modify_top_of_inning_message(self, game, state):
+        state["update_emoji"] = self.emoji
+        state["update_text"] = "The gods are not yet pleased. Play continues through the storm."
+
+    def modify_game_end_message(self, game, state):
+        state["update_emoji"] = self.emoji
+        state["update_text"] = f"{self.target} runs are reached, pleasing the gods. The storm clears."
             
 
 def all_weathers():
