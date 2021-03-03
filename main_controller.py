@@ -5,9 +5,10 @@ from flask import Flask, url_for, Response, render_template, request, jsonify, s
 from flask_socketio import SocketIO, emit
 import database as db
 
-app = Flask("the-prestige", static_folder='simmadome/build')
+app = Flask("the-prestige", static_folder='simmadome/build/', subdomain_matching=True)
 app.config['SECRET KEY'] = 'dev'
-#app.config['SERVER_NAME'] = '0.0.0.0:5000'
+#url = "sakimori.space:5000"
+#app.config['SERVER_NAME'] = url
 socketio = SocketIO(app)
 
 # Serve React App
@@ -113,7 +114,7 @@ def create_league():
 
 ### SOCKETS
 
-thread2 = threading.Thread(target=socketio.run,args=(app,'0.0.0.0'))
+thread2 = threading.Thread(target=socketio.run,args=(app,"0.0.0.0", "80"))
 thread2.start()
 
 master_games_dic = {} #key timestamp : (game game, {} state)
@@ -141,8 +142,8 @@ def update_loop():
             state["home_score"] = this_game.teams["home"].score #update_pause = 0
                                                                 #victory_lap = False
             if not this_game.play_has_begun:                    #weather_emoji
-                state["update_emoji"] = "🍿"                    #weather_text
-                state["update_text"] = "Play blall!"            #they also need a timestamp
+                state["update_emoji"] = "🎆"                    #weather_text
+                state["update_text"] = "Play ball!"            #they also need a timestamp
                 state["start_delay"] -= 1
             
             state["display_top_of_inning"] = state["top_of_inning"]
