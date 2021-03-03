@@ -706,7 +706,7 @@ class StartDraftCommand(Command):
             if draft.round == DRAFT_ROUNDS:
                 body = random.choice([
                     f"Now just choose a pitcher and we can finish off this paperwork for you, {draft.active_drafter}",
-                    f"Pick a pitcher, {draft.active_drafter}, and we can all go home happy. 'Cept your players. They'll have to play bllaseball.",
+                    f"Pick a pitcher, {draft.active_drafter}, and we can all go home happy. 'Cept your players. They'll have to play baseball.",
                     f"Almost done, {draft.active_drafter}. Pick your pitcher.",
                 ])
                 message = f"⚾️ {message_prefix} {body}"

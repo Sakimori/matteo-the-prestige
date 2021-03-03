@@ -46,6 +46,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="roman.py" />
+    <Compile Include="the_draft.py" />
     <Compile Include="the_prestige.py" />
     <Compile Include="weather.py" />
   </ItemGroup>
