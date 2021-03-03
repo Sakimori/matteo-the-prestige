@@ -142,8 +142,8 @@ def update_loop():
             state["home_score"] = this_game.teams["home"].score #update_pause = 0
                                                                 #victory_lap = False
             if not this_game.play_has_begun:                    #weather_emoji
-                state["update_emoji"] = "🍿"                    #weather_text
-                state["update_text"] = "Play blall!"            #they also need a timestamp
+                state["update_emoji"] = "🎆"                    #weather_text
+                state["update_text"] = "Play ball!"            #they also need a timestamp
                 state["start_delay"] -= 1
             
             state["display_top_of_inning"] = state["top_of_inning"]
