@@ -2450,5 +2450,5 @@ async def league_postseason(channel, league):
     league.season_reset()
 
 
-
+weather.WeatherChains.debug_weathers()
 client.run(config()["token"])
