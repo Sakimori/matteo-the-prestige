@@ -47,6 +47,7 @@ class Supernova(Weather):
     def __init__(self, game):
         self.name = "Supernova"
         self.emoji = "🌟"
+        self.duration = random.randint(1,2)
 
     def modify_atbat_stats(self, roll):
         roll["pitch_stat"] *= 0.8
@@ -55,6 +56,7 @@ class Midnight(Weather):
     def __init__(self, game):
         self.name = "Midnight"
         self.emoji = "🕶"
+        self.duration = 1
 
     def modify_steal_stats(self, roll):
         roll["run_stars"] *= 2
@@ -63,6 +65,7 @@ class SlightTailwind(Weather):
     def __init__(self, game):
         self.name = "Slight Tailwind"
         self.emoji = "🏌️‍♀️"
+        self.duration = random.randint(2,4)
 
     def activate(self, game, result):
 
@@ -81,6 +84,7 @@ class Starlight(Weather):
     def __init__(self, game):
         self.name = "Starlight"
         self.emoji = "🌃"
+        self.duration = 2
 
     def activate(self, game, result):
 
@@ -113,6 +117,8 @@ class Blizzard(Weather):
     def __init__(self, game):
         self.name = "Blizzard"
         self.emoji = "❄"
+        self.duration = random.randint(3,6)
+
         self.counter_away = random.randint(0,len(game.teams['away'].lineup)-1)
         self.counter_home = random.randint(0,len(game.teams['home'].lineup)-1)
 
@@ -158,6 +164,7 @@ class Twilight(Weather):
     def __init__(self,game):
         self.name = "Twilight"
         self.emoji = "👻"
+        self.duration = random.randint(2,3)
 
     def modify_atbat_roll(self, outcome, roll, defender):
         error_line = - (math.log(defender.stlats["defense_stars"] + 1)/50) + 1
@@ -179,6 +186,7 @@ class ThinnedVeil(Weather):
     def __init__(self,game):
         self.name = "Thinned Veil"
         self.emoji = "🌌"
+        self.duration = random.randint(2,4)
 
     def activate(self, game, result):
         if result["ishit"]:
@@ -194,6 +202,7 @@ class HeatWave(Weather):
     def __init__(self,game):
         self.name = "Heat Wave"
         self.emoji = "🌄"
+        self.duration = random.randint(3,6)
 
         self.counter_away = random.randint(2,4)
         self.counter_home = random.randint(2,4)
@@ -236,6 +245,7 @@ class Drizzle(Weather):
     def __init__(self,game):
         self.name = "Drizzle"
         self.emoji = "🌧"
+        self.duration = random.randint(2,3)
 
     def on_flip_inning(self, game):
         if game.top_of_inning:
@@ -261,6 +271,7 @@ class Breezy(Weather):
     def __init__(self, game):
         self.name = "Breezy"
         self.emoji = "🎐"
+        self.duration = random.randint(1,4)
         self.activation_chance = 0.08
 
     def activate(self, game, result):
@@ -303,6 +314,7 @@ class MeteorShower(Weather):
     def __init__(self, game):
         self.name = "Meteor Shower"
         self.emoji = "🌠"
+        self.duration = random.randint(3,6)
         self.activation_chance = 0.13
 
     def activate(self, game, result):
@@ -328,6 +340,8 @@ class Hurricane(Weather):
     def __init__(self, game):
         self.name = "Hurricane"
         self.emoji = "🌀"
+        self.duration = 1
+
         self.swaplength = random.randint(2,4)
         self.swapped = False
 
@@ -348,6 +362,8 @@ class Tornado(Weather):
     def __init__(self, game):
         self.name = "Tornado"
         self.emoji = "🌪"
+        self.duration = random.randint(1,2)
+
         self.activation_chance = 0.33
         self.counter = 0
 
@@ -380,6 +396,7 @@ class Downpour(Weather):
         self.target = game.max_innings
         self.name = f"Torrential Downpour: {roman.roman_convert(str(self.target))}"
         self.emoji = '⛈'
+        self.duration = random.randint(2,5)
         
 
     def on_flip_inning(self, game):
@@ -421,5 +438,8 @@ def all_weathers():
     return weathers_dic
 
 class WeatherChains():
-    light = [SlightTailwind, Twilight, Breezy, Drizzle]
-    disaster = [Hurricane, Tornado, Downpour, Blizzard]
+    light = [SlightTailwind, Twilight, Breezy, Drizzle] #basic starting points for weather, good comfortable spots to return to
+    magic = [Twilight, ThinnedVeil, MeteorShower, Starlight] #weathers involving breaking the fabric of spacetime
+    sudden = [Tornado, Hurricane, Twilight, Starlight, Midnight, Supernova] #weathers that always happen and leave over 1-3 games
+    disaster = [Hurricane, Tornado, Downpour, Blizzard] #storms
+    aftermath = [Midnight, Starlight, MeteorShower] #calm epilogues
