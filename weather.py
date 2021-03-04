@@ -109,9 +109,9 @@ class Starlight(Weather):
             state["update_text"] = f"The stars enjoy watching dragons play baseball, and allow {result['batter']} to hit a dinger! {game.last_update[1]} runs scored!"
                
 
-class HeavySnow(Weather):
+class Blizzard(Weather):
     def __init__(self, game):
-        self.name = "Heavy Snow"
+        self.name = "Blizzard"
         self.emoji = "❄"
         self.counter_away = random.randint(0,len(game.teams['away'].lineup)-1)
         self.counter_home = random.randint(0,len(game.teams['home'].lineup)-1)
@@ -406,7 +406,7 @@ def all_weathers():
             "Supernova" : Supernova,
             "Midnight": Midnight,
             "Slight Tailwind": SlightTailwind,
-            "Heavy Snow": HeavySnow,
+            "Blizzard": Blizzard,
             "Twilight" : Twilight, 
             "Thinned Veil" : ThinnedVeil,
             "Heat Wave" : HeatWave,
@@ -420,3 +420,6 @@ def all_weathers():
         }
     return weathers_dic
 
+class WeatherChains():
+    light = [SlightTailwind, Twilight, Breezy, Drizzle]
+    disaster = [Hurricane, Tornado, Downpour, Blizzard]
