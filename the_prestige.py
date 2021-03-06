@@ -549,7 +549,7 @@ class AssignOwnerCommand(Command):
         return user.id in config()["owners"]
 
     async def execute(self, msg, command):
-        if isauthorized(msg.author):
+        if self.isauthorized(msg.author):
             new_owner = msg.mentions[0]
             team_name = command.strip().split("> ",1)[1]
             if db.assign_owner(team_name, new_owner.id):
