@@ -1,5 +1,5 @@
 # matteo-the-prestige
-# sim16 + discord bot
+# sim16 + discord bot: baseball simulation
 
 we have custom players, custom teams, custom leagues, all created and set up in discord and watchable at http://sim16.sakimori.space! 
 
