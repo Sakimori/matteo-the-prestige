@@ -549,12 +549,13 @@ class AssignOwnerCommand(Command):
         return user.id in config()["owners"]
 
     async def execute(self, msg, command):
-        new_owner = msg.mentions[0]
-        team_name = command.strip().split(new_owner.mention+" ")[1]
-        if db.assign_owner(team_name, new_owner.id):
-            await msg.channel.send(f"{team_name} is now owned by {new_owner.display_name}. Don't break it.")
-        else:
-            await msg.channel.send("We couldn't find that team. Typo?")
+        if isauthorized(msg.author):
+            new_owner = msg.mentions[0]
+            team_name = command.strip().split("> ",1)[1]
+            if db.assign_owner(team_name, new_owner.id):
+                await msg.channel.send(f"{team_name} is now owned by {new_owner.display_name}. Don't break it.")
+            else:
+                await msg.channel.send("We couldn't find that team. Typo?")
 
 class StartTournamentCommand(Command):
     name = "starttournament"
