@@ -2,8 +2,8 @@ import random, math, roman
 from gametext import appearance_outcomes, base_string
 
 class Weather:
-    self.name = "Sunny"
-    self.emoji = "🌞"
+    name = "Sunny"
+    emoji = "🌞"
 
     def __init__(self, game):
         pass    
