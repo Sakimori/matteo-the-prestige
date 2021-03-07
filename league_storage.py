@@ -147,13 +147,14 @@ def save_league(league):
                 "season" : league.season,
                 "day" : league.day,
                 "constraints" : league.constraints,
-                "schedule" : league.schedule,
                 "game_length" : league.game_length,
                 "series_length" : league.series_length,
                 "games_per_hour" : league.games_per_hour,
                 "owner" : league.owner,
                 "champion" : league.champion,
-                "historic" : league.historic               
+                "schedule" : league.schedule,
+                "forecasts" : league.weather_forecast,              
+                "historic" : league.historic
             }
         with open(os.path.join(data_dir, league_dir, league.name, f"{league.name}.state"), "w") as state_file:
             json.dump(state_dic, state_file, indent=4)

@@ -1,5 +1,6 @@
 import time, asyncio, json, jsonpickle, random, math, os
 import league_storage as league_db
+from weather import WeatherChains, all_weathers
 from itertools import chain
 from copy import deepcopy
 from games import team, game
@@ -16,6 +17,7 @@ class league_structure(object):
         self.season = 1
         self.autoplay = -1
         self.champion = None
+        self.weather_forecast = {}
 
     def setup(self, league_dic, division_games = 1, inter_division_games = 1, inter_league_games = 1, games_per_hour = 2):
         self.league = league_dic # { subleague name : { division name : [team object] } }
@@ -32,6 +34,9 @@ class league_structure(object):
         self.game_length = None
         self.active = False
         self.games_per_hour = games_per_hour
+        
+
+
 
     def season_reset(self):
         self.season += 1
@@ -255,6 +260,33 @@ class league_structure(object):
                     self.schedule[str(day)] = [game]
                     scheduled = True
                 day += 1
+
+        #now do forecasts
+        for this_team in self.teams_in_league():
+            start_weather = WeatherChains.starting_weather() #gets a random starting weather class
+            start_weather_duration = random.randint(start_weather.duration_range[0], start_weather.duration_range[1])
+            self.weather_forecast[this_team.name] = [start_weather.name] * start_weather_duration
+            forecasted_days = []
+            for i in range(start_weather_duration, len(self.schedule.keys())):
+                if i not in forecasted_days:
+                    prev_weather = self.weather_forecast[this_team.name][i-1] #get last weather name
+                    next_weather = WeatherChains.chain_weather(all_weathers()[prev_weather]) #ask weatherchains for next weather
+                    next_weather_duration = random.randint(next_weather.duration_range[0], next_weather.duration_range[1])
+                    self.weather_forecast[this_team.name] += [next_weather.name] * next_weather_duration
+                    forecasted_days = [n for n in range(i, i + next_weather_duration)]
+
+    def new_weathers_midseason(self, team_name): #generate new forecast for specific team
+        start_weather = WeatherChains.starting_weather() #gets a random starting weather class
+        start_weather_duration = self.day - 1 if self.day > 1 else random.randint(start_weather.duration_range[0], start_weather.duration_range[1])
+        self.weather_forecast[team_name] = [start_weather.name] * start_weather_duration
+        forecasted_days = []
+        for i in range(start_weather_duration, len(self.schedule.keys())):
+            if i not in forecasted_days:
+                prev_weather = self.weather_forecast[team_name][i-1] #get last weather name
+                next_weather = WeatherChains.chain_weather(all_weathers()[prev_weather]) #ask weatherchains for next weather
+                next_weather_duration = random.randint(next_weather.duration_range[0], next_weather.duration_range[1])
+                self.weather_forecast[team_name] += [next_weather.name] * next_weather_duration
+                forecasted_days = [n for n in range(i, i + next_weather_duration)]
 
     def division_standings(self, division, standings):
         def sorter(team_in_list):
@@ -579,4 +611,11 @@ def load_league_file(league_name):
             this_league.champion = state_dic["champion"]
         except:
             this_league.champion = None
+        try: 
+            this_league.weather_forecast = state_dic["forecasts"] #handles legacy leagues
+        except: 
+            this_league.weather_forecast = {}
+            for this_team in this_league.teams_in_league(): #give them all fresh forecasts starting at current day
+                this_league.new_weathers_midseason(this_team.name)
+            save_league(this_league)
         return this_league
