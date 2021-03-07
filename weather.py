@@ -4,12 +4,16 @@ from gametext import appearance_outcomes, base_string
 class Weather:
     name = "Sunny"
     emoji = "🌞"
+    duration_range = [3,5]
 
     def __init__(self, game):
         pass    
 
     def __str__(self):
         return f"{self.emoji} {self.name}"
+
+    def set_duration(self):
+        pass
 
     def modify_atbat_stats(self, player_rolls):
         # Activates before batting
@@ -48,9 +52,7 @@ class Weather:
 class Supernova(Weather):
     name = "Supernova"
     emoji = "🌟"
-
-    def __init__(self, game):
-        self.duration = random.randint(1,2)
+    duration_range = [1,2]
 
     def modify_atbat_stats(self, roll):
         roll["pitch_stat"] *= 0.8
@@ -58,11 +60,7 @@ class Supernova(Weather):
 class Midnight(Weather):
     name = "Midnight"
     emoji = "🕶"
-
-    def __init__(self, game):
-        self.name = "Midnight"
-        self.emoji = "🕶"
-        self.duration = 1
+    duration_range = [1,1]
 
     def modify_steal_stats(self, roll):
         roll["run_stars"] *= 2
@@ -70,11 +68,7 @@ class Midnight(Weather):
 class SlightTailwind(Weather):
     name = "Slight Tailwind"
     emoji = "🏌️‍♀️"
-
-    def __init__(self, game):
-        self.name = "Slight Tailwind"
-        self.emoji = "🏌️‍♀️"
-        self.duration = random.randint(2,4)
+    duration_range = [2,4]
 
     def activate(self, game, result):
 
@@ -92,11 +86,7 @@ class SlightTailwind(Weather):
 class Starlight(Weather):
     name = "Starlight"
     emoji = "🌃"
-
-    def __init__(self, game):
-        self.name = "Starlight"
-        self.emoji = "🌃"
-        self.duration = 2
+    duration_range = [2,2]
 
     def activate(self, game, result):
 
@@ -128,12 +118,9 @@ class Starlight(Weather):
 class Blizzard(Weather):
     name = "Blizzard"
     emoji = "❄"
+    duration_range = [3,6]
 
     def __init__(self, game):
-        self.name = "Blizzard"
-        self.emoji = "❄"
-        self.duration = random.randint(3,6)
-
         self.counter_away = random.randint(0,len(game.teams['away'].lineup)-1)
         self.counter_home = random.randint(0,len(game.teams['home'].lineup)-1)
 
@@ -178,9 +165,7 @@ class Blizzard(Weather):
 class Twilight(Weather):
     name = "Twilight"
     emoji = "👻"
-
-    def __init__(self,game):
-        self.duration = random.randint(2,3)
+    duration_range = [2,3]
 
     def modify_atbat_roll(self, outcome, roll, defender):
         error_line = - (math.log(defender.stlats["defense_stars"] + 1)/50) + 1
@@ -201,9 +186,7 @@ class Twilight(Weather):
 class ThinnedVeil(Weather):
     name = "Thinned Veil"
     emoji = "🌌"
-
-    def __init__(self,game):
-        self.duration = random.randint(2,4)
+    duration_range = [2,4]
 
     def activate(self, game, result):
         if result["ishit"]:
@@ -218,12 +201,9 @@ class ThinnedVeil(Weather):
 class HeatWave(Weather):
     name = "Heat Wave"
     emoji = "🌄"
+    duration_range = [3,6]
 
     def __init__(self,game):
-        self.name = "Heat Wave"
-        self.emoji = "🌄"
-        self.duration = random.randint(3,6)
-
         self.counter_away = random.randint(2,4)
         self.counter_home = random.randint(2,4)
 
@@ -264,9 +244,7 @@ class HeatWave(Weather):
 class Drizzle(Weather):
     name = "Drizzle"
     emoji = "🌧"
-
-    def __init__(self,game):
-        self.duration = random.randint(2,3)
+    duration_range = [2,3]
 
     def on_flip_inning(self, game):
         if game.top_of_inning:
@@ -291,9 +269,9 @@ class Drizzle(Weather):
 class Breezy(Weather):
     name = "Breezy"
     emoji = "🎐"
+    duration_range = [1,4]
 
-    def __init__(self, game):
-        self.duration = random.randint(1,4)
+    def __init__(self, game):       
         self.activation_chance = 0.08
 
     def activate(self, game, result):
@@ -335,9 +313,9 @@ class Breezy(Weather):
 class MeteorShower(Weather):
     name = "Meteor Shower"
     emoji = "🌠"
+    duration_range = [3,6]
 
     def __init__(self, game):
-        self.duration = random.randint(3,6)
         self.activation_chance = 0.13
 
     def activate(self, game, result):
@@ -362,10 +340,9 @@ class MeteorShower(Weather):
 class Hurricane(Weather):
     name = "Hurricane"
     emoji = "🌀"
+    duration_range = [1,1]
 
     def __init__(self, game):
-        self.duration = 1
-
         self.swaplength = random.randint(2,4)
         self.swapped = False
 
@@ -385,10 +362,9 @@ class Hurricane(Weather):
 class Tornado(Weather):
     name = "Tornado"
     emoji = "🌪"
+    duration_range = [1,2]
 
     def __init__(self, game):
-        self.duration = random.randint(1,2)
-
         self.activation_chance = 0.33
         self.counter = 0
 
@@ -419,12 +395,12 @@ class Tornado(Weather):
 class Downpour(Weather):
     name = "Torrential Downpour"
     emoji = '⛈'
+    duration_range = [1,1]
 
     def __init__(self, game):
         self.target = game.max_innings
         self.name = f"Torrential Downpour: {roman.roman_convert(str(self.target))}"
         self.emoji = '⛈'
-        self.duration = 1
         
 
     def on_flip_inning(self, game):
@@ -498,6 +474,9 @@ class WeatherChains():
         weather_type = weather_instance
         options, weight = WeatherChains.dictionary[weather_type]
         return random.choices(options, weights = weight)[0]
+
+    def starting_weather():
+        return random.choice(WeatherChains.light + WeatherChains.magic)
 
     def debug_weathers():
         names = ["a.txt", "b.txt", "c.txt"]
