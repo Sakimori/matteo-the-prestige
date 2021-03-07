@@ -2154,6 +2154,7 @@ async def start_league_day(channel, league, partial = False):
             home.set_pitcher(rotation_slot=league.day)
 
             this_game = games.game(away.finalize(), home.finalize(), length = game_length)
+            this_game.weather = league.get_weather_now(home.name)(this_game)
             this_game, state_init = prepare_game(this_game)
 
             state_init["is_league"] = True
@@ -2356,6 +2357,7 @@ async def continue_league_series(league, queue, games_list, series_results, miss
         home_team = games.get_team(oldgame.teams["home"].name)
         home_team.set_pitcher(rotation_slot=league.day)
         this_game = games.game(away_team.finalize(), home_team.finalize(), length = league.game_length)
+        this_game.weather = league.get_weather_now(home_team.name)(this_game)
         this_game, state_init = prepare_game(this_game)
 
         state_init["is_league"] = True
@@ -2449,6 +2451,4 @@ async def league_postseason(channel, league):
     season_save(league)
     league.season_reset()
 
-
-weather.WeatherChains.debug_weathers()
 client.run(config()["token"])

@@ -465,6 +465,9 @@ class league_structure(object):
                 this_embed.add_field(name=player_name, value=content_string, inline=False)
             return this_embed
 
+    def get_weather_now(self, team_name):
+        return all_weathers()[self.weather_forecast[team_name][self.day - 1]]
+
 
 class tournament(object):
     def __init__(self, name, team_dic, series_length = 5, finals_series_length = 7, max_innings = 9, id = None, secs_between_games = 300, secs_between_rounds = 600): 
