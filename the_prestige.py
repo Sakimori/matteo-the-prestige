@@ -2146,6 +2146,8 @@ async def start_league_day(channel, league, partial = False):
     else:
         game_length = league.game_length
 
+    weather_check_result = league.weather_event_check()
+
     for pair in games_to_start:
         if pair[0] is not None and pair[1] is not None:
             away = get_team_fuzzy_search(pair[0])
@@ -2170,6 +2172,11 @@ async def start_league_day(channel, league, partial = False):
             main_controller.master_games_dic[id] = (this_game, state_init, discrim_string)
 
     ext = "?league=" + urllib.parse.quote_plus(league.name)
+    
+    if weather_check_result == 2:
+        await channel.send(f"The entire league is struck by a {league.weather_override.emoji} {league.weather_override.name}! The games must go on.")
+    elif weather_check_result == 1:
+        await channel.send(f"The {league.weather_override.emoji} {league.weather_override.name} continues to afflict the league.")
 
     if league.last_series_check(): #if finals
         await channel.send(f"The final series of the {league.name} regular season is starting now, at {config()['simmadome_url']+ext}")
@@ -2270,6 +2277,11 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
             leagues.save_league(league)
             active_standings[league] = await channel.send(embed=league.standings_embed())
             await channel.send(f"The day {league.day} games for the {league.name} will start in {math.ceil(wait_seconds/60)} minutes.")
+            weather_check_result = league.weather_event_check()
+            if weather_check_result == 2:
+                await channel.send(f"The entire league is struck by a {league.weather_override.emoji} {league.weather_override.name}! The games must go on.")
+            elif weather_check_result == 1:
+                await channel.send(f"The {league.weather_override.emoji} {league.weather_override.name} continues to afflict the league.")
             await asyncio.sleep(wait_seconds)
             await channel.send(f"A {league.name} series is continuing now at {filter_url}")
             games_list = await continue_league_series(league, queued_games, games_list, series_results, missed)

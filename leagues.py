@@ -18,6 +18,9 @@ class league_structure(object):
         self.autoplay = -1
         self.champion = None
         self.weather_forecast = {}
+        self.weather_override = None #set to a weather for league-wide weather effects
+        self.last_weather_event_day = 0
+        self.weather_event_duration = 0
 
     def setup(self, league_dic, division_games = 1, inter_division_games = 1, inter_league_games = 1, games_per_hour = 2):
         self.league = league_dic # { subleague name : { division name : [team object] } }
@@ -466,7 +469,23 @@ class league_structure(object):
             return this_embed
 
     def get_weather_now(self, team_name):
-        return all_weathers()[self.weather_forecast[team_name][self.day - 1]]
+        if self.weather_override is None or self.weather_event_duration <= 0: #if no override set or if past event expired
+            return all_weathers()[self.weather_forecast[team_name][self.day - 1]]
+        else:
+            if self.weather_event_duration == 1 and random.random() < 0.1: #once per weather event, roll for forecast regen
+                self.new_weathers_midseason(team_name)
+            return self.weather_override
+
+    def weather_event_check(self): #2 for new event, 1 for continued event, 0 for no event
+        if self.day - self.last_weather_event_day > 12: #arbitrary cooldown between weather events
+            if random.random() < 0.1: #10% chance for weather event?
+                self.weather_override = all_weathers()["Supernova"]
+                self.last_weather_event_day = self.day
+                self.weather_event_duration = random.randint(self.weather_override.duration_range[0], self.weather_override.duration_range[1])
+                return 2
+        else:
+            self.weather_event_duration -= 1
+            return 1 if self.weather_event_duration > 0 else 0
 
 
 class tournament(object):
@@ -621,4 +640,8 @@ def load_league_file(league_name):
             for this_team in this_league.teams_in_league(): #give them all fresh forecasts starting at current day
                 this_league.new_weathers_midseason(this_team.name)
             save_league(this_league)
+        try:
+            this_league.last_weather_event_day = state_dic["last_weather_event"]
+        except:
+            this_league.last_weather_event_day = 0
         return this_league

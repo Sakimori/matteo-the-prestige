@@ -146,6 +146,7 @@ def save_league(league):
         state_dic = {
                 "season" : league.season,
                 "day" : league.day,
+                "last_weather_event" : league.last_weather_event_day,
                 "constraints" : league.constraints,
                 "game_length" : league.game_length,
                 "series_length" : league.series_length,
