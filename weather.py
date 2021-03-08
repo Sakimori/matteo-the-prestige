@@ -68,7 +68,7 @@ class Midnight(Weather):
 class SlightTailwind(Weather):
     name = "Slight Tailwind"
     emoji = "🏌️‍♀️"
-    duration_range = [2,4]
+    duration_range = [1,2]
 
     def activate(self, game, result):
 
@@ -118,7 +118,7 @@ class Starlight(Weather):
 class Blizzard(Weather):
     name = "Blizzard"
     emoji = "❄"
-    duration_range = [3,6]
+    duration_range = [2,3]
 
     def __init__(self, game):
         self.counter_away = random.randint(0,len(game.teams['away'].lineup)-1)
@@ -186,7 +186,7 @@ class Twilight(Weather):
 class ThinnedVeil(Weather):
     name = "Thinned Veil"
     emoji = "🌌"
-    duration_range = [2,4]
+    duration_range = [1,3]
 
     def activate(self, game, result):
         if result["ishit"]:
@@ -201,7 +201,7 @@ class ThinnedVeil(Weather):
 class HeatWave(Weather):
     name = "Heat Wave"
     emoji = "🌄"
-    duration_range = [3,6]
+    duration_range = [2,3]
 
     def __init__(self,game):
         self.counter_away = random.randint(2,4)
@@ -269,7 +269,7 @@ class Drizzle(Weather):
 class Breezy(Weather):
     name = "Breezy"
     emoji = "🎐"
-    duration_range = [1,4]
+    duration_range = [1,3]
 
     def __init__(self, game):       
         self.activation_chance = 0.08
@@ -313,7 +313,7 @@ class Breezy(Weather):
 class MeteorShower(Weather):
     name = "Meteor Shower"
     emoji = "🌠"
-    duration_range = [3,6]
+    duration_range = [1,3]
 
     def __init__(self, game):
         self.activation_chance = 0.13
@@ -449,7 +449,7 @@ class WeatherChains():
     aftermath = [Midnight, Starlight, MeteorShower] #calm epilogues
 
     dictionary = {
-            Supernova : (magic + sudden + disaster, None), #supernova happens leaguewide and shouldn't need a chain, but here just in case
+            #Supernova : (magic + sudden + disaster, None), supernova happens leaguewide and shouldn't need a chain, but here just in case
             Midnight : ([SlightTailwind, Breezy, Drizzle, Starlight, MeteorShower, HeatWave],[2,2,2,4,4,1]),
             SlightTailwind : ([Breezy, Drizzle, Tornado], [3,3,1]),
             Blizzard : ([Midnight, Starlight, MeteorShower, Twilight, Downpour], [2,2,2,2,4]),
@@ -474,6 +474,13 @@ class WeatherChains():
         weather_type = weather_instance
         options, weight = WeatherChains.dictionary[weather_type]
         return random.choices(options, weights = weight)[0]
+
+    def parent_weathers(weather_type):
+        parents = []
+        for this_weather, (children, _) in WeatherChains.dictionary.items():
+            if weather_type in children:
+                parents.append(this_weather)
+        return parents
 
     def starting_weather():
         return random.choice(WeatherChains.light + WeatherChains.magic)

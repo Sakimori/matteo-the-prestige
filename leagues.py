@@ -470,6 +470,13 @@ class league_structure(object):
 
     def get_weather_now(self, team_name):
         if self.weather_override is None or self.weather_event_duration <= 0: #if no override set or if past event expired
+            if self.day < len(self.weather_forecast[team_name]) and random.random() < 0.08: #8% chance the forcast was wrong
+                if random.random() < 0.33:
+                    return all_weathers()[self.weather_forecast[team_name][self.day]] #next weather came a day early
+                elif random.random() < 0.66:
+                    return random.choice(WeatherChains.parent_weathers(all_weathers()[self.weather_forecast[team_name][self.day]])) #pivot to different parent weather to lead in
+                else:
+                    return WeatherChains.chain_weather(all_weathers()[self.weather_forecast[team_name][self.day - 1]]) #jump to a child weather for a day
             return all_weathers()[self.weather_forecast[team_name][self.day - 1]]
         else:
             if self.weather_event_duration == 1 and random.random() < 0.1: #once per weather event, roll for forecast regen
@@ -477,8 +484,8 @@ class league_structure(object):
             return self.weather_override
 
     def weather_event_check(self): #2 for new event, 1 for continued event, 0 for no event
-        if self.day - self.last_weather_event_day > 12: #arbitrary cooldown between weather events
-            if random.random() < 0.1: #10% chance for weather event?
+        if self.day - self.last_weather_event_day > 20: #arbitrary cooldown between weather events
+            if random.random() < 0.05: #5% chance for weather event?
                 self.weather_override = all_weathers()["Supernova"]
                 self.last_weather_event_day = self.day
                 self.weather_event_duration = random.randint(self.weather_override.duration_range[0], self.weather_override.duration_range[1])

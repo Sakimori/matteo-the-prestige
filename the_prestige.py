@@ -1036,7 +1036,10 @@ class LeagueScheduleCommand(Command):
                         schedule_text = ""
                         teams = league.team_names_in_league()
                         for game in league.schedule[str(current_series+day)]:
-                            schedule_text += f"**{game[0]}** @ **{game[1]}**\n"
+                            emojis = ""
+                            for day_offset in range((current_series+day - 1)*league.series_length, (current_series+day)*(league.series_length)):
+                                emojis += weather.all_weathers()[league.weather_forecast[game[1]][day_offset]].emoji + " "
+                            schedule_text += f"**{game[0]}** @ **{game[1]}** {emojis}\n"
                             teams.pop(teams.index(game[0]))
                             teams.pop(teams.index(game[1]))
                         if len(teams) > 0:
@@ -1073,9 +1076,14 @@ class LeagueTeamScheduleCommand(Command):
                 for day in days:
                     if str(current_series+day) in league.schedule.keys():
                         schedule_text = ""
+
+                        
                         for game in league.schedule[str(current_series+day)]:
                             if team.name in game:
-                                schedule_text += f"**{game[0]}** @ **{game[1]}**"
+                                emojis = ""
+                                for day_offset in range((current_series+day - 1)*league.series_length, (current_series+day)*(league.series_length)):
+                                    emojis += weather.all_weathers()[league.weather_forecast[game[1]][day_offset]].emoji + " "
+                                schedule_text += f"**{game[0]}** @ **{game[1]}** {emojis}"
                         if schedule_text == "":
                             schedule_text += "Resting"
                         sched_embed.add_field(name=f"Days {((current_series+day-1)*league.series_length) + 1} - {(current_series+day)*(league.series_length)}", value=schedule_text, inline = False)
