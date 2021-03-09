@@ -413,6 +413,9 @@ class AddPlayerCommand(Command):
         try:
             team_name = command.split("\n")[1].strip()
             player_name = command.split("\n")[2].strip()
+            if len(player_name) > 70:
+                await msg.channel.send("70 characters per player, boss. Quit being sneaky.")
+                return
             team, owner_id = games.get_team_and_owner(team_name)
             if owner_id != msg.author.id and msg.author.id not in config()["owners"]:
                 await msg.channel.send("You're not authorized to mess with this team. Sorry, boss.")
@@ -478,6 +481,9 @@ class ReplacePlayerCommand(Command):
             team_name = command.split("\n")[1].strip()
             remove_name = command.split("\n")[2].strip()
             add_name = command.split("\n")[3].strip()
+            if len(add_name) > 70:
+                await msg.channel.send("70 characters per player, boss. Quit being sneaky.")
+                return
             team, owner_id = games.get_team_and_owner(team_name)
             if owner_id != msg.author.id and msg.author.id not in config()["owners"]:
                 await msg.channel.send("You're not authorized to mess with this team. Sorry, boss.")
