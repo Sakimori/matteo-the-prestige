@@ -371,7 +371,7 @@ def add_team_obl(team):
         conn.commit()
     conn.close()
 
-def save_obl_results(winning_team, losing_team):
+def save_obl_results(winning_team, losing_team, xvi_team = None):
     conn = create_connection()
     if conn is not None:
         c=conn.cursor()
@@ -392,7 +392,22 @@ def save_obl_results(winning_team, losing_team):
             obl_points += 1
 
             c.execute("UPDATE one_big_league SET teams_beaten_list = ?, current_opponent_pool = ?, obl_points = ? WHERE team_name = ?", (list_to_newline_string(beaten_teams), list_to_newline_string(opponent_teams), obl_points, winning_team.name))
+        conn.commit()
+        conn.close()
 
+        if xvi_team is not None:
+            add_obl_point(xvi_team)
+    return
+
+def add_obl_point(team):
+    conn = create_connection()
+    if conn is not None:
+        c=conn.cursor()
+
+        c.execute("SELECT obl_points FROM one_big_league WHERE team_name = ?", (team.name,))
+        xvi_obl_points = c.fetchone()[0]
+        xvi_obl_points += 1
+        c.execute("UPDATE one_big_league SET obl_points = ? WHERE team_name = ?", (xvi_obl_points, team.name))
         conn.commit()
         conn.close()
     return
@@ -403,15 +418,15 @@ def get_obl_stats(team, full = False):
         c=conn.cursor()
         opponents_string = None
         while opponents_string is None:
-            c.execute("SELECT teams_beaten_list, current_opponent_pool, rival_name FROM one_big_league WHERE team_name = ?", (team.name,))
+            c.execute("SELECT teams_beaten_list, current_opponent_pool, rival_name, obl_points FROM one_big_league WHERE team_name = ?", (team.name,))
             try:
-                beaten_string, opponents_string, rival_name = c.fetchone()
+                beaten_string, opponents_string, rival_name, obl_points = c.fetchone()
             except TypeError: #add team to OBL
+                obl_points = 0
                 add_team_obl(team)
             
         beaten_teams = newline_string_to_list(beaten_string)
         opponent_teams = opponents_string
-        obl_points = len(beaten_teams)
 
         teams_list = [name for name, points in obl_leaderboards()]
         rank = teams_list.index(team.name) + 1

@@ -1,14 +1,19 @@
-import random
-import math
+import random, math, roman
 from gametext import appearance_outcomes, base_string
 
 class Weather:
+    name = "Sunny"
+    emoji = "🌞"
+    duration_range = [3,5]
+
     def __init__(self, game):
-        self.name = "Sunny"
-        self.emoji = "🌞"
+        pass    
 
     def __str__(self):
         return f"{self.emoji} {self.name}"
+
+    def set_duration(self):
+        pass
 
     def modify_atbat_stats(self, player_rolls):
         # Activates before batting
@@ -37,27 +42,33 @@ class Weather:
     def modify_atbat_message(self, game, state):
         pass
 
+    def modify_gamestate(self, game, state):
+        pass
+
+    def modify_game_end_message(self, game, state):
+        pass
+
 
 class Supernova(Weather):
-    def __init__(self, game):
-        self.name = "Supernova"
-        self.emoji = "🌟"
+    name = "Supernova"
+    emoji = "🌟"
+    duration_range = [1,2]
 
     def modify_atbat_stats(self, roll):
         roll["pitch_stat"] *= 0.8
 
 class Midnight(Weather):
-    def __init__(self, game):
-        self.name = "Midnight"
-        self.emoji = "🕶"
+    name = "Midnight"
+    emoji = "🕶"
+    duration_range = [1,1]
 
     def modify_steal_stats(self, roll):
         roll["run_stars"] *= 2
 
 class SlightTailwind(Weather):
-    def __init__(self, game):
-        self.name = "Slight Tailwind"
-        self.emoji = "🏌️‍♀️"
+    name = "Slight Tailwind"
+    emoji = "🏌️‍♀️"
+    duration_range = [1,2]
 
     def activate(self, game, result):
 
@@ -73,9 +84,9 @@ class SlightTailwind(Weather):
                 })
 
 class Starlight(Weather):
-    def __init__(self, game):
-        self.name = "Starlight"
-        self.emoji = "🌃"
+    name = "Starlight"
+    emoji = "🌃"
+    duration_range = [2,2]
 
     def activate(self, game, result):
 
@@ -104,10 +115,12 @@ class Starlight(Weather):
             state["update_text"] = f"The stars enjoy watching dragons play baseball, and allow {result['batter']} to hit a dinger! {game.last_update[1]} runs scored!"
                
 
-class HeavySnow(Weather):
+class Blizzard(Weather):
+    name = "Blizzard"
+    emoji = "❄"
+    duration_range = [2,3]
+
     def __init__(self, game):
-        self.name = "Heavy Snow"
-        self.emoji = "❄"
         self.counter_away = random.randint(0,len(game.teams['away'].lineup)-1)
         self.counter_home = random.randint(0,len(game.teams['home'].lineup)-1)
 
@@ -150,9 +163,9 @@ class HeavySnow(Weather):
             game.current_batter = bat_team.pitcher
 
 class Twilight(Weather):
-    def __init__(self,game):
-        self.name = "Twilight"
-        self.emoji = "👻"
+    name = "Twilight"
+    emoji = "👻"
+    duration_range = [2,3]
 
     def modify_atbat_roll(self, outcome, roll, defender):
         error_line = - (math.log(defender.stlats["defense_stars"] + 1)/50) + 1
@@ -171,9 +184,9 @@ class Twilight(Weather):
                 state["update_text"] += f" {this_game.last_update[1]} runs scored!"
 
 class ThinnedVeil(Weather):
-    def __init__(self,game):
-        self.name = "Thinned Veil"
-        self.emoji = "🌌"
+    name = "Thinned Veil"
+    emoji = "🌌"
+    duration_range = [1,3]
 
     def activate(self, game, result):
         if result["ishit"]:
@@ -186,10 +199,11 @@ class ThinnedVeil(Weather):
             state["update_text"] += f" {game.last_update[0]['batter']}'s will manifests on {base_string(game.last_update[1])} base."
 
 class HeatWave(Weather):
-    def __init__(self,game):
-        self.name = "Heat Wave"
-        self.emoji = "🌄"
+    name = "Heat Wave"
+    emoji = "🌄"
+    duration_range = [2,3]
 
+    def __init__(self,game):
         self.counter_away = random.randint(2,4)
         self.counter_home = random.randint(2,4)
 
@@ -228,9 +242,9 @@ class HeatWave(Weather):
                 
 
 class Drizzle(Weather):
-    def __init__(self,game):
-        self.name = "Drizzle"
-        self.emoji = "🌧"
+    name = "Drizzle"
+    emoji = "🌧"
+    duration_range = [2,3]
 
     def on_flip_inning(self, game):
         if game.top_of_inning:
@@ -253,9 +267,11 @@ class Drizzle(Weather):
         state["update_text"] += f' Due to inclement weather, {placed_player.name} is placed on second base.'
 
 class Breezy(Weather):
-    def __init__(self, game):
-        self.name = "Breezy"
-        self.emoji = "🎐"
+    name = "Breezy"
+    emoji = "🎐"
+    duration_range = [1,3]
+
+    def __init__(self, game):       
         self.activation_chance = 0.08
 
     def activate(self, game, result):
@@ -295,9 +311,11 @@ class Breezy(Weather):
             })
 
 class MeteorShower(Weather):
+    name = "Meteor Shower"
+    emoji = "🌠"
+    duration_range = [1,3]
+
     def __init__(self, game):
-        self.name = "Meteor Shower"
-        self.emoji = "🌠"
         self.activation_chance = 0.13
 
     def activate(self, game, result):
@@ -318,22 +336,163 @@ class MeteorShower(Weather):
                     "text_only": True,
                     "weather_message": True
                 })
+
+class Hurricane(Weather):
+    name = "Hurricane"
+    emoji = "🌀"
+    duration_range = [1,1]
+
+    def __init__(self, game):
+        self.swaplength = random.randint(2,4)
+        self.swapped = False
+
+    def on_flip_inning(self, game):
+        if game.top_of_inning and (game.inning % self.swaplength) == 0:
+            self.swaplength = random.randint(2,4)
+            self.swapped = True
+
+    def modify_top_of_inning_message(self, game, state):
+        if self.swapped:
+            game.teams["home"].score, game.teams["away"].score = (game.teams["away"].score, game.teams["home"].score) #swap scores
+            state["away_score"], state["home_score"] = (game.teams["away"].score, game.teams["home"].score)
+            state["update_emoji"] = self.emoji
+            state["update_text"] += " The hurricane rages on, flipping the scoreboard!"
+            self.swapped = False
+
+class Tornado(Weather):
+    name = "Tornado"
+    emoji = "🌪"
+    duration_range = [1,2]
+
+    def __init__(self, game):
+        self.activation_chance = 0.33
+        self.counter = 0
+
+    def activate(self, game, result):
+        if self.counter == 0 and random.random() < self.activation_chance and game.occupied_bases() != {}:
+            runners = list(game.bases.values())
+            current_runners = runners.copy()
+            self.counter = 5
+            while runners == current_runners and self.counter > 0:
+                random.shuffle(runners)
+                self.counter -= 1
+            for index in range(1,4):
+                game.bases[index] = runners[index-1]
+
+            result.clear()
+            result.update({
+                    "text": f"The tornado sweeps across the field and pushes {'the runners' if len(game.occupied_bases().values())>1 else list(game.occupied_bases().values())[0].name} to a different base!",
+                    "text_only": True,
+                    "weather_message": True
+                })
+            self.counter = 2
+
+        elif self.counter > 0:
+            self.counter -= 1
             
 
+
+class Downpour(Weather):
+    name = "Torrential Downpour"
+    emoji = '⛈'
+    duration_range = [1,1]
+
+    def __init__(self, game):
+        self.target = game.max_innings
+        self.name = f"Torrential Downpour: {roman.roman_convert(str(self.target))}"
+        self.emoji = '⛈'
+        
+
+    def on_flip_inning(self, game):
+        high_score = game.teams["home"].score if game.teams["home"].score > game.teams["away"].score else game.teams["away"].score
+        if high_score >= self.target and game.teams["home"].score != game.teams["away"].score:
+            game.max_innings = game.inning
+        else:
+            game.max_innings = game.inning + 1
+
+    def modify_gamestate(self, game, state):
+        state["max_innings"] = "∞"
+
+    def modify_top_of_inning_message(self, game, state):
+        state["update_emoji"] = self.emoji
+        state["update_text"] = "The gods are not yet pleased. Play continues through the storm."
+
+    def modify_game_end_message(self, game, state):
+        state["update_emoji"] = self.emoji
+        state["update_text"] = f"{self.target} runs are reached, pleasing the gods. The storm clears."
+            
 
 def all_weathers():
     weathers_dic = {
             "Supernova" : Supernova,
             "Midnight": Midnight,
             "Slight Tailwind": SlightTailwind,
-            "Heavy Snow": HeavySnow,
+            "Blizzard": Blizzard,
             "Twilight" : Twilight, 
             "Thinned Veil" : ThinnedVeil,
             "Heat Wave" : HeatWave,
             "Drizzle" : Drizzle,
             "Breezy": Breezy,
             "Starlight" : Starlight,
-            "Meteor Shower" : MeteorShower
+            "Meteor Shower" : MeteorShower,
+            "Hurricane" : Hurricane,
+            "Tornado" : Tornado,
+            "Torrential Downpour" : Downpour
         }
     return weathers_dic
 
+class WeatherChains():
+    light = [SlightTailwind, Twilight, Breezy, Drizzle] #basic starting points for weather, good comfortable spots to return to
+    magic = [Twilight, ThinnedVeil, MeteorShower, Starlight] #weathers involving breaking the fabric of spacetime
+    sudden = [Tornado, Hurricane, Twilight, Starlight, Midnight, Downpour] #weathers that always happen and leave over 1-3 games
+    disaster = [Hurricane, Tornado, Downpour, Blizzard] #storms
+    aftermath = [Midnight, Starlight, MeteorShower] #calm epilogues
+
+    dictionary = {
+            #Supernova : (magic + sudden + disaster, None), supernova happens leaguewide and shouldn't need a chain, but here just in case
+            Midnight : ([SlightTailwind, Breezy, Drizzle, Starlight, MeteorShower, HeatWave],[2,2,2,4,4,1]),
+            SlightTailwind : ([Breezy, Drizzle, Tornado], [3,3,1]),
+            Blizzard : ([Midnight, Starlight, MeteorShower, Twilight, Downpour], [2,2,2,2,4]),
+            Twilight : ([ThinnedVeil, Midnight, MeteorShower, SlightTailwind], [2,4,2,1]),
+            ThinnedVeil : (light, None),
+            HeatWave : ([Tornado, Hurricane, SlightTailwind, Breezy],[4,4,1,1]),
+            Drizzle : ([Hurricane, Downpour, Blizzard],[2,2,1]),
+            Breezy : ([Drizzle, HeatWave, Blizzard, Tornado], [3,3,1,1]),
+            Starlight : ([SlightTailwind, Twilight, Breezy, Drizzle, ThinnedVeil, HeatWave], None),
+            MeteorShower : ([Starlight, ThinnedVeil, HeatWave], None),
+            Hurricane : ([Midnight, Starlight, MeteorShower, Twilight, Downpour], [2,2,2,2,4]),
+            Tornado : ([Midnight, Starlight, MeteorShower, Twilight, Downpour],[2,2,2,2,4]),
+            Downpour : (aftermath, None)
+        }
+
+    chains = [
+            [Hurricane, Drizzle, Hurricane]
+        ]
+
+    def chain_weather(weather_instance):
+        #weather_type = type(weather_instance)
+        weather_type = weather_instance
+        options, weight = WeatherChains.dictionary[weather_type]
+        return random.choices(options, weights = weight)[0]
+
+    def parent_weathers(weather_type):
+        parents = []
+        for this_weather, (children, _) in WeatherChains.dictionary.items():
+            if weather_type in children:
+                parents.append(this_weather)
+        return parents
+
+    def starting_weather():
+        return random.choice(WeatherChains.light + WeatherChains.magic)
+
+    def debug_weathers():
+        names = ["a.txt", "b.txt", "c.txt"]
+        for name in names:
+            current = random.choice(list(all_weathers().values()))
+            out = ""
+            for i in range(0,50):
+                out += f"{current.name} {current.emoji}\n"
+                current = WeatherChains.chain_weather(current)
+            
+            with open("data/"+name, "w", encoding='utf-8') as file:
+                file.write(out)

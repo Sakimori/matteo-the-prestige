@@ -148,6 +148,8 @@ def update_loop():
             
             state["display_top_of_inning"] = state["top_of_inning"]
 
+            this_game.weather.modify_gamestate(this_game, state)
+
             if state["start_delay"] <= 0:
                 if this_game.top_of_inning != state["top_of_inning"]:
                     state["update_pause"] = 2
@@ -171,6 +173,8 @@ def update_loop():
                             state["update_text"] = f"{winning_team} wins!"
                         state["pitcher"] = "-"
                         state["batter"] = "-"
+
+                        this_game.weather.modify_game_end_message(this_game, state)
                     else:
                         if this_game.top_of_inning: 
                             state["update_text"] = f"Top of {this_game.inning}. {this_game.teams['away'].name} batting!"

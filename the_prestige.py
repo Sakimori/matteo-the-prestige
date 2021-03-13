@@ -1043,7 +1043,10 @@ class LeagueScheduleCommand(Command):
                         schedule_text = ""
                         teams = league.team_names_in_league()
                         for game in league.schedule[str(current_series+day)]:
-                            schedule_text += f"**{game[0]}** @ **{game[1]}**\n"
+                            emojis = ""
+                            for day_offset in range((current_series+day - 1)*league.series_length, (current_series+day)*(league.series_length)):
+                                emojis += weather.all_weathers()[league.weather_forecast[game[1]][day_offset]].emoji + " "
+                            schedule_text += f"**{game[0]}** @ **{game[1]}** {emojis}\n"
                             teams.pop(teams.index(game[0]))
                             teams.pop(teams.index(game[1]))
                         if len(teams) > 0:
@@ -1080,9 +1083,14 @@ class LeagueTeamScheduleCommand(Command):
                 for day in days:
                     if str(current_series+day) in league.schedule.keys():
                         schedule_text = ""
+
+                        
                         for game in league.schedule[str(current_series+day)]:
                             if team.name in game:
-                                schedule_text += f"**{game[0]}** @ **{game[1]}**"
+                                emojis = ""
+                                for day_offset in range((current_series+day - 1)*league.series_length, (current_series+day)*(league.series_length)):
+                                    emojis += weather.all_weathers()[league.weather_forecast[game[1]][day_offset]].emoji + " "
+                                schedule_text += f"**{game[0]}** @ **{game[1]}** {emojis}"
                         if schedule_text == "":
                             schedule_text += "Resting"
                         sched_embed.add_field(name=f"Days {((current_series+day-1)*league.series_length) + 1} - {(current_series+day)*(league.series_length)}", value=schedule_text, inline = False)
@@ -2119,7 +2127,9 @@ def game_over_embed(game):
         title_string += ".\n"
 
     winning_team = game.teams['home'].name if game.teams['home'].score > game.teams['away'].score else game.teams['away'].name
-    winstring = f"{game.teams['away'].score} to {game.teams['home'].score}\n"
+    homestring = str(game.teams["home"].score) + ("☄" if game.teams["home"].score == 16 else "")
+    awaystring = ("☄" if game.teams["away"].score == 16 else "") + str(game.teams["away"].score)
+    winstring = f"{awaystring} to {homestring}\n"
     if game.victory_lap and winning_team == game.teams['home'].name:
         winstring += f"{winning_team} wins with a victory lap!"
     elif winning_team == game.teams['home'].name:
@@ -2151,6 +2161,8 @@ async def start_league_day(channel, league, partial = False):
     else:
         game_length = league.game_length
 
+    weather_check_result = league.weather_event_check()
+
     for pair in games_to_start:
         if pair[0] is not None and pair[1] is not None:
             away = get_team_fuzzy_search(pair[0])
@@ -2159,6 +2171,7 @@ async def start_league_day(channel, league, partial = False):
             home.set_pitcher(rotation_slot=league.day)
 
             this_game = games.game(away.finalize(), home.finalize(), length = game_length)
+            this_game.weather = league.get_weather_now(home.name)(this_game)
             this_game, state_init = prepare_game(this_game)
 
             state_init["is_league"] = True
@@ -2174,6 +2187,11 @@ async def start_league_day(channel, league, partial = False):
             main_controller.master_games_dic[id] = (this_game, state_init, discrim_string)
 
     ext = "?league=" + urllib.parse.quote_plus(league.name)
+    
+    if weather_check_result == 2:
+        await channel.send(f"The entire league is struck by a {league.weather_override.emoji} {league.weather_override.name}! The games must go on.")
+    elif weather_check_result == 1:
+        await channel.send(f"The {league.weather_override.emoji} {league.weather_override.name} continues to afflict the league.")
 
     if league.last_series_check(): #if finals
         await channel.send(f"The final series of the {league.name} regular season is starting now, at {config()['simmadome_url']+ext}")
@@ -2274,6 +2292,11 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
             leagues.save_league(league)
             active_standings[league] = await channel.send(embed=league.standings_embed())
             await channel.send(f"The day {league.day} games for the {league.name} will start in {math.ceil(wait_seconds/60)} minutes.")
+            weather_check_result = league.weather_event_check()
+            if weather_check_result == 2:
+                await channel.send(f"The entire league is struck by a {league.weather_override.emoji} {league.weather_override.name}! The games must go on.")
+            elif weather_check_result == 1:
+                await channel.send(f"The {league.weather_override.emoji} {league.weather_override.name} continues to afflict the league.")
             await asyncio.sleep(wait_seconds)
             await channel.send(f"A {league.name} series is continuing now at {filter_url}")
             games_list = await continue_league_series(league, queued_games, games_list, series_results, missed)
@@ -2361,6 +2384,7 @@ async def continue_league_series(league, queue, games_list, series_results, miss
         home_team = games.get_team(oldgame.teams["home"].name)
         home_team.set_pitcher(rotation_slot=league.day)
         this_game = games.game(away_team.finalize(), home_team.finalize(), length = league.game_length)
+        this_game.weather = league.get_weather_now(home_team.name)(this_game)
         this_game, state_init = prepare_game(this_game)
 
         state_init["is_league"] = True
@@ -2453,7 +2477,5 @@ async def league_postseason(channel, league):
     leagues.save_league(league)
     season_save(league)
     league.season_reset()
-
-
 
 client.run(config()["token"])
