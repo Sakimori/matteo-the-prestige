@@ -283,7 +283,7 @@ class league_structure(object):
         start_weather_duration = self.day - 1 if self.day > 1 else random.randint(start_weather.duration_range[0], start_weather.duration_range[1])
         self.weather_forecast[team_name] = [start_weather.name] * start_weather_duration
         forecasted_days = []
-        for i in range(start_weather_duration, len(self.schedule.keys())):
+        for i in range(start_weather_duration, len(self.schedule.keys()) * self.series_length):
             if i not in forecasted_days:
                 prev_weather = self.weather_forecast[team_name][i-1] #get last weather name
                 next_weather = WeatherChains.chain_weather(all_weathers()[prev_weather]) #ask weatherchains for next weather

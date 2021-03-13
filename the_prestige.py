@@ -1045,7 +1045,10 @@ class LeagueScheduleCommand(Command):
                         for game in league.schedule[str(current_series+day)]:
                             emojis = ""
                             for day_offset in range((current_series+day - 1)*league.series_length, (current_series+day)*(league.series_length)):
-                                emojis += weather.all_weathers()[league.weather_forecast[game[1]][day_offset]].emoji + " "
+                                try:
+                                    emojis += weather.all_weathers()[league.weather_forecast[game[1]][day_offset]].emoji + " "
+                                except:
+                                    False
                             schedule_text += f"**{game[0]}** @ **{game[1]}** {emojis}\n"
                             teams.pop(teams.index(game[0]))
                             teams.pop(teams.index(game[1]))
