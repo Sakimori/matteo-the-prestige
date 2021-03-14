@@ -515,12 +515,14 @@ class game(object):
 
     def batterup(self):
         scores_to_add = 0
+
         result = self.at_bat()
 
         self.weather.activate(self, result) # possibly modify result in-place
 
         if "text_only" in result:
-            return (result, 0)            
+            return (result, 0)  
+        
     
         if self.top_of_inning:
             offense_team = self.teams["away"]

@@ -15,6 +15,108 @@ class appearance_outcomes(Enum):
     homerun = "hits a dinger!"
     grandslam = "hits a grand slam!"
 
+class game_strings_base(object):
+    default_format = ("defender",)
+    diff_formats = {fielderschoice: ("defender", "base_string")}
+    no_formats = [strikeoutlooking, strikeoutswinging, doubleplay, walk, single, double, triple, homerun, grandslam]
+
+    intro_counter = 1
+    intro_formats = []
+    intro = [("🎆", "Play ball!")]
+
+    strikeoutlooking = "strikes out looking."
+    strikeoutswinging = "strikes out swinging."
+    groundout = "grounds out to {}."
+    flyout = "flies out to {}."
+    fielderschoice = "reaches on fielder's choice. {} is out at {} base." #requires .format(player, base_string)
+    doubleplay = "grounds into a double play!"
+    sacrifice = "hits a sacrifice fly towards {}."
+    walk = "draws a walk."
+    single = "hits a single!"
+    double = "hits a double!"
+    triple = "hits a triple!"
+    homerun = "hits a dinger!"
+    grandslam = "hits a grand slam!"
+    twoparts = []
+
+    def check_for_twopart(game, gamestring): #will check just before atbat is generated
+        return gamestring in twoparts
+
+class TheGoddesses(game_strings_base):
+    diff_formats = {groundout[3][1] : ("batter",),
+               flyout[0][1]: ("batter",), flyout[2][1]: ("defender", "batter"),
+               fielderschoice[0]: ("defender", "fc_out", "batter"), fielderschoice[1]: ("base_string", "fc_out"),
+               doubleplay[0]: ("defender", "defense_team"), doubleplay[1]: ("defender", "defense_team"),
+               sacrifice[0][0]: ("runner",), sacrifice[1]: ("runner",),
+               single[0][1]: ("batter",)}
+    no_formats = strikeoutlooking + strikeoutswinging + walk + single[1:] + [flyout[4][0], sacrifice[0][1]]
+
+    intro_counter = 2
+    intro = [("💜", "This game is now blessed 💜\nI'm Sakimori,"), ("🌺", "and i'm xvi! the sim16 goddesses are live and on-site, bringing you today's game~"), ("🎆", "Play ball!!")]
+
+    strikeoutlooking = ["watches a slider barely catch the outside corner. Hang up a ꓘ!", 
+                        "looks at a fastball paint the inside of the plate, and strikes out looking.", 
+                        "can't believe it as the ump calls strike 3 on a pitch that could have gone either way!",
+                        "freezes up as a curveball catches the bottom edge of the zone. strike iii!"]
+
+    strikeoutswinging = ["swings at a changeup in the dirt for strike 3!",
+                         "can't catch up to the fastball, and misses strike iii.",
+                         "just misses the cutter and strikes out with a huge swing."]
+
+    groundout = ["hits a sharp grounder to {}! they throw to first and get the out easily.",
+                 ("tries to sneak a grounder between third base and the shortstop, but it's stopped by {} with a dive! They throw to first from their knees...", "and force the groundout!"),
+                 "hits a routine ground ball to {} and is put out at first.",
+                 ("pulls a swinging bunt to {}, who rushes forward and throws to first...", "in time! {} is out!")]
+
+    flyout = [("shoots a line drive over {}'s head...", "They leap up and catch it! {} is out!!"),
+              "is out on a routine fly ball to {}.",
+              ("hits a high fly ball deep to center! this one looks like a dinger...", "{} jumps up and steals it! {} is out!"),
+              "lines a ball to first, and it's caught by {} for the easy out.",
+              ("hits a shallow fly to short center field, this might get down for a base hit...", "{} dives forward and catches it! We love to see it, 16.")]
+
+    fielderschoice = ["hits a soft grounder to shortstop, and {} forces {} out the short way. {} reaches on fielder's choice this time.",
+                      "sharply grounds to third, and the throw over to {} forces {} out with a fielder's choice."]
+
+    doubleplay = ["grounds to {}. the throw to second makes it in time, as does the throw to first! {} turn the double play!",
+                  "hits a grounder tailor-made for a double play right to {}. Two quick throws, and {} do indeed turn two!"]
+
+    sacrifice = [("hits a deep fly ball to right field, and {} looks ready to tag up...", "They beat the throw by a mile!"),
+                 "sends a fly ball to deep center field, and {} comfortably tags up after the catch."]
+
+    walk = ["watches a changeup miss low, and takes first base for free.",
+            "is given a walk after a slider misses the zone for ball iv.",
+            ("takes a close pitch that just misses inside, and is awarded a base on balls.", "saki. did you really just call it that? in [current year]?"),
+            "is walked on iv pitches.",
+            "jumps away from the plate as ball 4 misses far inside, just avoiding the hit-by-pitch and taking first on a walk."]
+
+    single = [("tries to sneak a grounder between third base and the shortstop, but it's stopped by {} with a dive! They throw to first from their knees...", "but they beat the throw! {} is safe at first with a hit."),
+              "hits a soft line drive over the infield, and makes it to first as it lands in the grass for a single.",
+              "shoots a comebacker right over second base and pulls into first safely, racking up a base hit."]
+
+    double = "hits a double!"
+    triple = "hits a triple!"
+    homerun = "hits a dinger!"
+    grandslam = "hits a grand slam!"
+    twoparts = [groundout[1], groundout[3], flyout[0], flyout[2], flyout[4], walk[2], single[0]]
+
+
+def parse_formats(format_tuple, game):
+    out_list = []
+    for string in format_tuple:
+        if string == "defender":
+            out_list.append(game.last_update[0]['defender'].name)
+        elif string == "base_string":
+            out_list.append(base_string(game.last_update[0]['base']))
+        elif string == "batter":
+            out_list.append(game.last_update[0]['batter'].name)
+        elif string == "fc_out" or string == "runner":
+            out_list.append(game.last_update[0]['runner'].name)
+        elif string == "defense_team":
+            out_list.append(game.last_update[0]['defense_team'].name)
+        elif string == "offense_team":
+            out_list.append(game.last_update[0]['offense_team'].name)
+    return tuple(out_list)
+
 def base_string(base):
     if base == 1:
         return "first"
