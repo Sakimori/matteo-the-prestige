@@ -1,16 +1,25 @@
 # matteo-the-prestige
 # sim16 + discord bot: baseball simulation
 
-we have custom players, custom teams, custom leagues, all created and set up in discord and watchable at http://sim16.sakimori.space! 
+We have custom players, custom teams, custom leagues, all created and set up in discord and watchable at http://sim16.sakimori.space! 
 
-if you would like to add matteo to your server to be able to set up teams and games, you can do so with this link: https://discord.com/api/oauth2/authorize?client_id=789956166796574740&permissions=388160&scope=bot
+If you would like to add matteo to your server to be able to set up teams and games, you can do so with this link: https://discord.com/api/oauth2/authorize?client_id=789956166796574740&permissions=388160&scope=bot
 
-accepting pull requests, check the issues for to-dos.
+If you would like to chat with the devs or join the main community for for bot that can all be found at this discord server: https://discord.gg/ux6Drk8Bp7
+
+If you have any feedback or think you've found a bug with the bot, the best way to do so is via this form: https://docs.google.com/forms/d/e/1FAIpQLSc63J2irST7bI-USu8Xd_yv16UwWtVnipfAU0r-1b46ME-UuA/viewform
+
+Accepting pull requests, check the issues for to-dos, if you have an idea for an enhancement you'd like to make to the bot, run it by the devs in discord first.
+
+
+# Table of Contents
+[FAQ](https://github.com/Sakimori/matteo-the-prestige#faq-this-faq-is-a-work-in-progress-and-will-be-expanded-over-time)
+[Commands](https://github.com/Sakimori/matteo-the-prestige#commands-everything-here-is-case-sensitive-and-can-be-prefixed-with-either-m-or-m)
+* [Team Commands](https://github.com/Sakimori/matteo-the-prestige#team-commands)
+  - [Creation and Deletion](https://github.com/Sakimori/matteo-the-prestige#creation-and-deletion)
+
 
 ## FAQ (this FAQ is a work in progress and will be expanded over time):
-- Q: Why have the teams in my league played an uneven amount of games/why are some teams not scheduled for games for some weeks?  
-  A: Scheduling algorithms are really hard and the way xvi chose to do it involves some teams having byes for some series of the season, it'll even out by the end and every team will play the same number of games.
-  
 - Q: My league stopped playing randomly and I don't know why, what should I do?  
   A: There were probably server issues or a patch went out, use the startleague command again and things should resume from where they left off.
 
