@@ -60,10 +60,7 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
 - m;deleteteam [teamname] (requires team ownership)
   - Allows you to delete the team with the provided name. You'll get an embed with a confirmation to prevent accidental deletions. Hit the 👍 and your team will be deleted.
 - m;import
-  - Imports an onomancer collection as a new team. you can use the new onomancer simsim setting to ensure compatibility. Similarly to saveteam, you'll get a team embed with a prompt to confirm, hit the 👍 and your team will be saved! 
-
-[Return to the top](https://github.com/Genderdruid/matteo-the-prestige#matteo-the-prestige)
-
+  - Imports an onomancer collection as a new team. you can use the new onomancer simsim setting to ensure compatibility. Similarly to saveteam, you'll get a team embed with a prompt to confirm, hit the 👍 and your team will be saved!
 #### Editing (all of these commands require ownership and exact spelling of the team name):
 - m;replaceplayer [team name] [player to remove] [player to add]
   - Replaces a player on your team with a new player. if there are multiple copies of the same player on a team this will only replace the first one. Use this command at the top of a list with entries separated by new lines:
@@ -129,10 +126,7 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
 - m;oblwins [team name]
   - Displays a trophy case with all teams that the given team has won points off of.
 - m;oblstandings
-  - Displays the 15 teams with the most obl points in this meta-season. 
-  
-[Return to the top](https://github.com/Genderdruid/matteo-the-prestige#matteo-the-prestige)
-  
+  - Displays the 15 teams with the most obl points in this meta-season.  
 #### League commands
 - All of these commands are for leagues that have already been started. To start a league, click the 'create a league' button on the website and fill out the info for your league there, then use the m;claimleague command in discord to set yourself as the owner.
 - Commissioner commands (all of these except for m;claimleague require ownership of the specified league):
@@ -164,9 +158,6 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
 	- The currently available starts are:
 	  - for batters: avg (batting average), slg (slugging percentage), obp (on-base percentage), ops (on-base plus slugging). 
 	  - for pitchers era (earned run average), whip (walks and hits per innings pitched), kper9 (strikeouts per 9 innings), bbper9 (walks per 9 innings), kperbb (strikeout to walk ratio). 
-	  
-[Return to the top](https://github.com/Genderdruid/matteo-the-prestige#matteo-the-prestige)
-	  
 #### Draft commands
 - m;startdraft
   - Starts a draft with an arbitrary number of participants. Use this command at the top of a list with entries separated by new lines:
