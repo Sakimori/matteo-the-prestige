@@ -5,7 +5,7 @@ Sim16 is a discord and website based online baseball simulator, every name has r
 
 If you would like to add matteo to your server to be able to set up teams and games, you can do so with this link: https://discord.com/api/oauth2/authorize?client_id=789956166796574740&permissions=388160&scope=bot
 
-If you would like to chat with the devs or join the main community for for bot that can all be found at this discord server: https://discord.gg/ux6Drk8Bp7
+If you would like to chat with the devs or join the main community for the bot that can all be found in this discord: https://discord.gg/ux6Drk8Bp7
 
 If you have any feedback or think you've found a bug with the bot, the best way to do so is via this form: https://docs.google.com/forms/d/e/1FAIpQLSc63J2irST7bI-USu8Xd_yv16UwWtVnipfAU0r-1b46ME-UuA/viewform
 
@@ -60,7 +60,10 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
 - m;deleteteam [teamname] (requires team ownership)
   - Allows you to delete the team with the provided name. You'll get an embed with a confirmation to prevent accidental deletions. Hit the 👍 and your team will be deleted.
 - m;import
-  - Imports an onomancer collection as a new team. you can use the new onomancer simsim setting to ensure compatibility. Similarly to saveteam, you'll get a team embed with a prompt to confirm, hit the 👍 and your team will be saved!
+  - Imports an onomancer collection as a new team. you can use the new onomancer simsim setting to ensure compatibility. Similarly to saveteam, you'll get a team embed with a prompt to confirm, hit the 👍 and your team will be saved! 
+
+[Return to the top](https://github.com/Genderdruid/matteo-the-prestige#matteo-the-prestige)
+
 #### Editing (all of these commands require ownership and exact spelling of the team name):
 - m;replaceplayer [team name] [player to remove] [player to add]
   - Replaces a player on your team with a new player. if there are multiple copies of the same player on a team this will only replace the first one. Use this command at the top of a list with entries separated by new lines:
@@ -126,7 +129,10 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
 - m;oblwins [team name]
   - Displays a trophy case with all teams that the given team has won points off of.
 - m;oblstandings
-  - Displays the 15 teams with the most obl points in this meta-season.
+  - Displays the 15 teams with the most obl points in this meta-season. 
+  
+[Return to the top](https://github.com/Genderdruid/matteo-the-prestige#matteo-the-prestige)
+  
 #### League commands
 - All of these commands are for leagues that have already been started. To start a league, click the 'create a league' button on the website and fill out the info for your league there, then use the m;claimleague command in discord to set yourself as the owner.
 - Commissioner commands (all of these except for m;claimleague require ownership of the specified league):
@@ -157,7 +163,10 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
     - Displays a league's leaders in the given stat.
 	- The currently available starts are:
 	  - for batters: avg (batting average), slg (slugging percentage), obp (on-base percentage), ops (on-base plus slugging). 
-	  - for pitchers era (earned run average), whip (walks and hits per innings pitched), kper9 (strikeouts per 9 innings), bbper9 (walks per 9 innings), kperbb (strikeout to walk ratio).
+	  - for pitchers era (earned run average), whip (walks and hits per innings pitched), kper9 (strikeouts per 9 innings), bbper9 (walks per 9 innings), kperbb (strikeout to walk ratio). 
+	  
+[Return to the top](https://github.com/Genderdruid/matteo-the-prestige#matteo-the-prestige)
+	  
 #### Draft commands
 - m;startdraft
   - Starts a draft with an arbitrary number of participants. Use this command at the top of a list with entries separated by new lines:
