@@ -1,7 +1,7 @@
 # matteo-the-prestige
 # sim16 + discord bot: baseball simulation
 
-We have custom players, custom teams, custom leagues, all created and set up in discord and watchable at http://sim16.sakimori.space! 
+Sim16 is a discord and website based online baseball simulator, every name has randomly generated stats which you can use to make custom teams and custom leagues, all created and set up in discord and watchable at http://sim16.sakimori.space! 
 
 If you would like to add matteo to your server to be able to set up teams and games, you can do so with this link: https://discord.com/api/oauth2/authorize?client_id=789956166796574740&permissions=388160&scope=bot
 
@@ -13,28 +13,41 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
 
 
 # Table of Contents
-[FAQ](https://github.com/Sakimori/matteo-the-prestige#faq-this-faq-is-a-work-in-progress-and-will-be-expanded-over-time)
-
-[Commands](https://github.com/Sakimori/matteo-the-prestige#commands-everything-here-is-case-sensitive-and-can-be-prefixed-with-either-m-or-m)
-* [Team commands](https://github.com/Sakimori/matteo-the-prestige#team-commands)
-  - [Creation and deletion](https://github.com/Sakimori/matteo-the-prestige#creation-and-deletion)
-  - [Editing](https://github.com/Genderdruid/matteo-the-prestige#editing-all-of-these-commands-require-ownership-and-exact-spelling-of-the-team-name)
-  - [Viewing and searching](https://github.com/Genderdruid/matteo-the-prestige#viewing-and-searching)
-* [Game and tournament commands](https://github.com/Genderdruid/matteo-the-prestige#game-commands)
-* [OBL commands](https://github.com/Genderdruid/matteo-the-prestige#obl-commands)
-* [League commands](https://github.com/Genderdruid/matteo-the-prestige#league-commands)   
+* [FAQ](https://github.com/Sakimori/matteo-the-prestige#faq-this-faq-is-a-work-in-progress-and-will-be-expanded-over-time)
+* [Commands](https://github.com/Sakimori/matteo-the-prestige#commands-everything-here-is-case-sensitive-and-can-be-prefixed-with-either-m-or-m)
+  - [Team Commands](https://github.com/Sakimori/matteo-the-prestige#team-commands)
+    - [Creation and deletion](https://github.com/Sakimori/matteo-the-prestige#creation-and-deletion)
+    - [Editing](https://github.com/Sakimori/matteo-the-prestige#editing-all-of-these-commands-require-ownership-and-exact-spelling-of-the-team-name)
+    - [Viewing and Searching](https://github.com/Sakimori/matteo-the-prestige#viewing-and-searching)
+  - [Game Commands](https://github.com/Sakimori/matteo-the-prestige#game-commands)
+	- [Individual Game Commands](https://github.com/Sakimori/matteo-the-prestige#individual-game-commands)
+	- [Tournament Commands](https://github.com/Sakimori/matteo-the-prestige#obl-commands)
+	- [OBL Commands](https://github.com/Sakimori/matteo-the-prestige#obl-commands)
+	- [League Commands](https://github.com/Sakimori/matteo-the-prestige#league-commands)   
+	- [Draft Commands](https://github.com/Sakimori/matteo-the-prestige#draft-commands)
+  - [Player Commands](https://github.com/Sakimori/matteo-the-prestige#player-commands)
+  - [Other Commands](https://github.com/Sakimori/matteo-the-prestige#other-commands)
+* [Weathers](https://github.com/Sakimori/matteo-the-prestige#weathers)
+* [Patreon](https://github.com/Sakimori/matteo-the-prestige#patreon)
+* [Attribution](https://github.com/Sakimori/matteo-the-prestige#attribution)
   
-## FAQ (this FAQ is a work in progress and will be expanded over time):
+## FAQ:
+- Q: I'm trying to make a league on the website but when I click the 'submit' button it doesn't do anything and doesn't give an error message.
+  A: This is a known issue, to avoid it make sure you have an even number of divisions and subleagues and an equal number of teams in each division. These are all requirements for a league and sometimes if some of them aren't met the submit button will fail silently. If you're still having this issue after doing all of this correctly please submit a bug report via the form.
+
 - Q: My league stopped playing randomly and I don't know why, what should I do?  
   A: There were probably server issues or a patch went out, use the startleague command again and things should resume from where they left off.
+
+- Q: Why aren't all the teams playing on every day of my league/why do teams have an uneven amount of games played in my league?
+  A: Scheduling algorithms are hard and due to how this one was coded, sometimes teams have bye weeks and rest for some games the season, this should all even out by the end of the season and each team will play the same number of games.
 
 - Q: What should I do if my question isn't answered by this FAQ, this readme, or the help text for the commands, or I find a bug?  
   A: Please submit your issue or bug to this form and Artemis will pass it along if it's something we can do anything about. https://forms.gle/PjbpfT46yuMDGca46
 
 
 ## Commands: (Everything here is case sensitive, and can be prefixed with either m; or m!)
-### Team commands:
-#### Creation and deletion:
+### Team Commands:
+#### Creation and Deletion:
 - m;saveteam
   - Saves a team to the database allowing it to be used for games. Use this command at the top of a list with entries separated by new lines:
 	- The first line of the list is your team's name.
@@ -73,19 +86,21 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
   - Removes a player from your team. if there are multiple copies of the same player on a team this will only delete the first one. Use this command at the top of a list with entries separated by new lines:
 	- The name of the team you want to remove the player from.
 	- The name of the player you want to remove.
-#### Viewing and searching:  
+#### Viewing and Searching:  
 - m;showteam [name]
   - Shows the lineup, rotation, and slogan of any saved team in a discord embed with primary stat star ratings for all of the players. This command has fuzzy search so you don't need to type the full name of the team as long as you give enough to identify the team you're looking for.
 - m;searchteams [searchterm]
   - Shows a paginated list of all teams whose names contain the given search term.
 - m;showallteams
   - Shows a paginated list of all teams available for games which can be scrolled through.	
+[Return to the top](https://github.com/Sakimori/matteo-the-prestige#matteo-the-prestige)
   
 ### Game commands:
-- m;startgame --day # or -d #, -w [weather name] or --weather [weather name]
+#### Individual Game Commands:
+- m;startgame --day # or -d #, -w [Weather Name] or --weather [Weather Name]
   - Starts a game with premade teams made using saveteam. Provides a link to the website where you can watch the game. 
   - The --day/-d is an optional flag, if used it'll force the game to use the #th spot in each team's rotations. If this number is larger than the number of pitchers in one or both of the teams' rotations it'll wrap around. If it is not used pitchers will be chosen randomly from the teams' rotations.
-  - The -w/--weather is the same, if used it'll force the game to be the specified weather, weathers must be spelled out exactly.
+  - The -w/--weather is the same, if used it'll force the game to be the specified weather, weathers must be spelled out exactly with the first letter capitalized, see further down for a full list of weathers and their exact names.
   - Use this command at the top of a list with entries separated by new lines:
 	- The away team's name.
 	- The home team's name.
@@ -93,14 +108,14 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
   -	This command has fuzzy search so you don't need to type the full name of the team as long as you give enough to identify the team you're looking for.
 - m;randomgame
   - Starts a 9-inning game between 2 entirely random teams. Embrace chaos!
+#### Tournament commands:
 - m;starttournament --rounddelay #, --bestof #, --finalsbestof #
   - Starts a randomly seeded tournament with the provided teams, automatically adding byes as necessary. All series have a 5 minute break between games. The current default format is best of 5 until the finals which are best of 7 but this can be adjusted by adding the bestof and finalsbestof flags. 
   - The --rounddelay is optional, if used, # must be between 1 and 120 and it'll set the delay between rounds to be # minutes. If not included it will default to 10.
   - Use this command at the top of a list with entries separated by new lines:
     - The name of the tournament.
-	- The name of each participating team on its own line.
-	
-### Obl commands:
+	- The name of each participating team on its own line.	
+#### Obl commands:
 - m;oblhelp
   - Shows the explanation for what the obl is and how to participate.
 - m;oblteam [team name]
@@ -111,8 +126,7 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
   - Displays a trophy case with all teams that the given team has won points off of.
 - m;oblstandings
   - Displays the 15 teams with the most obl points in this meta-season.
-
-### League commands
+#### League commands
 - All of these commands are for leagues that have already been started. To start a league, click the 'create a league' button on the website and fill out the info for your league there, then use the m;claimleague command in discord to set yourself as the owner.
 - Commissioner commands (all of these except for m;claimleague require ownership of the specified league):
   - m;claimleague [league name]
@@ -143,8 +157,7 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
 	- The currently available starts are:
 	  - for batters: avg (batting average), slg (slugging percentage), obp (on-base percentage), ops (on-base plus slugging). 
 	  - for pitchers era (earned run average), whip (walks and hits per innings pitched), kper9 (strikeouts per 9 innings), bbper9 (walks per 9 innings), kperbb (strikeout to walk ratio).
-
-### Draft commands
+#### Draft commands
 - m;startdraft
   - Starts a draft with an arbitrary number of participants. Use this command at the top of a list with entries separated by new lines:
 	- For each participant's entry you need three lines:
@@ -156,6 +169,7 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
 - m;draft [name]
   - Use this on your turn during a draft to pick your player.
   - You can also just use a 'd' instead of the full command.
+[Return to the top](https://github.com/Sakimori/matteo-the-prestige#matteo-the-prestige)
 
 ### Player commands:	 
 - m;showplayer [name]
@@ -164,20 +178,22 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
   - Records any name as your idol, mostly for fun.
 - m;showidol 
   - Displays your idol's name and stars in a discord embed.
+[Return to the top](https://github.com/Sakimori/matteo-the-prestige#matteo-the-prestige)
   
 ### Other commands:
 - m;help [command]
   - Shows instructions for a given command. If no command is provided, it will instead provide a list of all of the commands that instructions can be provided for.    
 - m;credit
-  - Shows artist credit for matteo's avatar.  
+  - Shows artist credit for Matteo's avatar.  
 - m;roman [number]
   - Converts any natural number less than 4,000,000 into roman numerals, this one is just for fun.
+[Return to the top](https://github.com/Sakimori/matteo-the-prestige#matteo-the-prestige)
 
 ## Weathers
 - All current simsim weathers are listed here with a short description of their effects except for the most recent weathers whose effects remain a mystery.
   - Supernova 🌟: Makes all pitchers pitch worse, significantly increased effect on stronger pitchers.
   - Midnight 🕶: Significantly increased the chance that players will attempt to steal a base.
-  - Heavy Snow ❄: Occasionally causes the team's pitcher to bat in place of the scheduled batter.
+  - Blizzard ❄: Occasionally causes the team's pitcher to bat in place of the scheduled batter.
   - Slight Tailwind 🏌️‍♀: Occasionally batters get a mulligan and start the at bat over if they would have gotten out, significantly more likely to happen for weaker batters. 
   - Thinned Veil 🌌: When a player hits a dinger, they end up on the base corresponding to the number of runs the dinger scored, 1st base if it's a solo home run, up to none base if it's a grand slam, resulting in 5 runs scoring.
   - Twilight 👻: Occasionally turns outs into hit by causing the ball to go ethereal, preventing the fielder from catching it.
@@ -189,6 +205,7 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
   - Hurricane 🌀: Current patch weather, its effects will be revealed when new weathers are added.
   - Tornado 🌪: Current patch weather, its effects will be revealed when new weathers are added.
   - Torrential Downpour ⛈: Current patch weather, its effects will be revealed when new weathers are added.
+[Return to the top](https://github.com/Sakimori/matteo-the-prestige#matteo-the-prestige)
 
 ## Patreon!
 
