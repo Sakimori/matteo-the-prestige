@@ -3,7 +3,7 @@
 
 Sim16 is a discord and website based online baseball simulator, every name has randomly generated stats which you can use to make custom teams and custom leagues, all created and set up in discord and watchable at http://sim16.Sakimori.space! 
 
-If you would like to add matteo to your server to be able to set up teams and games, you can do so with this link: https://discord.com/api/oauth2/authorize?client_id=789956166796574740&permissions=388160&scope=bot
+If you would like to add the bot to your server to be able to set up teams and games, you can do so with this link: https://discord.com/api/oauth2/authorize?client_id=789956166796574740&permissions=388160&scope=bot
 
 If you would like to chat with the devs or join the main community for the bot that can all be found in this discord: https://discord.gg/ux6Drk8Bp7
 
