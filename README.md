@@ -96,7 +96,7 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
   
 [Return to the top](https://github.com/Genderdruid/matteo-the-prestige#matteo-the-prestige)
   
-### Game commands:
+### Game Commands:
 #### Individual Game Commands:
 - m;startgame --day # or -d #, -w [Weather Name] or --weather [Weather Name]
   - Starts a game with premade teams made using saveteam. Provides a link to the website where you can watch the game. 
@@ -109,27 +109,27 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
   -	This command has fuzzy search so you don't need to type the full name of the team as long as you give enough to identify the team you're looking for.
 - m;randomgame
   - Starts a 9-inning game between 2 entirely random teams. Embrace chaos!
-#### Tournament commands:
+#### Tournament Commands:
 - m;starttournament --rounddelay #, --bestof #, --finalsbestof #
   - Starts a randomly seeded tournament with the provided teams, automatically adding byes as necessary. All series have a 5 minute break between games. The current default format is best of 5 until the finals which are best of 7 but this can be adjusted by adding the bestof and finalsbestof flags. 
   - The --rounddelay is optional, if used, # must be between 1 and 120 and it'll set the delay between rounds to be # minutes. If not included it will default to 10.
   - Use this command at the top of a list with entries separated by new lines:
     - The name of the tournament.
 	- The name of each participating team on its own line.	
-#### Obl commands:
+#### OBL Commands:
 - m;oblhelp
-  - Shows the explanation for what the obl is and how to participate.
+  - Shows the explanation for what the OBL is and how to participate.
 - m;oblteam [team name]
   - Displays a team's rank, current OBL points, and current bounty board.
 - m;oblrival [team name] [rival team]
-  - Sets your team's obl rival, this can be changed at any time and requires ownership. your rival is purely cosmetic but will show on your team card and be marked with a special marker if they're on your list of opponents. each team needs to be on a new line below the command.
+  - Sets your team's OBL rival, this can be changed at any time and requires ownership. your rival is purely cosmetic but will show on your team card and be marked with a special marker if they're on your list of opponents. Each team needs to be on a new line below the command.
 - m;oblwins [team name]
-  - Displays a trophy case with all teams that the given team has won points off of.
+  - Displays a trophy case with all teams that the given team has won points from.
 - m;oblstandings
-  - Displays the 15 teams with the most obl points in this meta-season.  
-#### League commands
+  - Displays the 15 teams with the most OBL points in this meta-season.  
+#### League Commands
 - All of these commands are for leagues that have already been started. To start a league, click the 'create a league' button on the website and fill out the info for your league there, then use the m;claimleague command in discord to set yourself as the owner.
-- Commissioner commands (all of these except for m;claimleague require ownership of the specified league):
+- Commissioner Commands (all of these except for m;claimleague require ownership of the specified league):
   - m;claimleague [league name]
     - Sets yourself as the owner of an unclaimed league created on the website. Make sure to do this as soon as possible since if someone does this before you, you will not have access to the league.
   - m;addleagueowner [league name]
@@ -143,7 +143,7 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
     - Pauses the specified league after the current series finishes until the league is started again with m;startleague.
   - m;leagueseasonreset [league name]
     - Completely scraps the given league's current season, resetting everything to day 1 of the current season. Make sure to use m;startleague again to restart the season afterwards.
-- General commands (all of these can be used by anyone):
+- General Commands (all of these can be used by anyone):
   - m;leaguestandings [league name] --season #/-s #
     - Displays the current standings for the specified league.
 	- By default this will display the standings for the current season but if the --season #/-s # flag is set it will instead display the standings for the #th season instead for viewing historical standings.
@@ -158,7 +158,7 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
 	- The currently available starts are:
 	  - for batters: avg (batting average), slg (slugging percentage), obp (on-base percentage), ops (on-base plus slugging). 
 	  - for pitchers era (earned run average), whip (walks and hits per innings pitched), kper9 (strikeouts per 9 innings), bbper9 (walks per 9 innings), kperbb (strikeout to walk ratio). 
-#### Draft commands
+#### Draft Commands
 - m;startdraft
   - Starts a draft with an arbitrary number of participants. Use this command at the top of a list with entries separated by new lines:
 	- For each participant's entry you need three lines:
@@ -173,7 +173,7 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
   
 [Return to the top](https://github.com/Genderdruid/matteo-the-prestige#matteo-the-prestige)
 
-### Player commands:	 
+### Player Commands:	 
 - m;showplayer [name]
   - Displays any name's stars, there's a limit of 70 characters, that should be *plenty*. Note: if you want to lookup a lot of different players you can do it at the source on onomancer instead of spamming this command a bunch and clogging up discord: https://onomancer.sibr.dev/reflect
 - m;idolize [name]
@@ -183,7 +183,7 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
   
 [Return to the top](https://github.com/Genderdruid/matteo-the-prestige#matteo-the-prestige)
   
-### Other commands:
+### Other Commands:
 - m;help [command]
   - Shows instructions for a given command. If no command is provided, it will instead provide a list of all of the commands that instructions can be provided for.    
 - m;credit
