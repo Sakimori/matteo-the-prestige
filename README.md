@@ -1,7 +1,7 @@
 # matteo-the-prestige
 # sim16 + discord bot: baseball simulation
 
-Sim16 is a discord and website based online baseball simulator, every name has randomly generated stats which you can use to make custom teams and custom leagues, all created and set up in discord and watchable at http://sim16.sakimori.space! 
+Sim16 is a discord and website based online baseball simulator, every name has randomly generated stats which you can use to make custom teams and custom leagues, all created and set up in discord and watchable at http://sim16.Genderdruid.space! 
 
 If you would like to add matteo to your server to be able to set up teams and games, you can do so with this link: https://discord.com/api/oauth2/authorize?client_id=789956166796574740&permissions=388160&scope=bot
 
@@ -13,26 +13,26 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
 
 
 # Table of Contents
-* [FAQ](https://github.com/Sakimori/matteo-the-prestige#faq-this-faq-is-a-work-in-progress-and-will-be-expanded-over-time)
-* [Commands](https://github.com/Sakimori/matteo-the-prestige#commands-everything-here-is-case-sensitive-and-can-be-prefixed-with-either-m-or-m)
-  - [Team Commands](https://github.com/Sakimori/matteo-the-prestige#team-commands)
-    - [Creation and deletion](https://github.com/Sakimori/matteo-the-prestige#creation-and-deletion)
-    - [Editing](https://github.com/Sakimori/matteo-the-prestige#editing-all-of-these-commands-require-ownership-and-exact-spelling-of-the-team-name)
-    - [Viewing and Searching](https://github.com/Sakimori/matteo-the-prestige#viewing-and-searching)
-  - [Game Commands](https://github.com/Sakimori/matteo-the-prestige#game-commands)
-	- [Individual Game Commands](https://github.com/Sakimori/matteo-the-prestige#individual-game-commands)
-	- [Tournament Commands](https://github.com/Sakimori/matteo-the-prestige#obl-commands)
-	- [OBL Commands](https://github.com/Sakimori/matteo-the-prestige#obl-commands)
-	- [League Commands](https://github.com/Sakimori/matteo-the-prestige#league-commands)   
-	- [Draft Commands](https://github.com/Sakimori/matteo-the-prestige#draft-commands)
-  - [Player Commands](https://github.com/Sakimori/matteo-the-prestige#player-commands)
-  - [Other Commands](https://github.com/Sakimori/matteo-the-prestige#other-commands)
-* [Weathers](https://github.com/Sakimori/matteo-the-prestige#weathers)
-* [Patreon](https://github.com/Sakimori/matteo-the-prestige#patreon)
-* [Attribution](https://github.com/Sakimori/matteo-the-prestige#attribution)
+* [FAQ](https://github.com/Genderdruid/matteo-the-prestige#faq-this-faq-is-a-work-in-progress-and-will-be-expanded-over-time)
+* [Commands](https://github.com/Genderdruid/matteo-the-prestige#commands-everything-here-is-case-sensitive-and-can-be-prefixed-with-either-m-or-m)
+  - [Team Commands](https://github.com/Genderdruid/matteo-the-prestige#team-commands)
+    - [Creation and deletion](https://github.com/Genderdruid/matteo-the-prestige#creation-and-deletion)
+    - [Editing](https://github.com/Genderdruid/matteo-the-prestige#editing-all-of-these-commands-require-ownership-and-exact-spelling-of-the-team-name)
+    - [Viewing and Searching](https://github.com/Genderdruid/matteo-the-prestige#viewing-and-searching)
+  - [Game Commands](https://github.com/Genderdruid/matteo-the-prestige#game-commands)
+	- [Individual Game Commands](https://github.com/Genderdruid/matteo-the-prestige#individual-game-commands)
+	- [Tournament Commands](https://github.com/Genderdruid/matteo-the-prestige#obl-commands)
+	- [OBL Commands](https://github.com/Genderdruid/matteo-the-prestige#obl-commands)
+	- [League Commands](https://github.com/Genderdruid/matteo-the-prestige#league-commands)   
+	- [Draft Commands](https://github.com/Genderdruid/matteo-the-prestige#draft-commands)
+  - [Player Commands](https://github.com/Genderdruid/matteo-the-prestige#player-commands)
+  - [Other Commands](https://github.com/Genderdruid/matteo-the-prestige#other-commands)
+* [Weathers](https://github.com/Genderdruid/matteo-the-prestige#weathers)
+* [Patreon](https://github.com/Genderdruid/matteo-the-prestige#patreon)
+* [Attribution](https://github.com/Genderdruid/matteo-the-prestige#attribution)
   
 ## FAQ:
-- Q: I'm trying to make a league on the website but when I click the 'submit' button it doesn't do anything and doesn't give an error message.
+- Q: I'm trying to make a league on the website but when I click the 'submit' button it doesn't do anything and doesn't give an error message. 
   A: This is a known issue, to avoid it make sure you have an even number of divisions and subleagues and an equal number of teams in each division. These are all requirements for a league and sometimes if some of them aren't met the submit button will fail silently. If you're still having this issue after doing all of this correctly please submit a bug report via the form.
 
 - Q: My league stopped playing randomly and I don't know why, what should I do?  
@@ -42,7 +42,7 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
   A: Scheduling algorithms are hard and due to how this one was coded, sometimes teams have bye weeks and rest for some games the season, this should all even out by the end of the season and each team will play the same number of games.
 
 - Q: What should I do if my question isn't answered by this FAQ, this readme, or the help text for the commands, or I find a bug?  
-  A: Please submit your issue or bug to this form and Artemis will pass it along if it's something we can do anything about. https://forms.gle/PjbpfT46yuMDGca46
+  A: Please submit your issue or bug to this form and it will be passed along if it's something we can do anything about. https://forms.gle/PjbpfT46yuMDGca46
 
 
 ## Commands: (Everything here is case sensitive, and can be prefixed with either m; or m!)
@@ -92,8 +92,9 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
 - m;searchteams [searchterm]
   - Shows a paginated list of all teams whose names contain the given search term.
 - m;showallteams
-  - Shows a paginated list of all teams available for games which can be scrolled through.	
-[Return to the top](https://github.com/Sakimori/matteo-the-prestige#matteo-the-prestige)
+  - Shows a paginated list of all teams available for games which can be scrolled through. 
+  
+[Return to the top](https://github.com/Genderdruid/matteo-the-prestige#matteo-the-prestige)
   
 ### Game commands:
 #### Individual Game Commands:
@@ -168,8 +169,9 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
   - The draft will begin once all participants have given a 👍 and will proceed in the order that participants were entered. Each participant will select 12 hitters and 1 pitcher from a pool of 20 random players which will refresh automatically when it becomes small.
 - m;draft [name]
   - Use this on your turn during a draft to pick your player.
-  - You can also just use a 'd' instead of the full command.
-[Return to the top](https://github.com/Sakimori/matteo-the-prestige#matteo-the-prestige)
+  - You can also just use a 'd' instead of the full command. 
+  
+[Return to the top](https://github.com/Genderdruid/matteo-the-prestige#matteo-the-prestige)
 
 ### Player commands:	 
 - m;showplayer [name]
@@ -177,8 +179,9 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
 - m;idolize [name]
   - Records any name as your idol, mostly for fun.
 - m;showidol 
-  - Displays your idol's name and stars in a discord embed.
-[Return to the top](https://github.com/Sakimori/matteo-the-prestige#matteo-the-prestige)
+  - Displays your idol's name and stars in a discord embed. 
+  
+[Return to the top](https://github.com/Genderdruid/matteo-the-prestige#matteo-the-prestige)
   
 ### Other commands:
 - m;help [command]
@@ -186,8 +189,9 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
 - m;credit
   - Shows artist credit for Matteo's avatar.  
 - m;roman [number]
-  - Converts any natural number less than 4,000,000 into roman numerals, this one is just for fun.
-[Return to the top](https://github.com/Sakimori/matteo-the-prestige#matteo-the-prestige)
+  - Converts any natural number less than 4,000,000 into roman numerals, this one is just for fun. 
+  
+[Return to the top](https://github.com/Genderdruid/matteo-the-prestige#matteo-the-prestige)
 
 ## Weathers
 - All current simsim weathers are listed here with a short description of their effects except for the most recent weathers whose effects remain a mystery.
@@ -204,8 +208,9 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
   - Meteor Shower 🌠: Has a chance to warp runners on base to none base causing them to score.
   - Hurricane 🌀: Current patch weather, its effects will be revealed when new weathers are added.
   - Tornado 🌪: Current patch weather, its effects will be revealed when new weathers are added.
-  - Torrential Downpour ⛈: Current patch weather, its effects will be revealed when new weathers are added.
-[Return to the top](https://github.com/Sakimori/matteo-the-prestige#matteo-the-prestige)
+  - Torrential Downpour ⛈: Current patch weather, its effects will be revealed when new weathers are added. 
+  
+[Return to the top](https://github.com/Genderdruid/matteo-the-prestige#matteo-the-prestige)
 
 ## Patreon!
 
@@ -223,4 +228,6 @@ these folks are helping me a *ton* via patreon, and i cannot possibly thank them
 
 ## Attribution
 
-Twemoji is copyright 2020 Twitter, Inc and other contributors; code licensed under [the MIT License](http://opensource.org/licenses/MIT), graphics licensed under [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/)
+Twemoji is copyright 2020 Twitter, Inc and other contributors; code licensed under [the MIT License](http://opensource.org/licenses/MIT), graphics licensed under [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/) 
+
+[Return to the top](https://github.com/Genderdruid/matteo-the-prestige#matteo-the-prestige)
