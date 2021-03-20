@@ -1039,6 +1039,8 @@ class LeagueScheduleCommand(Command):
                 sched_embed = discord.Embed(title=f"{league.name}'s Schedule:", color=discord.Color.magenta())
                 days = [0,1,2,3]
                 for day in days:
+                    embed_title = f"Days {((current_series+day-1)*league.series_length) + 1} - {(current_series+day)*(league.series_length)}"
+                    parts = 1
                     if str(current_series+day) in league.schedule.keys():
                         schedule_text = ""
                         teams = league.team_names_in_league()
@@ -1050,13 +1052,28 @@ class LeagueScheduleCommand(Command):
                                 except:
                                     False
                             schedule_text += f"**{game[0]}** @ **{game[1]}** {emojis}\n"
+
+                            if len(schedule_text) >= 900:
+                                embed_title += f" Part {parts}"
+                                sched_embed.add_field(name=embed_title, value=schedule_text, inline = False)
+                                parts += 1
+                                embed_title = f"Days {((current_series+day-1)*league.series_length) + 1} - {(current_series+day)*(league.series_length)} Part {parts}"
+                                schedule_text = ""
+
                             teams.pop(teams.index(game[0]))
                             teams.pop(teams.index(game[1]))
                         if len(teams) > 0:
                             schedule_text += "Resting:\n"
                             for team in teams:
                                 schedule_text += f"**{team}**\n"
-                        sched_embed.add_field(name=f"Days {((current_series+day-1)*league.series_length) + 1} - {(current_series+day)*(league.series_length)}", value=schedule_text, inline = False)
+                                if len(schedule_text) >= 900:
+                                    embed_title += f" Part {parts}"
+                                    sched_embed.add_field(name=embed_title, value=schedule_text, inline = False)
+                                    parts += 1
+                                    embed_title = f"Days {((current_series+day-1)*league.series_length) + 1} - {(current_series+day)*(league.series_length)} Part {parts}"
+                                    schedule_text = ""
+
+                        sched_embed.add_field(name=embed_title, value=schedule_text, inline = False)
                 await msg.channel.send(embed=sched_embed)
             else:
                 await msg.channel.send("That league's already finished with this season, boss.")
