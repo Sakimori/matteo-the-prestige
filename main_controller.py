@@ -168,9 +168,9 @@ def update_loop():
                         if this_game.victory_lap and winning_team == this_game.teams['home'].name:
                             state["update_text"] = f"{winning_team} wins with a victory lap!"
                         elif winning_team == this_game.teams['home'].name:
-                            state["update_text"] = f"{winning_team} wins, shaming {this_game.teams['away'].name}!"
+                            state["update_text"] = f"{winning_team} wins with a partial victory lap!"
                         else:
-                            state["update_text"] = f"{winning_team} wins!"
+                            state["update_text"] = f"{winning_team} wins on the road!"
                         state["pitcher"] = "-"
                         state["batter"] = "-"
 

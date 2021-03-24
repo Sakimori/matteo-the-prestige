@@ -2136,9 +2136,9 @@ def game_over_embed(game):
     if game.victory_lap and winning_team == game.teams['home'].name:
         winstring += f"{winning_team} wins with a victory lap!"
     elif winning_team == game.teams['home'].name:
-        winstring += f"{winning_team} wins, shaming {game.teams['away'].name}!"
+        winstring += f"{winning_team} wins with a partial victory lap!"
     else:
-        winstring += f"{winning_team} wins!"
+        winstring += f"{winning_team} wins on the road!"
 
     embed = discord.Embed(color=discord.Color.dark_purple(), title=title_string)
     embed.add_field(name="Final score:", value=winstring, inline=False)
