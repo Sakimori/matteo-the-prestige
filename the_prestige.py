@@ -1212,8 +1212,8 @@ class LeagueSwapTeamCommand(Command):
 
 class LeagueRenameCommand(Command):
     name = "leaguerename"
-    template = "m;leaguerename [league name]\n[old subleague/division name]\n[new subleague/division name]"
-    description = "Changes the name of an existing subleague or division. Can only be executed by a league owner, and only before the start of a new season."
+    template = "m;leaguerename [league name]\n[old conference/division name]\n[new conference/division name]"
+    description = "Changes the name of an existing conference or division. Can only be executed by a league owner, and only before the start of a new season."
          
     async def execute(self, msg, command):
         league_name = command.split("\n")[0].strip()

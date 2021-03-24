@@ -374,7 +374,7 @@ function LeagueStructre(props: {
 					}
 				</div>
 			</div>
-			<div className="cl_structure_err">{props.state.subleagues.length % 2 !== 0 && props.showError ? "Must have an even number of subleagues." : ""}</div>
+			<div className="cl_structure_err">{props.state.subleagues.length % 2 !== 0 && props.showError ? "Must have an even number of conferences." : ""}</div>
 			{ nSubleagues * (nDivisions+2) < MAX_SUBLEAGUE_DIVISION_TOTAL ?
 				<button className="cl_division_add" onClick={e => props.dispatch({type: 'add_divisions'})}>➕</button>:
 				<div className="cl_division_add_filler"/>
@@ -392,7 +392,7 @@ function SubleagueHeaders(props: {subleagues: SubleagueState[], dispatch: React.
 					subleague.name === "" ?
 						"A name is required." :
 					props.subleagues.slice(0, i).some(val => val.name === subleague.name) ?
-						"Each subleague must have a different name." :
+						"Each conference must have a different name." :
 					"";
 
 				return (
@@ -413,7 +413,7 @@ function SubleagueHeaders(props: {subleagues: SubleagueState[], dispatch: React.
 function SubleageHeader(props: {state: SubleagueState, canDelete: boolean, dispatch:(action: DistributiveOmit<StructureReducerActions, 'subleague_index'>) => void}) {
 	return (
 		<div className="cl_subleague_header">
-			<input type="text" className="cl_subleague_name" placeholder="Subleague Name" value={props.state.name} onChange={e => 
+			<input type="text" className="cl_subleague_name" placeholder="Conference Name" value={props.state.name} onChange={e => 
 				props.dispatch({type: 'rename_subleague', name: e.target.value})
 			}/>
 			{props.canDelete ? <button className="cl_subleague_delete" onClick={e => props.dispatch({type: 'remove_subleague'})}>➖</button> : null}
@@ -483,7 +483,7 @@ function Division(props: {
 		props.state.name === "" ? 
 			"A name is required." :
 		props.isDuplicate ?
-			"Each division in a subleague must have a different name." :
+			"Each division in a conference must have a different name." :
 		""
 
 	let teamsErr = props.state.teams.length < 2 ? "Must have at least 2 teams." : "";
@@ -584,7 +584,7 @@ function LeagueOptions(props: {state: LeagueOptionsState, dispatch: React.Dispat
 					props.dispatch({type: 'set_intra_division_series', value: value})} showError={props.showError}/>
 				<NumberInput title="Number of inter-divisional series" value={props.state.inter_division_series} setValue={(value: string) => 
 					props.dispatch({type: 'set_inter_division_series', value: value})} showError={props.showError}/>
-				<NumberInput title="Number of inter-league series" value={props.state.inter_league_series} setValue={(value: string) => 
+				<NumberInput title="Number of inter-conference series" value={props.state.inter_league_series} setValue={(value: string) => 
 					props.dispatch({type: 'set_inter_league_series', value: value})} showError={props.showError}/>
 			</div>
 		</div>

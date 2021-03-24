@@ -315,7 +315,7 @@ class league_structure(object):
         this_embed.add_field(name=league_db.get_past_champion(self.name, season_num), value=f"Season {season_num} champions", inline = False)
 
         for subleague in iter(self.league.keys()):
-            this_embed.add_field(name="Subleague:", value=f"**{subleague}**", inline = False)
+            this_embed.add_field(name="Conference:", value=f"**{subleague}**", inline = False)
             for division in iter(self.league[subleague].keys()):
                 teams = self.division_standings(self.league[subleague][division], standings)
 
@@ -346,7 +346,7 @@ class league_structure(object):
         for team_name, wins, losses, run_diff in league_db.get_standings(self.name):
             standings[team_name] = {"wins" : wins, "losses" : losses, "run_diff" : run_diff}
         for subleague in iter(self.league.keys()):
-            this_embed.add_field(name="Subleague:", value=f"**{subleague}**", inline = False)
+            this_embed.add_field(name="Conference:", value=f"**{subleague}**", inline = False)
             for division in iter(self.league[subleague].keys()):
                 teams = self.division_standings(self.league[subleague][division], standings)
 
@@ -418,7 +418,7 @@ class league_structure(object):
                 else:
                     teams_string += f"**{this_team[0].name}\n**{this_team[1]} - {this_team[2]} WR: - GB: {this_team[4]}\n\n"
 
-            this_embed.add_field(name=f"{subleague} League:", value=teams_string, inline = False)
+            this_embed.add_field(name=f"{subleague} Conference:", value=teams_string, inline = False)
         
         this_embed.set_footer(text=f"Wildcard standings as of day {self.day-1}")
         return this_embed
@@ -445,7 +445,7 @@ class league_structure(object):
             for this_team, wins, losses, diff, gb in division_leaders + wildcard_leaders:
                 team_dic[this_team] = {"wins" : wins}
             
-            subleague_tournament = tournament(f"{self.name} {subleague} Subleague Series", team_dic, series_length=3, finals_series_length=5, secs_between_games=int(3600/self.games_per_hour), secs_between_rounds=int(7200/self.games_per_hour))
+            subleague_tournament = tournament(f"{self.name} {subleague} Conference Series", team_dic, series_length=3, finals_series_length=5, secs_between_games=int(3600/self.games_per_hour), secs_between_rounds=int(7200/self.games_per_hour))
             subleague_tournament.build_bracket(by_wins = True)
             subleague_tournament.league = self
             tournaments.append(subleague_tournament)

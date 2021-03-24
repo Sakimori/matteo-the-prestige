@@ -50,7 +50,7 @@ def create_league():
         return jsonify({'status':'err_league_exists'}), 400
 
     num_subleagues = len(config['structure']['subleagues'])
-    if num_subleagues < 1 or num_subleagues % 2 != 0:
+    if num_subleagues < 1:
         return jsonify({'status':'err_invalid_subleague_count'}), 400
 
     num_divisions = len(config['structure']['subleagues'][0]['divisions'])
