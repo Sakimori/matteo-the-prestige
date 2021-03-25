@@ -620,9 +620,17 @@ class game(object):
                 self.outs += 1
 
         self.get_batter().game_stats["plate_appearances"] += 1
-
-        if "add_base" in result:
-            result["update_text"] = result["update_text"] % base_string(result["base"])
+        
+        if self.voice.post_format != []:
+            format_list = []
+            for extra_format in self.voice.post_format:
+                if extra_format == "base":
+                    format_list.append(base_string(result["base"]))
+                elif extra_format == "runner":
+                    format_list.append(result["fc_out"][0])
+            self.voice.post_format = []
+            result["displaytext"] = result["displaytext"].format(*format_list)
+        
         
         if self.outs < 3:
             result["offense_team"].score += scores_to_add #only add points if inning isn't over

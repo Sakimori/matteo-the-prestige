@@ -19,6 +19,8 @@ class game_strings_base(object):
     def __init__(self):
         self.intro_counter = 1
 
+    post_format = []
+
     default_format = ("defender",)
 
     intro_formats = []
@@ -68,16 +70,35 @@ class game_strings_base(object):
         if gamestring in self.no_formats:
             return gamestring
         elif gamestring in self.diff_formats:
-            return gamestring.format(*parse_formats(self.diff_formats[gamestring], update))
+            return gamestring.format(*self.parse_formats(self.diff_formats[gamestring], update))
         else:
-            return gamestring.format(*parse_formats(self.default_format, update))
+            return gamestring.format(*self.parse_formats(self.default_format, update))
+
+    def parse_formats(self, format_tuple, update):
+        out_list = []
+        for string in format_tuple:
+            if string == "defender":
+                out_list.append(update['defender'].name)
+            elif string == "base_string":
+                post_format.append("base")
+                out_list.append("{}")
+            elif string == "batter":
+                out_list.append(update['batter'].name)
+            elif string == "fc_out" or string == "runner":
+                post_format.append("runner")
+                out_list.append("{}")
+            elif string == "defense_team":
+                out_list.append(update['defense_team'].name)
+            elif string == "offense_team":
+                out_list.append(update['offense_team'].name)
+        return tuple(out_list)
 
 class TheGoddesses(game_strings_base):
 
     def __init__(self):
-        self.intro_counter = 3
+        self.intro_counter = 4
 
-    intro = [("💜", "This game is now blessed 💜\nI'm Sakimori,"), ("🌺", "and i'm xvi! the sim16 goddesses are live and on-site, bringing you today's game~"), ("🎆", "Play ball!!")]
+    intro = [("💜", "This game is now blessed 💜"), ("🏳️‍⚧️","I'm Sakimori,"), ("🌺", "and i'm xvi! the sim16 goddesses are live and on-site, bringing you today's game."), ("🎆", "Get hyped!!")]
 
     strikeoutlooking = ["watches a slider barely catch the outside corner. Hang up a ꓘ!", 
                         "looks at a fastball paint the inside of the plate, and strikes out looking.", 
@@ -133,23 +154,7 @@ class TheGoddesses(game_strings_base):
     twoparts = [groundout[1], groundout[3], flyout[0], flyout[2], flyout[4], walk[2], single[0], sacrifice[0]]
 
 
-def parse_formats(format_tuple, update):
-    out_list = []
-    for string in format_tuple:
-        if string == "defender":
-            out_list.append(update['defender'].name)
-        elif string == "base_string":
-            update["add_base"] = True
-            out_list.append("%s")
-        elif string == "batter":
-            out_list.append(update['batter'].name)
-        elif string == "fc_out" or string == "runner":
-            out_list.append(update['runner'].name)
-        elif string == "defense_team":
-            out_list.append(update['defense_team'].name)
-        elif string == "offense_team":
-            out_list.append(update['offense_team'].name)
-    return tuple(out_list)
+
 
 def base_string(base):
     if base == 1:
