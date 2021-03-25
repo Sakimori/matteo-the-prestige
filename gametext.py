@@ -25,24 +25,24 @@ class game_strings_base(object):
     intro_formats = []
     intro = [("🎆", "Play ball!")]
 
-    strikeoutlooking = "strikes out looking."
-    strikeoutswinging = "strikes out swinging."
-    groundout = "grounds out to {}."
-    flyout = "flies out to {}."
-    fielderschoice = "reaches on fielder's choice. {} is out at {} base." #requires .format(player, base_string)
-    doubleplay = "grounds into a double play!"
-    sacrifice = "hits a sacrifice fly towards {}."
-    walk = "draws a walk."
-    single = "hits a single!"
-    double = "hits a double!"
-    triple = "hits a triple!"
-    homerun = "hits a dinger!"
-    grandslam = "hits a grand slam!"
+    strikeoutlooking = ["strikes out looking."]
+    strikeoutswinging = ["strikes out swinging."]
+    groundout = ["grounds out to {}."]
+    flyout = ["flies out to {}."]
+    fielderschoice = ["reaches on fielder's choice. {} is out at {} base."] #requires .format(player, base_string)
+    doubleplay = ["grounds into a double play!"]
+    sacrifice = ["hits a sacrifice fly towards {}."]
+    walk = ["draws a walk."]
+    single = ["hits a single!"]
+    double = ["hits a double!"]
+    triple = ["hits a triple!"]
+    homerun = ["hits a dinger!"]
+    grandslam = ["hits a grand slam!"]
 
     twoparts = []
 
-    diff_formats = {fielderschoice: ("defender", "base_string")}
-    no_formats = [strikeoutlooking, strikeoutswinging, doubleplay, walk, single, double, triple, homerun, grandslam]
+    diff_formats = {fielderschoice[0]: ("defender", "base_string")}
+    no_formats = strikeoutlooking + strikeoutswinging + doubleplay + walk + single + double + triple + homerun + grandslam
 
     def activate(self, lastupdate, currentupdate, game):
         if "twopart" in lastupdate:
