@@ -29,7 +29,7 @@ class game_strings_base(object):
     strikeoutswinging = ["strikes out swinging."]
     groundout = ["grounds out to {}."]
     flyout = ["flies out to {}."]
-    fielderschoice = ["reaches on fielder's choice. {} is out at {} base."] #requires .format(player, base_string)
+    fielderschoice = ["reaches on fielder's choice. {} is out at {} base."] 
     doubleplay = ["grounds into a double play!"]
     sacrifice = ["hits a sacrifice fly towards {}."]
     walk = ["draws a walk."]
@@ -96,7 +96,7 @@ class TheGoddesses(game_strings_base):
         self.intro_counter = 4
         self.post_format = []
 
-    intro = [("💜", "This game is now blessed 💜"), ("🏳️‍⚧️","I'm Sakimori,"), ("🌺", "and i'm xvi! the sim16 goddesses are live and on-site, bringing you today's game."), ("🎆", "Get hyped!!")]
+    intro = [("💜", "This game is now blessed 💜"), ("🏳️‍⚧️","I'm Sakimori,"), ("🌺", "and i'm xvi! the sim16 goddesses are live and on-site, bringing you today's game."), ("🎆", "It's time to play ball!!")]
 
     strikeoutlooking = ["watches a slider barely catch the outside corner. Hang up a ꓘ!", 
                         "looks at a fastball paint the inside of the plate, and strikes out looking.", 
@@ -116,13 +116,13 @@ class TheGoddesses(game_strings_base):
               "is out on a routine fly ball to {}.",
               ("hits a high fly ball deep to center! this one looks like a dinger...", "{} jumps up and steals it! {} is out!"),
               "lines a ball to first, and it's caught by {} for the easy out.",
-              ("hits a shallow fly to short center field, this might get down for a base hit...", "{} dives forward and catches it! We love to see it, 16.")]
+              ("hits a shallow fly to short center field! this might get down for a base hit...", "{} dives forward and catches it! We love to see it, 16.")]
 
     fielderschoice = ["hits a soft grounder to shortstop, and {} forces {} out the short way. {} reaches on fielder's choice this time.",
                       "sharply grounds to third, and the throw over to {} forces {} out with a fielder's choice."]
 
     doubleplay = ["grounds to {}. the throw to second makes it in time, as does the throw to first! {} turn the double play!",
-                  "hits a grounder tailor-made for a double play right to {}. Two quick throws, and {} do indeed turn two!"]
+                  ("hits a grounder tailor-made for a double play right to {}.", "Two quick throws, and {} do indeed turn two!")]
 
     sacrifice = [("hits a deep fly ball to right field, and {} looks ready to tag up...", "They beat the throw by a mile!"),
                  "sends a fly ball to deep center field, and {} comfortably tags up after the catch."]
@@ -134,22 +134,43 @@ class TheGoddesses(game_strings_base):
             "jumps away from the plate as ball 4 misses far inside, just avoiding the hit-by-pitch and taking first on a walk."]
 
     single = [("tries to sneak a grounder between third base and the shortstop, but it's stopped by {} with a dive! They throw to first from their knees...", "but they beat the throw! {} is safe at first with a hit."),
+              ("shoots a line drive over {}'s head...", "They leap up but can't quite reach it! {} is safe at first with a single!!"),
+              ("pulls a swinging bunt to {}, who rushes forward and throws to first...", "{} tags the bag just before the throw, and are rewarded with an infield single!"),
               "hits a soft line drive over the infield, and makes it to first as it lands in the grass for a single.",
-              "shoots a comebacker right over second base and pulls into first safely, racking up a base hit."]
+              "shoots a comebacker right over second base and pulls into first safely, racking up a base hit.",
+              "hits a hard grounder into the right-side gap for a base hit."]
 
-    double = ["hits a double!"]
-    triple = ["hits a triple!"]
-    homerun = ["hits a dinger!"]
-    grandslam = ["hits a grand slam!"]
+    double = [("hits a shallow fly to short center field! this might get down for a base hit...", "{} dives for it, but can't quite get there! {} makes it around to second before the ball gets chased down. Good effort though!"),
+              "hits a fly ball into the outfield gap and pulls into second with a stand-up double.",
+              ("hits a high fly ball deep to center! this one looks like a dinger...", "hell. it bounces off the wall, and that's a double."),
+              "shoots a line drive right down the third base line, just getting past {} for a double!"]
+
+    triple = ["hits a fly ball down the first base line! it lands fair, and gives {} enough time to round the bases all the way to third!!",
+              "stretches a line drive to the outfield gap from a double to a triple with a dive into third, just beating the throw!"]
+
+    homerun = [("hits a high fly ball deep to center! this one looks like a dinger...", "{} jumps up for the steal but can't get to it! Rack up another dinger for {}!"),
+               ("hits a no-doubter over the right field wall!","Artemis won't be happy about that one 😅"),
+               "smacks a dinger to right field and takes a free trip around the basepaths.",
+               "hits a fly ball to deep left field, and it barely gets over the wall for a dinger!"]
+
+    grandslam = ["hits a fly ball to deep left field, and it barely gets over the wall for a GRAND SLAM!!!",
+                 ("hits a high fly ball deep to center! this one looks like a dinger...", "{} jumps up for the steal but can't get to it! {} gets a grand slam!!!")]
 
     diff_formats = {groundout[3][1] : ("batter",),
                flyout[0][1]: ("batter",), flyout[2][1]: ("defender", "batter"),
                fielderschoice[0]: ("defender", "fc_out", "batter"), fielderschoice[1]: ("base_string", "fc_out"),
-               doubleplay[0]: ("defender", "defense_team"), doubleplay[1]: ("defender", "defense_team"),
+               doubleplay[0]: ("defender", "defense_team"), doubleplay[1][1]: ("defense_team",),
                sacrifice[0][0]: ("runner",), sacrifice[1]: ("runner",),
-               single[0][1]: ("batter",)}
-    no_formats = strikeoutlooking + strikeoutswinging + walk + single[1:] + [flyout[4][0], sacrifice[0][1]]
-    twoparts = [groundout[1], groundout[3], flyout[0], flyout[2], flyout[4], walk[2], single[0], sacrifice[0]]
+               single[0][1]: ("batter",), single[1][1]: ("batter",), single[2][1]: ("batter",),
+               double[0][1]: ("defender", "batter"),
+               triple[0]: ("batter",),
+               homerun[0][1]: ("defender", "batter"),
+               grandslam[1][1]: ("defender", "batter")}
+    no_formats = strikeoutlooking + strikeoutswinging + walk + single[3:] + [flyout[4][0], sacrifice[0][1], 
+                                                                             double[0][0], double[1], double[2][0], double[2][1], triple[1],
+                                                                             homerun[0][0], homerun[1][0], homerun[1][1], homerun[2:],
+                                                                             grandslam[0], grandslam[1][0]]
+    twoparts = [groundout[1], groundout[3], flyout[0], flyout[2], flyout[4], walk[2], doubleplay[1], single[0], single[1], single[2], sacrifice[0], double[0], double[2], homerun[0], homerun[1], grandslam[1]]
 
 
 
