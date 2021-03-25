@@ -1,4 +1,4 @@
-import discord, json, math, os, roman, games, asyncio, random, main_controller, threading, time, urllib, leagues, datetime
+import discord, json, math, os, roman, games, asyncio, random, main_controller, threading, time, urllib, leagues, datetime, gametext
 import database as db
 import onomancer as ono
 from league_storage import league_exists, season_save, season_restart
@@ -1684,10 +1684,13 @@ async def watch_game(channel, newgame, user = None, league = None):
 
     main_controller.master_games_dic[id] = (newgame, state_init, discrim_string)
 
-def prepare_game(newgame, league = None, weather_name = None):
+def prepare_game(newgame, league = None, weather_name = None, voice = None):
     if weather_name is None and newgame.weather.name == "Sunny":
         weathers = weather.all_weathers()
         newgame.weather = weathers[random.choice(list(weathers.keys()))](newgame)
+
+    if voice is None:
+        newgame.voice = gametext.TheGoddesses()
 
     state_init = {
         "away_name" : newgame.teams['away'].name,
@@ -1698,7 +1701,7 @@ def prepare_game(newgame, league = None, weather_name = None):
         "victory_lap" : False,
         "weather_emoji" : newgame.weather.emoji,
         "weather_text" : newgame.weather.name,
-        "start_delay" : 3,
+        "start_delay" : 5,
         "end_delay" : 9
         } 
 

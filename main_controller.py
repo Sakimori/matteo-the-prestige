@@ -3,6 +3,7 @@ from leagues import league_structure
 from league_storage import league_exists
 from flask import Flask, url_for, Response, render_template, request, jsonify, send_from_directory, abort
 from flask_socketio import SocketIO, emit
+from random import randrange
 import database as db
 
 app = Flask("the-prestige", static_folder='simmadome/build/', subdomain_matching=True)
@@ -142,8 +143,13 @@ def update_loop():
             state["home_score"] = this_game.teams["home"].score #update_pause = 0
                                                                 #victory_lap = False
             if not this_game.play_has_begun:                    #weather_emoji
-                state["update_emoji"] = "🎆"                    #weather_text
-                state["update_text"] = "Play ball!"            #they also need a timestamp
+                if state["start_delay"] - this_game.voice.intro_counter > -1:
+                    state["update_emoji"] = "🪑"                    #weather_text
+                    state["update_text"] = "The broadcast booth is being prepared..."             #they also need a timestamp
+                else:
+                    state["update_emoji"] = this_game.voice.intro[-this_game.voice.intro_counter][0]
+                    state["update_text"] = this_game.voice.intro[-this_game.voice.intro_counter][1]
+                    this_game.voice.intro_counter -= 1
                 state["start_delay"] -= 1
             
             state["display_top_of_inning"] = state["top_of_inning"]
@@ -218,12 +224,20 @@ def update_loop():
                             name, out_at_base_string = this_game.last_update[0]['fc_out']
                             updatestring = f"{this_game.last_update[0]['batter']} {this_game.last_update[0]['text'].value.format(name, out_at_base_string)} {this_game.last_update[0]['defender']}{punc}"
                         else:
-                            updatestring = f"{this_game.last_update[0]['batter']} {this_game.last_update[0]['text'].value} {this_game.last_update[0]['defender']}{punc}"
+                            text_list = getattr(this_game.voice, this_game.last_update[0]["text"].name)
+                            voice_index = randrange(0, len(text_list))
+                            updatestring = text_list[voice_index]
+                            this_game.last_update[0]["voiceindex"] = voice_index
+                            if this_game.voice.check_for_twopart(updatestring):
+                                updatestring = updatestring[0]
+                                this_game.last_update[0]["twopart"] = True
+                            updatestring = this_game.voice.format_gamestring(updatestring, this_game)
+
                         if this_game.last_update[1] > 0:
                                 updatestring += f"{this_game.last_update[1]} runs scored!"
 
 
-                        state["update_text"] = updatestring
+                        state["update_text"] = f"{this_game.last_update[0]['batter']} {updatestring}"
 
                         this_game.weather.modify_atbat_message(this_game, state)
 
@@ -247,4 +261,4 @@ def update_loop():
             state["update_pause"] -= 1
 
         socketio.emit("states_update", game_states)
-        time.sleep(8)
+        time.sleep(3)

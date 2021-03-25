@@ -16,11 +16,11 @@ class appearance_outcomes(Enum):
     grandslam = "hits a grand slam!"
 
 class game_strings_base(object):
-    default_format = ("defender",)
-    diff_formats = {fielderschoice: ("defender", "base_string")}
-    no_formats = [strikeoutlooking, strikeoutswinging, doubleplay, walk, single, double, triple, homerun, grandslam]
+    def __init__(self):
+        self.intro_counter = 1
 
-    intro_counter = 1
+    default_format = ("defender",)
+
     intro_formats = []
     intro = [("🎆", "Play ball!")]
 
@@ -37,21 +37,45 @@ class game_strings_base(object):
     triple = "hits a triple!"
     homerun = "hits a dinger!"
     grandslam = "hits a grand slam!"
+
     twoparts = []
 
-    def check_for_twopart(game, gamestring): #will check just before atbat is generated
-        return gamestring in twoparts
+    diff_formats = {fielderschoice: ("defender", "base_string")}
+    no_formats = [strikeoutlooking, strikeoutswinging, doubleplay, walk, single, double, triple, homerun, grandslam]
+
+    def activate(self, lastupdate, currentupdate):
+        #try:
+        if "text" in lastupdate and self.check_for_twopart(getattr(self, lastupdate["text"].name)[lastupdate["voiceindex"]]):
+            currentupdate.clear()
+            currentupdate.update({
+                "text": getattr(self, lastupdate["text"].name)[lastupdate["text_index"][1]],
+                "twopart": True,
+                'defender': lastupdate['defender'],
+                'base': lastupdate['base'],
+                'batter': lastupdate['batter'],
+                'runner': lastupdate['runner'],
+                'defense_team': lastupdate['defense_team'],
+                'offense_team': lastupdate['offense_team']
+                })
+        #except:
+            #pass
+
+    def check_for_twopart(self, gamestring): 
+        return gamestring in self.twoparts
+
+    def format_gamestring(self, gamestring, game):
+        if gamestring in self.no_formats:
+            return gamestring
+        elif gamestring in self.diff_formats:
+            return gamestring.format(*parse_formats(self.diff_formats[gamestring], game))
+        else:
+            return gamestring.format(*parse_formats(self.default_format, game))
 
 class TheGoddesses(game_strings_base):
-    diff_formats = {groundout[3][1] : ("batter",),
-               flyout[0][1]: ("batter",), flyout[2][1]: ("defender", "batter"),
-               fielderschoice[0]: ("defender", "fc_out", "batter"), fielderschoice[1]: ("base_string", "fc_out"),
-               doubleplay[0]: ("defender", "defense_team"), doubleplay[1]: ("defender", "defense_team"),
-               sacrifice[0][0]: ("runner",), sacrifice[1]: ("runner",),
-               single[0][1]: ("batter",)}
-    no_formats = strikeoutlooking + strikeoutswinging + walk + single[1:] + [flyout[4][0], sacrifice[0][1]]
 
-    intro_counter = 2
+    def __init__(self):
+        self.intro_counter = 3
+
     intro = [("💜", "This game is now blessed 💜\nI'm Sakimori,"), ("🌺", "and i'm xvi! the sim16 goddesses are live and on-site, bringing you today's game~"), ("🎆", "Play ball!!")]
 
     strikeoutlooking = ["watches a slider barely catch the outside corner. Hang up a ꓘ!", 
@@ -97,7 +121,15 @@ class TheGoddesses(game_strings_base):
     triple = "hits a triple!"
     homerun = "hits a dinger!"
     grandslam = "hits a grand slam!"
-    twoparts = [groundout[1], groundout[3], flyout[0], flyout[2], flyout[4], walk[2], single[0]]
+
+    diff_formats = {groundout[3][1] : ("batter",),
+               flyout[0][1]: ("batter",), flyout[2][1]: ("defender", "batter"),
+               fielderschoice[0]: ("defender", "fc_out", "batter"), fielderschoice[1]: ("base_string", "fc_out"),
+               doubleplay[0]: ("defender", "defense_team"), doubleplay[1]: ("defender", "defense_team"),
+               sacrifice[0][0]: ("runner",), sacrifice[1]: ("runner",),
+               single[0][1]: ("batter",)}
+    no_formats = strikeoutlooking + strikeoutswinging + walk + single[1:] + [flyout[4][0], sacrifice[0][1]]
+    twoparts = [groundout[1], groundout[3], flyout[0], flyout[2], flyout[4], walk[2], single[0], sacrifice[0]]
 
 
 def parse_formats(format_tuple, game):

@@ -1,7 +1,6 @@
-import json, random, os, math, jsonpickle
+import json, random, os, math, jsonpickle, weather
 import database as db
-import weather
-from gametext import base_string, appearance_outcomes
+from gametext import base_string, appearance_outcomes, game_strings_base
 
 data_dir = "data"
 games_config_file = os.path.join(data_dir, "games_config.json")
@@ -223,6 +222,7 @@ class game(object):
             self.max_innings = config()["default_length"]
         self.bases = {1 : None, 2 : None, 3 : None}
         self.weather = weather.Weather(self)
+        self.voice = game_strings_base()
         self.current_batter = None
 
     def occupied_bases(self):
@@ -519,8 +519,9 @@ class game(object):
         result = self.at_bat()
 
         self.weather.activate(self, result) # possibly modify result in-place
+        self.voice.activate(self.last_update[0], result)
 
-        if "text_only" in result:
+        if "text_only" in result or "twopart" in result:
             return (result, 0)  
         
     
@@ -535,6 +536,9 @@ class game(object):
         defenders = defense_team.lineup.copy()
         defenders.append(defense_team.pitcher)
         defender = random.choice(defenders) #pitcher can field outs now :3
+        result["defender"] = defender
+        result["defense_team"] = defense_team
+        result["offense_team"] = offense_team
 
         if result["ishit"]: #if batter gets a hit:
             self.get_batter().game_stats["hits"] += 1
