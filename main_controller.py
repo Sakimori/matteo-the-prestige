@@ -194,14 +194,14 @@ def update_loop():
 
                 elif state["update_pause"] != 1 and this_game.play_has_begun:
 
-                    if "weather_message" in this_game.last_update[0].keys():
+                    if "twopart" in this_game.last_update[0].keys():
+                        state["update_emoji"] = "💬"
+                    elif "weather_message" in this_game.last_update[0].keys():
                         state["update_emoji"] = this_game.weather.emoji
                     elif "ishit" in this_game.last_update[0].keys() and this_game.last_update[0]["ishit"]:
                         state["update_emoji"] = "🏏"
                     elif "outcome" in this_game.last_update[0].keys() and this_game.last_update[0]["outcome"] == gametext.appearance_outcomes.walk:
                         state["update_emoji"] = "👟"
-                    elif "twopart" in this_game.last_update[0].keys():
-                        state["update_emoji"] = "💬"
                     else:
                         state["update_emoji"] = "🗞"
 
@@ -246,4 +246,4 @@ def update_loop():
             state["update_pause"] -= 1
 
         socketio.emit("states_update", game_states)
-        time.sleep(3)
+        time.sleep(8)

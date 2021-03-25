@@ -422,6 +422,7 @@ class game(object):
             furthest_base, runner = outcome["runners"].pop() #get furthest baserunner
             self.bases[furthest_base] = None 
             outcome["fc_out"] = (runner.name, base_string(furthest_base+1)) #runner thrown out
+            outcome["runner"] = runner.name
             outcome["base"] = furthest_base+1
             for index in range(0,len(outcome["runners"])):
                 base, this_runner = outcome["runners"].pop()
@@ -540,6 +541,9 @@ class game(object):
             result["defense_team"] = defense_team
             result["offense_team"] = offense_team
 
+            if "advance" in result.keys() and self.bases[3] is not None:
+                result["outcome"] = appearance_outcomes.sacrifice
+                result["runner"] = self.bases[3].name
             text_list = getattr(self.voice, result["outcome"].name)
             voice_index = random.randrange(0, len(text_list))
             result["voiceindex"] = voice_index
@@ -601,13 +605,14 @@ class game(object):
                 if self.outs < 3:
                     scores_to_add += self.baserunner_check(result["defender"], result)
 
-            elif "advance" in result.keys():
+            elif "advance" in result.keys() or result["outcome"] == appearance_outcomes.sacrifice:
                 self.get_pitcher().game_stats["outs_pitched"] += 1
                 self.outs += 1
                 if self.outs < 3:
                     if self.bases[3] is not None:
+                        result["runner"] = self.bases[3].name
                         self.get_batter().game_stats["sacrifices"] += 1
-                    scores_to_add += self.baserunner_check(defender, result)
+                    scores_to_add += self.baserunner_check(result["defender"], result)
 
             elif result["outcome"] == appearance_outcomes.strikeoutlooking or result["outcome"] == appearance_outcomes.strikeoutswinging:
                 self.get_pitcher().game_stats["outs_pitched"] += 1
@@ -627,7 +632,7 @@ class game(object):
                 if extra_format == "base":
                     format_list.append(base_string(result["base"]))
                 elif extra_format == "runner":
-                    format_list.append(result["fc_out"][0])
+                    format_list.append(result["runner"])
             self.voice.post_format = []
             result["displaytext"] = result["displaytext"].format(*format_list)
         
@@ -694,7 +699,7 @@ class game(object):
     def gamestate_update_full(self):
         self.play_has_begun = True
         attempts = self.thievery_attempts()
-        if attempts == False:
+        if attempts == False or "twopart" in self.last_update[0]:
             self.last_update = self.batterup()
         else:
             self.last_update = attempts

@@ -18,8 +18,7 @@ class appearance_outcomes(Enum):
 class game_strings_base(object):
     def __init__(self):
         self.intro_counter = 1
-
-    post_format = []
+        self.post_format = []
 
     default_format = ("defender",)
 
@@ -46,7 +45,6 @@ class game_strings_base(object):
     no_formats = [strikeoutlooking, strikeoutswinging, doubleplay, walk, single, double, triple, homerun, grandslam]
 
     def activate(self, lastupdate, currentupdate, game):
-        #try:
         if "twopart" in lastupdate:
             for key, value in lastupdate.items():
                 if key != "twopart":
@@ -61,7 +59,6 @@ class game_strings_base(object):
                     })
             else:
                 currentupdate["displaytext"] = f"{currentupdate['batter']} {self.format_gamestring(getattr(self, currentupdate['outcome'].name)[currentupdate['voiceindex']], currentupdate)}"
-            #pass
 
     def check_for_twopart(self, gamestring): 
         return gamestring in self.twoparts
@@ -80,12 +77,12 @@ class game_strings_base(object):
             if string == "defender":
                 out_list.append(update['defender'].name)
             elif string == "base_string":
-                post_format.append("base")
+                self.post_format.append("base")
                 out_list.append("{}")
             elif string == "batter":
                 out_list.append(update['batter'].name)
             elif string == "fc_out" or string == "runner":
-                post_format.append("runner")
+                self.post_format.append("runner")
                 out_list.append("{}")
             elif string == "defense_team":
                 out_list.append(update['defense_team'].name)
@@ -97,6 +94,7 @@ class TheGoddesses(game_strings_base):
 
     def __init__(self):
         self.intro_counter = 4
+        self.post_format = []
 
     intro = [("💜", "This game is now blessed 💜"), ("🏳️‍⚧️","I'm Sakimori,"), ("🌺", "and i'm xvi! the sim16 goddesses are live and on-site, bringing you today's game."), ("🎆", "Get hyped!!")]
 
