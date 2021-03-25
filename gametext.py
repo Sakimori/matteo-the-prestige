@@ -43,33 +43,34 @@ class game_strings_base(object):
     diff_formats = {fielderschoice: ("defender", "base_string")}
     no_formats = [strikeoutlooking, strikeoutswinging, doubleplay, walk, single, double, triple, homerun, grandslam]
 
-    def activate(self, lastupdate, currentupdate):
+    def activate(self, lastupdate, currentupdate, game):
         #try:
-        if "text" in lastupdate and self.check_for_twopart(getattr(self, lastupdate["text"].name)[lastupdate["voiceindex"]]):
-            currentupdate.clear()
-            currentupdate.update({
-                "text": getattr(self, lastupdate["text"].name)[lastupdate["text_index"][1]],
-                "twopart": True,
-                'defender': lastupdate['defender'],
-                'base': lastupdate['base'],
-                'batter': lastupdate['batter'],
-                'runner': lastupdate['runner'],
-                'defense_team': lastupdate['defense_team'],
-                'offense_team': lastupdate['offense_team']
-                })
-        #except:
+        if "twopart" in lastupdate:
+            for key, value in lastupdate.items():
+                if key != "twopart":
+                    currentupdate[key] = value
+            currentupdate["displaytext"] = self.format_gamestring(getattr(self, currentupdate["outcome"].name)[currentupdate["voiceindex"]][1], currentupdate)
+
+        elif "outcome" in currentupdate:
+            if self.check_for_twopart(getattr(self, currentupdate["outcome"].name)[currentupdate["voiceindex"]]):
+                currentupdate.update({
+                    "twopart": True,
+                    "displaytext": f"{currentupdate['batter']} {self.format_gamestring(getattr(self, currentupdate['outcome'].name)[currentupdate['voiceindex']][0], currentupdate)}"
+                    })
+            else:
+                currentupdate["displaytext"] = f"{currentupdate['batter']} {self.format_gamestring(getattr(self, currentupdate['outcome'].name)[currentupdate['voiceindex']], currentupdate)}"
             #pass
 
     def check_for_twopart(self, gamestring): 
         return gamestring in self.twoparts
 
-    def format_gamestring(self, gamestring, game):
+    def format_gamestring(self, gamestring, update):
         if gamestring in self.no_formats:
             return gamestring
         elif gamestring in self.diff_formats:
-            return gamestring.format(*parse_formats(self.diff_formats[gamestring], game))
+            return gamestring.format(*parse_formats(self.diff_formats[gamestring], update))
         else:
-            return gamestring.format(*parse_formats(self.default_format, game))
+            return gamestring.format(*parse_formats(self.default_format, update))
 
 class TheGoddesses(game_strings_base):
 
@@ -117,10 +118,10 @@ class TheGoddesses(game_strings_base):
               "hits a soft line drive over the infield, and makes it to first as it lands in the grass for a single.",
               "shoots a comebacker right over second base and pulls into first safely, racking up a base hit."]
 
-    double = "hits a double!"
-    triple = "hits a triple!"
-    homerun = "hits a dinger!"
-    grandslam = "hits a grand slam!"
+    double = ["hits a double!"]
+    triple = ["hits a triple!"]
+    homerun = ["hits a dinger!"]
+    grandslam = ["hits a grand slam!"]
 
     diff_formats = {groundout[3][1] : ("batter",),
                flyout[0][1]: ("batter",), flyout[2][1]: ("defender", "batter"),
@@ -132,21 +133,22 @@ class TheGoddesses(game_strings_base):
     twoparts = [groundout[1], groundout[3], flyout[0], flyout[2], flyout[4], walk[2], single[0], sacrifice[0]]
 
 
-def parse_formats(format_tuple, game):
+def parse_formats(format_tuple, update):
     out_list = []
     for string in format_tuple:
         if string == "defender":
-            out_list.append(game.last_update[0]['defender'].name)
+            out_list.append(update['defender'].name)
         elif string == "base_string":
-            out_list.append(base_string(game.last_update[0]['base']))
+            update["add_base"] = True
+            out_list.append("%s")
         elif string == "batter":
-            out_list.append(game.last_update[0]['batter'].name)
+            out_list.append(update['batter'].name)
         elif string == "fc_out" or string == "runner":
-            out_list.append(game.last_update[0]['runner'].name)
+            out_list.append(update['runner'].name)
         elif string == "defense_team":
-            out_list.append(game.last_update[0]['defense_team'].name)
+            out_list.append(update['defense_team'].name)
         elif string == "offense_team":
-            out_list.append(game.last_update[0]['offense_team'].name)
+            out_list.append(update['offense_team'].name)
     return tuple(out_list)
 
 def base_string(base):

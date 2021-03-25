@@ -3,7 +3,6 @@ from leagues import league_structure
 from league_storage import league_exists
 from flask import Flask, url_for, Response, render_template, request, jsonify, send_from_directory, abort
 from flask_socketio import SocketIO, emit
-from random import randrange
 import database as db
 
 app = Flask("the-prestige", static_folder='simmadome/build/', subdomain_matching=True)
@@ -199,8 +198,10 @@ def update_loop():
                         state["update_emoji"] = this_game.weather.emoji
                     elif "ishit" in this_game.last_update[0].keys() and this_game.last_update[0]["ishit"]:
                         state["update_emoji"] = "🏏"
-                    elif "text" in this_game.last_update[0].keys() and this_game.last_update[0]["text"] == gametext.appearance_outcomes.walk:
+                    elif "outcome" in this_game.last_update[0].keys() and this_game.last_update[0]["outcome"] == gametext.appearance_outcomes.walk:
                         state["update_emoji"] = "👟"
+                    elif "twopart" in this_game.last_update[0].keys():
+                        state["update_emoji"] = "💬"
                     else:
                         state["update_emoji"] = "🗞"
 
@@ -215,29 +216,13 @@ def update_loop():
                     elif "text_only" in this_game.last_update[0].keys(): #this handles many weather messages
                         state["update_text"] = this_game.last_update[0]["text"]
                     else:
-                        updatestring = ""
-                        punc = ""
-                        if this_game.last_update[0]["defender"] != "":
-                            punc = ". "
-
-                        if "fc_out" in this_game.last_update[0].keys():
-                            name, out_at_base_string = this_game.last_update[0]['fc_out']
-                            updatestring = f"{this_game.last_update[0]['batter']} {this_game.last_update[0]['text'].value.format(name, out_at_base_string)} {this_game.last_update[0]['defender']}{punc}"
-                        else:
-                            text_list = getattr(this_game.voice, this_game.last_update[0]["text"].name)
-                            voice_index = randrange(0, len(text_list))
-                            updatestring = text_list[voice_index]
-                            this_game.last_update[0]["voiceindex"] = voice_index
-                            if this_game.voice.check_for_twopart(updatestring):
-                                updatestring = updatestring[0]
-                                this_game.last_update[0]["twopart"] = True
-                            updatestring = this_game.voice.format_gamestring(updatestring, this_game)
+                        updatestring = this_game.last_update[0]["displaytext"]
 
                         if this_game.last_update[1] > 0:
-                                updatestring += f"{this_game.last_update[1]} runs scored!"
+                                updatestring += f" {this_game.last_update[1]} runs scored!"
 
 
-                        state["update_text"] = f"{this_game.last_update[0]['batter']} {updatestring}"
+                        state["update_text"] = f"{updatestring}"
 
                         this_game.weather.modify_atbat_message(this_game, state)
 

@@ -72,7 +72,7 @@ class SlightTailwind(Weather):
 
     def activate(self, game, result):
 
-        if "mulligan" not in game.last_update[0].keys() and not result["ishit"] and result["text"] != appearance_outcomes.walk: 
+        if "mulligan" not in game.last_update[0].keys() and not result["ishit"] and result["outcome"] != appearance_outcomes.walk: 
             mulligan_roll_target = -((((game.get_batter().stlats["batting_stars"])-5)/6)**2)+1
             if random.random() > mulligan_roll_target and game.get_batter().stlats["batting_stars"] <= 5:
                 result.clear()
@@ -90,7 +90,7 @@ class Starlight(Weather):
 
     def activate(self, game, result):
 
-        if (result["text"] == appearance_outcomes.homerun or result["text"] == appearance_outcomes.grandslam):
+        if (result["outcome"] == appearance_outcomes.homerun or result["outcome"] == appearance_outcomes.grandslam):
             result["weather_message"] = True
             dinger_roll = random.random()
             if "dragon" in game.get_batter().name.lower():
@@ -190,7 +190,7 @@ class ThinnedVeil(Weather):
 
     def activate(self, game, result):
         if result["ishit"]:
-           if result["text"] == appearance_outcomes.homerun or result["text"] == appearance_outcomes.grandslam:
+           if result["outcome"] == appearance_outcomes.homerun or result["outcome"] == appearance_outcomes.grandslam:
                 result["veil"] = True
 
     def modify_atbat_message(self, game, state):
