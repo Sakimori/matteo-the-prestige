@@ -5,6 +5,7 @@ from itertools import chain
 from copy import deepcopy
 from games import team, game
 from discord import Embed, Color
+from uuid import uuid4
 
 data_dir = "data"
 league_dir = "leagues"
@@ -514,7 +515,7 @@ class tournament(object):
         self.day = None
 
         if id is None:
-            self.id = random.randint(1111,9999)
+            self.id = str(uuid4())
         else:
             self.id = id
 
