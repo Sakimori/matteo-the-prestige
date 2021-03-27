@@ -1626,12 +1626,12 @@ async def watch_game(channel, newgame, user = None, league = None):
 
     main_controller.master_games_dic[id] = (newgame, state_init, discrim_string)
 
-def prepare_game(newgame, league = None, weather_name = None, voice = None):
+def prepare_game(newgame, league = None, weather_name = None):
     if weather_name is None and newgame.weather.name == "Sunny":
         weathers = weather.all_weathers()
         newgame.weather = weathers[random.choice(list(weathers.keys()))](newgame)
 
-    if voice is None:
+    if newgame.voice is None:
         newgame.voice = gametext.TheGoddesses()
 
     state_init = {
