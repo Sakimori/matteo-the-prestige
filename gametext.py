@@ -40,14 +40,14 @@ class game_strings_base(object):
     homerun = ["hits a dinger!"]
     grandslam = ["hits a grand slam!"]
 
-    steal_success = ["{} was caught stealing {} base by {}!"]
-    steal_caught = ["{runner} steals {base_string} base!"]
+    steal_caught = ["{} was caught stealing {} base by {}!"]
+    steal_success = ["{} steals {} base!"]
 
     twoparts = []
 
     diff_formats = {fielderschoice[0]: ("defender", "base_string"),
-                    steal_success[0]: ("runner", "base_string", "defender"),
-                    steal_caught[0]: ("runner", "base_string")}
+                    steal_success[0]: ("runner", "base_string"),
+                    steal_caught[0]: ("runner", "base_string", "defender")}
     no_formats = strikeoutlooking + strikeoutswinging + doubleplay + walk + single + double + triple + homerun + grandslam
 
     def activate(self, lastupdate, currentupdate, game):
@@ -99,22 +99,22 @@ class game_strings_base(object):
     def activate_weather(self, lastupdate, currentupdate, game):
         pass
 
-    def stealing(self, runner, base_string, defender, is_successful):
-        if not is_successful:
-            index = randrange(0, len(steal_success))
-            text = steal_success[index]
+    def stealing(self, currentupdate, runner, base_string, defender, is_successful):
+        if is_successful:
+            index = randrange(0, len(self.steal_success))
+            text = self.steal_success[index]
         else:
-            index = randrange(0, len(steal_caught))
-            text = steal_caught[index]
+            index = randrange(0, len(self.steal_caught))
+            text = self.steal_caught[index]
 
         format_list = []
-        for format in diff_formats[text]:
+        for format in self.diff_formats[text]:
             if format == "runner":
-                format_list.append(runner.name)
+                format_list.append(runner)
             elif format == "base_string":
                 format_list.append(base_string)
             elif format == "defender":
-                format_list.append(defender.name)
+                format_list.append(defender)
 
         currentupdate["steals"] = [text.format(*format_list)]
 
@@ -214,8 +214,8 @@ class TheGoddesses(game_strings_base):
 
 
 def all_voices():
-    return [game_strings_base,
-        TheGoddesses]
+    return {"default": game_strings_base,
+        "the goddesses": TheGoddesses}
 
 
 def base_string(base):

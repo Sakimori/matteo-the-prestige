@@ -222,7 +222,7 @@ class game(object):
             self.max_innings = config()["default_length"]
         self.bases = {1 : None, 2 : None, 3 : None}
         self.weather = weather.Weather(self)
-        self.voice = game_strings_base()
+        self.voice = None
         self.current_batter = None
 
     def occupied_bases(self):
@@ -383,7 +383,7 @@ class game(object):
                 self.bases[start_base+1] = baserunner
             self.bases[start_base] = None
 
-        self.voice.stealing(baserunner.name, base_string(start_base+1), defender.name, successful)
+        self.voice.stealing(outcome, baserunner.name, base_string(start_base+1), defender.name, successful)
 
         if self.outs >= 3:
             self.flip_inning()
