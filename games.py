@@ -366,7 +366,6 @@ class game(object):
             defense_team = self.teams["away"]
 
         outcome = {}
-        outcome["steals"] = []
 
         for baserunner, start_base in attempts:
             defender = random.choice(defense_team.lineup) #excludes pitcher
@@ -376,13 +375,15 @@ class game(object):
             if start_base == 2:
                 run_roll = run_roll * .9 #stealing third is harder
             if run_roll < 1:
-                outcome["steals"].append(f"{baserunner} was caught stealing {base_string(start_base+1)} base by {defender}!")
+                successful = False  
                 self.get_pitcher().game_stats["outs_pitched"] += 1
                 self.outs += 1
             else:
-                outcome["steals"].append(f"{baserunner} steals {base_string(start_base+1)} base!")
+                successful = True
                 self.bases[start_base+1] = baserunner
             self.bases[start_base] = None
+
+        self.voice.stealing(baserunner.name, base_string(start_base+1), defender.name, successful)
 
         if self.outs >= 3:
             self.flip_inning()

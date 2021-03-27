@@ -1,4 +1,5 @@
 from enum import Enum
+from random import randrange
 
 class appearance_outcomes(Enum):
     strikeoutlooking = "strikes out looking."
@@ -17,13 +18,13 @@ class appearance_outcomes(Enum):
 
 class game_strings_base(object):
     def __init__(self):
-        self.intro_counter = 1
+        self.intro_counter = 2
         self.post_format = []
 
     default_format = ("defender",)
 
     intro_formats = []
-    intro = [("🎆", "Play ball!")]
+    intro = [("⚡","Automated Baseball Caster V16.38, now online."),("⚡", "Play ball!")]
 
     strikeoutlooking = ["strikes out looking."]
     strikeoutswinging = ["strikes out swinging."]
@@ -39,9 +40,14 @@ class game_strings_base(object):
     homerun = ["hits a dinger!"]
     grandslam = ["hits a grand slam!"]
 
+    steal_success = ["{} was caught stealing {} base by {}!"]
+    steal_caught = ["{runner} steals {base_string} base!"]
+
     twoparts = []
 
-    diff_formats = {fielderschoice[0]: ("defender", "base_string")}
+    diff_formats = {fielderschoice[0]: ("defender", "base_string"),
+                    steal_success[0]: ("runner", "base_string", "defender"),
+                    steal_caught[0]: ("runner", "base_string")}
     no_formats = strikeoutlooking + strikeoutswinging + doubleplay + walk + single + double + triple + homerun + grandslam
 
     def activate(self, lastupdate, currentupdate, game):
@@ -89,6 +95,28 @@ class game_strings_base(object):
             elif string == "offense_team":
                 out_list.append(update['offense_team'].name)
         return tuple(out_list)
+
+    def activate_weather(self, lastupdate, currentupdate, game):
+        pass
+
+    def stealing(self, runner, base_string, defender, is_successful):
+        if not is_successful:
+            index = randrange(0, len(steal_success))
+            text = steal_success[index]
+        else:
+            index = randrange(0, len(steal_caught))
+            text = steal_caught[index]
+
+        format_list = []
+        for format in diff_formats[text]:
+            if format == "runner":
+                format_list.append(runner.name)
+            elif format == "base_string":
+                format_list.append(base_string)
+            elif format == "defender":
+                format_list.append(defender.name)
+
+        currentupdate["steals"] = [text.format(*format_list)]
 
 class TheGoddesses(game_strings_base):
 
@@ -156,6 +184,14 @@ class TheGoddesses(game_strings_base):
     grandslam = ["hits a fly ball to deep left field, and it barely gets over the wall for a GRAND SLAM!!!",
                  ("hits a high fly ball deep to center! this one looks like a dinger...", "{} jumps up for the steal but can't get to it! {} gets a grand slam!!!")]
 
+    steal_success = ["{} takes {} with ease on a low changeup!",
+                     "{} steals {} after a close throw from {} is just a moment too late!",
+                     "{} tries to catch {} stealing, but a high throw means they pull off the steal at {} just in time."]
+
+    steal_caught = ["{} catches {} trying to steal {} with a laser throw!",
+                    "{} tries to steal {}, but they can't beat the throw and get caught.",
+                    "{} gets caught stealing easily with that throw from {}!"]
+
     diff_formats = {groundout[3][1] : ("batter",),
                flyout[0][1]: ("batter",), flyout[2][1]: ("defender", "batter"),
                fielderschoice[0]: ("defender", "fc_out", "batter"), fielderschoice[1]: ("base_string", "fc_out"),
@@ -165,14 +201,21 @@ class TheGoddesses(game_strings_base):
                double[0][1]: ("defender", "batter"),
                triple[0]: ("batter",),
                homerun[0][1]: ("defender", "batter"),
-               grandslam[1][1]: ("defender", "batter")}
+               grandslam[1][1]: ("defender", "batter"),
+               steal_success[0]: ("runner", "base_string"), steal_success[1]: ("runner", "base_string", "defender"), steal_success[2]: ("defender", "runner", "base_string"),
+               steal_caught[0]: ("defender", "runner", "base_string"), steal_caught[1]: ("runner", "base_string"), steal_caught[2]: ("runner", "defender")}
+
     no_formats = strikeoutlooking + strikeoutswinging + walk + single[3:] + [flyout[4][0], sacrifice[0][1], 
                                                                              double[0][0], double[1], double[2][0], double[2][1], triple[1],
                                                                              homerun[0][0], homerun[1][0], homerun[1][1], homerun[2:],
                                                                              grandslam[0], grandslam[1][0]]
+
     twoparts = [groundout[1], groundout[3], flyout[0], flyout[2], flyout[4], walk[2], doubleplay[1], single[0], single[1], single[2], sacrifice[0], double[0], double[2], homerun[0], homerun[1], grandslam[1]]
 
 
+def all_voices():
+    return [game_strings_base,
+        TheGoddesses]
 
 
 def base_string(base):
