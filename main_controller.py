@@ -246,4 +246,4 @@ def update_loop():
             state["update_pause"] -= 1
 
         socketio.emit("states_update", game_states)
-        time.sleep(10)
+        time.sleep(8)
