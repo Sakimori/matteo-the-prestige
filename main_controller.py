@@ -10,6 +10,7 @@ app.config['SECRET KEY'] = 'dev'
 #url = "sakimori.space:5000"
 #app.config['SERVER_NAME'] = url
 socketio = SocketIO(app)
+socket_thread = None
 
 # Serve React App
 @app.route('/', defaults={'path': ''})
@@ -126,7 +127,10 @@ def handle_new_conn(data):
 
 def update_loop():
     global game_states
+    global socket_thread
     while True:
+        if socket_thread is not None:
+            socket_thread.join()
         game_states = []
         game_ids = iter(master_games_dic.copy().keys())
         for game_id in game_ids:
@@ -245,5 +249,7 @@ def update_loop():
 
             state["update_pause"] -= 1
 
-        socketio.emit("states_update", game_states)
+        socket_thread = threading.Thread(target=socketio.emit, args=("states_update", game_states))
+        socket_thread.start()
+        #socketio.emit("states_update", game_states)
         time.sleep(8)
