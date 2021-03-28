@@ -554,6 +554,15 @@ class game(object):
         self.voice.activate(self.last_update[0], result, self)
 
         if "twopart" in result:
+            if self.voice.post_format != []:
+                format_list = []
+                for extra_format in self.voice.post_format:
+                    if extra_format == "base":
+                        format_list.append(base_string(result["base"]))
+                    elif extra_format == "runner":
+                        format_list.append(result["runner"])
+                self.voice.post_format = []
+                result["displaytext"] = result["displaytext"].format(*format_list)
             return (result, 0)
 
         if result["ishit"]: #if batter gets a hit:
@@ -597,7 +606,7 @@ class game(object):
                 self.outs += 2
                 self.bases[1] = None     
                 if self.outs < 3:
-                    scores_to_add += self.baserunner_check(defender, result)
+                    scores_to_add += self.baserunner_check(result["defender"], result)
                     self.get_batter().game_stats["rbis"] -= scores_to_add #remove the fake rbi from the player in advance
 
             elif result["outcome"] == appearance_outcomes.fielderschoice or result["outcome"] == appearance_outcomes.groundout:
