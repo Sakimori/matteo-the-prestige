@@ -45,7 +45,7 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
   A: Scheduling algorithms are hard and due to how this one was coded, sometimes teams have bye weeks and rest for some games the season, this should all even out by the end of the season and each team will play the same number of games.
 
 - Q: What should I do if my question isn't answered by this FAQ, this readme, or the help text for the commands, or I find a bug?  
-  A: If you have any mechancial questions, feel free to stop by the sim16 discord linked at the beginning and ask your question in the lobby there. If you have an issue or think you've found a bug, please submit it to this form and it will be passed along if it's something we can do anything about. https://forms.gle/PjbpfT46yuMDGca46
+  A: If you have any mechanical questions, feel free to stop by the sim16 discord linked at the beginning and ask your question in the lobby there. If you have an issue or think you've found a bug, please submit it to this form and it will be passed along if it's something we can do anything about. https://forms.gle/PjbpfT46yuMDGca46
 
 
 ## Commands: (Everything here is case sensitive, and can be prefixed with either m; or m!)
