@@ -415,7 +415,13 @@ class Downpour(Weather):
 
     def modify_top_of_inning_message(self, game, state):
         state["update_emoji"] = self.emoji
-        state["update_text"] = "The gods are not yet pleased. Play continues through the storm."
+        if game.teams["away"].score >= self.target: #if the away team has met the target
+            if game.teams["home"].score == game.teams["away"].score: #if the teams are tied
+                state["update_text"] = "The gods demand a victor. Play on."
+            else:
+                state["update_text"] = f"The gods are pleased, but demand more from {game.teams['home'].name}. Take the field."
+        else:
+            state["update_text"] = "The gods are not yet pleased. Play continues through the storm."
 
     def modify_game_end_message(self, game, state):
         state["update_emoji"] = self.emoji
