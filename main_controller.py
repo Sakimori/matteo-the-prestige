@@ -94,8 +94,8 @@ def create_league():
 
     for (key, min_val) in [
         ('division_series', 1), 
-        ('inter_division_series', 1), 
-        ('inter_league_series', 1)
+        ('inter_division_series', 0), 
+        ('inter_league_series', 0)
     ]:
         if config[key] < min_val:
             return jsonify({'status':'err_invalid_optiion_value', 'cause':key}), 400
