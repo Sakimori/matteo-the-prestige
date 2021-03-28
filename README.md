@@ -21,7 +21,7 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
     - [Viewing and Searching](https://github.com/Sakimori/matteo-the-prestige#viewing-and-searching)
   - [Game Commands](https://github.com/Sakimori/matteo-the-prestige#game-commands)
 	- [Individual Game Commands](https://github.com/Sakimori/matteo-the-prestige#individual-game-commands)
-	- [Tournament Commands](https://github.com/Sakimori/matteo-the-prestige#obl-commands)
+	- [Tournament Commands](https://github.com/Sakimori/matteo-the-prestige#tournament-commands)
 	- [OBL Commands](https://github.com/Sakimori/matteo-the-prestige#obl-commands)
 	- [Draft Commands](https://github.com/Sakimori/matteo-the-prestige#draft-commands)
 	- [League Commands](https://github.com/Sakimori/matteo-the-prestige#league-commands)	
@@ -35,6 +35,9 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
 - Q: I'm trying to make a league on the website but when I click the 'submit' button it doesn't do anything and doesn't give an error message.  
   A: This is a known issue, to avoid it make sure you have an even number of divisions and subleagues and an equal number of teams in each division. These are all requirements for a league and sometimes if some of them aren't met the submit button will fail silently. If you're still having this issue after doing all of this correctly please submit a bug report via the form.
 
+- Q: What is the maximum and minimum sizes for teams?  
+  A: The minimum size is 1 batter and 1 pitcher, the maximum size is 20 batters and 8 pitchers.
+
 - Q: My league stopped playing randomly and I don't know why, what should I do?  
   A: There were probably server issues or a patch went out, use the startleague command again and things should resume from where they left off.  
 
@@ -42,7 +45,7 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
   A: Scheduling algorithms are hard and due to how this one was coded, sometimes teams have bye weeks and rest for some games the season, this should all even out by the end of the season and each team will play the same number of games.
 
 - Q: What should I do if my question isn't answered by this FAQ, this readme, or the help text for the commands, or I find a bug?  
-  A: Please submit your issue or bug to this form and it will be passed along if it's something we can do anything about. https://forms.gle/PjbpfT46yuMDGca46
+  A: If you have any mechancial questions, feel free to stop by the sim16 discord linked at the beginning and ask your question in the lobby there. If you have an issue or think you've found a bug, please submit it to this form and it will be passed along if it's something we can do anything about. https://forms.gle/PjbpfT46yuMDGca46
 
 
 ## Commands: (Everything here is case sensitive, and can be prefixed with either m; or m!)
@@ -53,14 +56,14 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
 	- The first line of the list is your team's name.
 	- The second line is the team's icon and slogan, generally this is an emoji followed by a space, followed by a short slogan.
 	- The third line must be blank.
-	- The next lines are your batters' names in the order you want them to appear in your lineup, lineups can contain any number of batters between 1 and 12.
+	- The next lines are your batters' names in the order you want them to appear in your lineup, lineups can contain any number of batters between 1 and 20.
 	- Then another blank line separating your batters and your pitchers.
 	- The final lines are the names of the pitchers in your rotation, rotations can contain any number of pitchers between 1 and 8.
   - If you did it correctly, you'll get a team embed with a prompt to confirm. hit the 👍 and your team will be saved!
 - m;deleteteam [teamname] (requires team ownership)
   - Allows you to delete the team with the provided name. You'll get an embed with a confirmation to prevent accidental deletions. Hit the 👍 and your team will be deleted.
 - m;import
-  - Imports an onomancer collection as a new team. you can use the new onomancer simsim setting to ensure compatibility. Similarly to saveteam, you'll get a team embed with a prompt to confirm, hit the 👍 and your team will be saved!
+  - Imports an onomancer collection as a new team. you can use the new onomancer sim16 setting to ensure compatibility. Similarly to saveteam, you'll get a team embed with a prompt to confirm, hit the 👍 and your team will be saved!
 #### Editing (all of these commands require ownership and exact spelling of the team name):
 - m;replaceplayer [team name] [player to remove] [player to add]
   - Replaces a player on your team with a new player. if there are multiple copies of the same player on a team this will only replace the first one. Use this command at the top of a list with entries separated by new lines:
@@ -195,7 +198,7 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
 [Return to the top](https://github.com/Sakimori/matteo-the-prestige#matteo-the-prestige)
 
 ## Weathers
-- All current simsim weathers are listed here with a short description of their effects except for the most recent weathers whose effects remain a mystery.
+- All current sim16 weathers are listed here with a short description of their effects except for the most recent weathers whose effects remain a mystery.
   - Supernova 🌟: Makes all pitchers pitch worse, significantly increased effect on stronger pitchers.
   - Midnight 🕶: Significantly increased the chance that players will attempt to steal a base.
   - Blizzard ❄: Occasionally causes the team's pitcher to bat in place of the scheduled batter.
