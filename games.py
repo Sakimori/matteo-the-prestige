@@ -81,17 +81,17 @@ class team(object):
 
     def find_player(self, name):
         for index in range(0,len(self.lineup)):
-            if self.lineup[index].name == name:
+            if self.lineup[index].name.replace(" ", " ") == name:
                 return (self.lineup[index], index, self.lineup)
         for index in range(0,len(self.rotation)):
-            if self.rotation[index].name == name:
+            if self.rotation[index].name.replace(" ", " ") == name:
                 return (self.rotation[index], index, self.rotation)
         else:
             return (None, None, None)
 
     def find_player_spec(self, name, roster):
          for s_index in range(0,len(roster)):
-            if roster[s_index].name == name:
+            if roster[s_index].name.replace(" ", " ") == name:
                 return (roster[s_index], s_index)
 
     def average_stars(self):
