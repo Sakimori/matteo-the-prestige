@@ -288,11 +288,16 @@ class Breezy(Weather):
 
             if ' ' in player.name:
                 names = player.name.split(" ")
-                first_first_letter = names[0][0]
-                last_first_letter = names[-1][0]
-                names[0] = last_first_letter + names[0][1:]
-                names[-1] = first_first_letter + names[-1][1:]
-                player.name = ' '.join(names)
+                try:
+                    first_first_letter = names[0][0]
+                    last_first_letter = names[-1][0]
+                    names[0] = last_first_letter + names[0][1:]
+                    names[-1] = first_first_letter + names[-1][1:]
+                    player.name = ' '.join(names)
+                except:
+                    first_letter = player.name[0]
+                    last_letter = player.name[-1]
+                    player.name = last_letter + player.name[1:-1] + first_letter
             else:
                 #name is one word, so turn 'bartholemew' into 'martholemeb'
                 first_letter = player.name[0]
