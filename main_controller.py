@@ -1,4 +1,4 @@
-import asyncio, time, datetime, games, json, threading, jinja2, leagues, os, leagues, gametext
+import asyncio, time, datetime, games, json, threading, jinja2, leagues, os, leagues, gametext, logging
 from leagues import league_structure
 from league_storage import league_exists
 from flask import Flask, url_for, Response, render_template, request, jsonify, send_from_directory, abort
@@ -11,6 +11,9 @@ app.config['SECRET KEY'] = 'dev'
 #app.config['SERVER_NAME'] = url
 socketio = SocketIO(app)
 socket_thread = None
+log = logging.getLogger('werkzeug')
+log.disabled = True
+app.logger.disabled = True
 
 # Serve React App
 @app.route('/', defaults={'path': ''})
