@@ -856,9 +856,9 @@ class LeagueDisplayCommand(Command):
     description = "Displays the current standings for the given league. Use `--season X` or `-s X` to get standings from season X of that league."
 
     async def execute(self, msg, command, flags):
-        if league_exists(command.split("-")[0].strip()):
+        if league_exists(command.split("\n")[1].strip()):
             try:
-                league = leagues.load_league_file(command.split("-")[1].strip())
+                league = leagues.load_league_file(command.split("\n")[1].strip())
             except IndexError:
                 raise CommandError("League name goes on the second line now, boss.")
 
@@ -1188,15 +1188,15 @@ class LeagueSwapTeamCommand(Command):
                 if a_subleague is None or b_subleague is None:
                     raise CommandError("One of those teams isn't in the league. Try leaguereplaceteam instead.")
 
-                for index in range(0, len(league.league[subleague][division])):
-                    if league.league[subleague][division][index].name == team_del.name:
-                        league.league[subleague][division].pop(index)
-                        league.league[subleague][division].append(team_add)
+                for index in range(0, len(league.league[a_subleague][a_division])):
+                    if league.league[a_subleague][a_division][index].name == team_a.name:
+                        a_index = index
+                for index in range(0, len(league.league[b_subleague][b_division])):
+                    if league.league[b_subleague][b_division][index].name == team_b.name:
+                        b_index = index
 
-                a_index = league.league[a_subleague][a_division].index(team_a.name)
-                b_index = league.league[b_subleague][b_division].index(team_b.name)
-                league.league[a_subleague][a_division][a_index] = team_b.name
-                league.league[b_subleague][b_division][b_index] = team_a.name
+                league.league[a_subleague][a_division][a_index] = team_b
+                league.league[b_subleague][b_division][b_index] = team_a
                 league.schedule = {}
                 league.generate_schedule()
                 leagues.save_league_as_new(league)
@@ -2389,7 +2389,7 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
 
         next_start = (now + delta).replace(second=0, microsecond=0)
         wait_seconds = (next_start - now).seconds
-        await league_subscriber_update(league, channel, f"This {league.name} season is now over! The postseason (with any necessary tiebreakers) will be starting in {math.ceil(wait_seconds/60)} minutes.")
+        await league_subscriber_update(league, channel, f"This {league.name} season is now over! The postseason (with any necessary tiebreakers) will be starting in {math.ceil(wait_seconds/60)} minutes. (unless you skipped it, that is.)")
         await asyncio.sleep(wait_seconds)
         await league_postseason(channel, league)
 
@@ -2535,7 +2535,7 @@ async def league_postseason(channel, league):
     league.season_reset()
 
 async def league_subscriber_update(league, start_channel, message):
-    channel_list = filter(lambda chan : chan.id in league.subbed_channels, client.get_all_channels())
+    channel_list = list(filter(lambda chan : chan.id in league.subbed_channels, client.get_all_channels()))
     channel_list.append(start_channel)
     for channel in channel_list:
         if isinstance(message, discord.Embed):
