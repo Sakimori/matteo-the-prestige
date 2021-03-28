@@ -1112,9 +1112,9 @@ class LeagueForceStopCommand(Command):
                 return
         raise CommandError("That league either doesn't exist or isn't in the active list. So, huzzah?")
 
-class LeagueSwapTeamCommand(Command):
-    name = "leagueswapteam"
-    template = "m;leagueswapteam [league name]\n[team to remove]\n[team to add]"
+class LeagueReplaceTeamCommand(Command):
+    name = "leaguereplaceteam"
+    template = "m;leaguereplaceteam [league name]\n[team to remove]\n[team to add]"
     description = "Adds a team to a league, removing the old one in the process. Can only be executed by a league owner, and only before the start of a new season."
          
     async def execute(self, msg, command, flags):
@@ -1157,6 +1157,56 @@ class LeagueSwapTeamCommand(Command):
                 raise CommandError("That league isn't yours, chief.")
         else:
             raise CommandError("We can't find that league.")
+
+class LeagueSwapTeamCommand(Command):
+    name = "leagueswapteams"
+    template = "m;leagueswapteams [league name]\n[team a]\n[team b]"
+    description = "Swaps two teams in any divisions or conferences of your league."
+
+    async def execute(self, msg, command, flags):
+        league_name = command.split("\n")[0].strip()
+        if league_exists(league_name):
+            league = leagues.load_league_file(league_name)
+            if league.day != 1:
+                await msg.channel.send("That league hasn't finished its current season yet, chief. Either reset it, or be patient.")
+                return
+            if (league.owner is not None and msg.author.id in league.owner) or (league.owner is not None and msg.author.id in config()["owners"]):
+                try:
+                    team_a = get_team_fuzzy_search(command.split("\n")[1].strip())
+                    team_b = get_team_fuzzy_search(command.split("\n")[2].strip())
+                except IndexError:
+                    raise CommandError("Three lines, boss. Make sure you give us the team to remove, then the team to add.")
+                if team_a.name == team_b.name:
+                    raise CommandError("Quit being cheeky. The teams have to be different.")
+
+                if team_a is None or team_b is None:
+                    raise CommandError("We couldn't find one or both of those teams, boss. Try again.")
+
+                a_subleague, a_division = league.find_team(team_a)               
+                b_subleague, b_division = league.find_team(team_b)
+
+                if a_subleague is None or b_subleague is None:
+                    raise CommandError("One of those teams isn't in the league. Try leaguereplaceteam instead.")
+
+                for index in range(0, len(league.league[subleague][division])):
+                    if league.league[subleague][division][index].name == team_del.name:
+                        league.league[subleague][division].pop(index)
+                        league.league[subleague][division].append(team_add)
+
+                a_index = league.league[a_subleague][a_division].index(team_a.name)
+                b_index = league.league[b_subleague][b_division].index(team_b.name)
+                league.league[a_subleague][a_division][a_index] = team_b.name
+                league.league[b_subleague][b_division][b_index] = team_a.name
+                league.schedule = {}
+                league.generate_schedule()
+                leagues.save_league_as_new(league)
+                await msg.channel.send(embed=league.standings_embed())
+                await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
+            else:
+                raise CommandError("That league isn't yours, chief.")
+        else:
+            raise CommandError("We can't find that league.")
+
 
 class LeagueRenameCommand(Command):
     name = "leaguerename"
@@ -1404,6 +1454,7 @@ commands = [
     LeagueTeamScheduleCommand(),
     LeagueRegenerateScheduleCommand(),
     LeagueSwapTeamCommand(),
+    LeagueReplaceTeamCommand(),
     LeagueRenameCommand(),
     LeagueForceStopCommand(),
     CreditCommand(),
