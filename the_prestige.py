@@ -130,6 +130,7 @@ class StartGameCommand(Command):
         day = None
         weather_name = None
         innings = None
+        voice = None
 
         if config()["game_freeze"]:
             raise CommandError("Patch incoming. We're not allowing new games right now.")
@@ -146,6 +147,11 @@ class StartGameCommand(Command):
                 weather_name = flag[1]
                 if weather_name not in weather.all_weathers():
                     raise CommandError("We can't find that weather, chief. Try again.")
+            elif flag[0] == "v":
+                if flag[1] in gametext.all_voices():
+                    voice = gametext.all_voices()[flag[1]]
+                else:
+                    raise CommandError("We can't find that broadcaster.")
             else:
                 raise CommandError("One or more of those flags wasn't right. Try and fix that for us and we'll see about sorting you out.")
        
@@ -175,6 +181,8 @@ class StartGameCommand(Command):
             if day is not None:
                 game.teams['away'].set_pitcher(rotation_slot = day)
                 game.teams['home'].set_pitcher(rotation_slot = day)
+            if voice is not None:
+                game.voice = voice()
             channel = msg.channel
             
             if weather_name is not None:
@@ -206,7 +214,7 @@ class StartRandomGameCommand(Command):
 class SetupGameCommand(Command):
     name = "setupgame"
     template = "m;setupgame"
-    description =  "Begins setting up a 3-inning pickup game. Pitchers, lineups, and team names are given during the setup process by anyone able to type in that channel. Idols are easily signed up via emoji during the process. The game will start automatically after setup."
+    description =  "Begins setting up a 5-inning pickup game. Pitchers, lineups, and team names are given during the setup process by anyone able to type in that channel. Idols are easily signed up via emoji during the process. The game will start automatically after setup."
 
     async def execute(self, msg, command, flags):
         if config()["game_freeze"]:
@@ -218,7 +226,7 @@ class SetupGameCommand(Command):
         try:
             inningmax = int(command)
         except:
-            inningmax = 3
+            inningmax = 5
         game_task = asyncio.create_task(setup_game(msg.channel, msg.author, games.game(msg.author.name, games.team(), games.team(), length=inningmax)))
         await game_task
         
@@ -2316,10 +2324,7 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
     wait_seconds = (next_start - now).seconds
 
     leagues.save_league(league)
-    if league in active_standings.keys():
-        await active_standings[league].unpin()
     active_standings[league] = await channel.send(embed=league.standings_embed())
-    active_standings[league].pin()
     await channel.send(f"""This {league.name} series is now complete! The next series will be starting in {int(wait_seconds/60)} minutes.""")
     await asyncio.sleep(wait_seconds)
 
