@@ -769,6 +769,7 @@ Not every team will play every series, due to how the scheduling algorithm is co
     async def execute(self, msg, command, flags):
         autoplay = -1
         autopost = False
+        nopost = False
 
         if config()["game_freeze"]:
             raise CommandError("Patch incoming. We're not allowing new games right now.")
@@ -783,10 +784,15 @@ Not every team will play every series, due to how the scheduling algorithm is co
                         raise ValueError
                 except ValueError:
                     raise CommandError("Sorry boss, the queue flag needs a natural number. Any whole number over 0 will do just fine.")
-            elif flag[0] == "n":
+            elif flag[0] == "n": #noautopostseason
                 await msg.channel.send("Automatic postseason is now disabled by default! No need for this flag in the future. --autopostseason (or -a) will *enable* autopostseason, should you want it.")
-            elif flag[0] == "a":
+            elif flag[0] == "a": #autopostseason
+                await msg.channel.send("We'll automatically start postseason for you, when we get there.")
                 autopost = True
+            elif flag[0] == "s": #skippostseason
+                await msg.channel.send("We'll **skip postseason** for you! Make sure you wanted to do this.")
+                autopost = True
+                nopost = True
             else:
                 raise CommandError("One or more of those flags wasn't right. Try and fix that for us and we'll see about sorting you out.")
 
@@ -803,6 +809,8 @@ Not every team will play every series, due to how the scheduling algorithm is co
             league = leagues.load_league_file(league_name)
             if autoplay == -1 and not autopost:
                 autoplay = int(list(league.schedule.keys())[-1]) - league.day_to_series_num(league.day) + 1           
+            if nopost:
+                league.postseason = False
 
             if league.historic:
                 raise CommandError("That league is done and dusted, chief. Sorry.")
@@ -2361,14 +2369,49 @@ async def league_postseason(channel, league):
     embed.set_footer(text="Final Standings")
     await channel.send(embed=embed)
         
+    if league.postseason:
 
-    tiebreakers = league.tiebreaker_required()       
-    if tiebreakers != []:
-        await channel.send("Tiebreakers required!")
-        await asyncio.gather(*[start_tournament_round(channel, tourney) for tourney in tiebreakers])
-        for tourney in tiebreakers:
-            league.update_standings({tourney.winner.name : {"wins" : 1}})
-            leagues.save_league(league)
+        tiebreakers = league.tiebreaker_required()       
+        if tiebreakers != []:
+            await channel.send("Tiebreakers required!")
+            await asyncio.gather(*[start_tournament_round(channel, tourney) for tourney in tiebreakers])
+            for tourney in tiebreakers:
+                league.update_standings({tourney.winner.name : {"wins" : 1}})
+                leagues.save_league(league)
+            now = datetime.datetime.now()
+
+            validminutes = [int((60 * div)/league.games_per_hour) for div in range(0,league.games_per_hour)]
+            for i in range(0, len(validminutes)):
+                if now.minute > validminutes[i]:
+                    if i <= len(validminutes)-3:
+                        if validminutes[i+1] == now.minute:
+                            delta = datetime.timedelta(minutes= (validminutes[i+2] - now.minute))
+                        else:
+                            delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
+                    elif i <= len(validminutes)-2:
+                        if validminutes[i+1] == now.minute:
+                            delta = datetime.timedelta(minutes= (60 - now.minute))
+                        else:
+                            delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
+                    else:
+                        delta = datetime.timedelta(minutes= (60 - now.minute))           
+
+            next_start = (now + delta).replace(second=0, microsecond=0)
+            wait_seconds = (next_start - now).seconds
+            await channel.send(f"Tiebreakers complete! Postseason starting in {math.ceil(wait_seconds/60)} minutes.")
+            await asyncio.sleep(wait_seconds)
+            
+
+        tourneys = league.champ_series()
+        await asyncio.gather(*[start_tournament_round(channel, tourney) for tourney in tourneys])
+        champs = {}
+        for tourney in tourneys:
+            for team in tourney.teams.keys():
+                if team.name == tourney.winner.name:
+                    champs[tourney.winner] = {"wins" : tourney.teams[team]["wins"]}
+        world_series = leagues.tournament(f"{league.name} Championship Series", champs, series_length=7, secs_between_games=int(3600/league.games_per_hour), secs_between_rounds=int(7200/league.games_per_hour))
+        world_series.build_bracket(by_wins = True)
+        world_series.league = league
         now = datetime.datetime.now()
 
         validminutes = [int((60 * div)/league.games_per_hour) for div in range(0,league.games_per_hour)]
@@ -2389,44 +2432,11 @@ async def league_postseason(channel, league):
 
         next_start = (now + delta).replace(second=0, microsecond=0)
         wait_seconds = (next_start - now).seconds
-        await channel.send(f"Tiebreakers complete! Postseason starting in {math.ceil(wait_seconds/60)} minutes.")
+        await channel.send(f"The {league.name} Championship Series is starting in {math.ceil(wait_seconds/60)} minutes!")
         await asyncio.sleep(wait_seconds)
-            
+        await start_tournament_round(channel, world_series)
+        league.champion = world_series.winner.name
 
-    tourneys = league.champ_series()
-    await asyncio.gather(*[start_tournament_round(channel, tourney) for tourney in tourneys])
-    champs = {}
-    for tourney in tourneys:
-        for team in tourney.teams.keys():
-            if team.name == tourney.winner.name:
-                champs[tourney.winner] = {"wins" : tourney.teams[team]["wins"]}
-    world_series = leagues.tournament(f"{league.name} Championship Series", champs, series_length=7, secs_between_games=int(3600/league.games_per_hour), secs_between_rounds=int(7200/league.games_per_hour))
-    world_series.build_bracket(by_wins = True)
-    world_series.league = league
-    now = datetime.datetime.now()
-
-    validminutes = [int((60 * div)/league.games_per_hour) for div in range(0,league.games_per_hour)]
-    for i in range(0, len(validminutes)):
-        if now.minute > validminutes[i]:
-            if i <= len(validminutes)-3:
-                if validminutes[i+1] == now.minute:
-                    delta = datetime.timedelta(minutes= (validminutes[i+2] - now.minute))
-                else:
-                    delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
-            elif i <= len(validminutes)-2:
-                if validminutes[i+1] == now.minute:
-                    delta = datetime.timedelta(minutes= (60 - now.minute))
-                else:
-                    delta = datetime.timedelta(minutes= (validminutes[i+1] - now.minute))
-            else:
-                delta = datetime.timedelta(minutes= (60 - now.minute))           
-
-    next_start = (now + delta).replace(second=0, microsecond=0)
-    wait_seconds = (next_start - now).seconds
-    await channel.send(f"The {league.name} Championship Series is starting in {math.ceil(wait_seconds/60)} minutes!")
-    await asyncio.sleep(wait_seconds)
-    await start_tournament_round(channel, world_series)
-    league.champion = world_series.winner.name
     leagues.save_league(league)
     season_save(league)
     league.season_reset()

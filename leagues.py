@@ -22,6 +22,7 @@ class league_structure(object):
         self.weather_override = None #set to a weather for league-wide weather effects
         self.last_weather_event_day = 0
         self.weather_event_duration = 0
+        self.postseason = True
 
     def setup(self, league_dic, division_games = 1, inter_division_games = 1, inter_league_games = 1, games_per_hour = 2):
         self.league = league_dic # { subleague name : { division name : [team object] } }
