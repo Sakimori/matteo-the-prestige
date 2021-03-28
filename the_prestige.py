@@ -2,7 +2,7 @@ import discord, json, math, os, roman, games, asyncio, random, main_controller, 
 import database as db
 import onomancer as ono
 from league_storage import league_exists, season_save, season_restart
-from the_draft import Draft, DRAFT_ROUNDS
+from the_draft import Draft
 from flask import Flask
 from uuid import uuid4
 import weather
@@ -639,7 +639,34 @@ class StartDraftCommand(Command):
     """
 
     async def execute(self, msg, command, flags):
-        draft = Draft.make_draft()
+        teamsize = 13
+        draftsize = 20
+        minsize = 4
+        pitchers = 3
+
+        for flag in flags:
+            try:
+                if flag[0] == "t":
+                    teamsize = int(flag[1])
+                elif flag[0] == "d":
+                    draftsize = int(flag[1])
+                elif flag[0] == "r": #refreshsize, default 4
+                    minsize = int(flag[1])
+                elif flag[0] == "p":
+                    pitchers = int(flag[1])
+                else:
+                    raise CommandError(f"We don't recognize that {flag[0]} flag.")
+            except ValueError:
+                raise CommandError(f"Your {flag[0]} flag isn't a valid integer, boss.")
+
+        if teamsize-pitchers > 20 or pitchers > 8:
+            raise CommandError("You can't fit that many players on a team, chief. Slow your roll.")
+        if teamsize < 3 or pitchers < 1 or draftsize < 10 or minsize < 2:
+            raise CommandError("One of those numbers is too low. Draft size has to be at least 10, the rest should be obvious.")
+        if drafsize > 40:
+            raise CommandError("40 players is the max. We're not too confident about pushing for more.")
+
+        draft = Draft.make_draft(teamsize, draftsize, minsize, pitchers)
         mentions = {f'<@!{m.id}>' for m in msg.mentions}
         content = msg.content.split('\n')[1:]  # drop command out of message
         if not content or len(content) % 3:
@@ -668,23 +695,30 @@ class StartDraftCommand(Command):
 
         draft.start_draft()
         footer = f"The draft class of {random.randint(2007, 2075)}"
-        while draft.round <= DRAFT_ROUNDS:
-            message_prefix = f'Round {draft.round}/{DRAFT_ROUNDS}:'
-            if draft.round == DRAFT_ROUNDS:
+        while draft.round <= draft.DRAFT_ROUNDS:
+            message_prefix = f'Round {draft.round}/{draft.DRAFT_ROUNDS}:'
+            if draft.round == draft.DRAFT_ROUNDS:
                 body = random.choice([
                     f"Now just choose a pitcher and we can finish off this paperwork for you, {draft.active_drafter}",
                     f"Pick a pitcher, {draft.active_drafter}, and we can all go home happy. 'Cept your players. They'll have to play baseball.",
                     f"Almost done, {draft.active_drafter}. Pick your pitcher.",
                 ])
                 message = f"⚾️ {message_prefix} {body}"
-            else:
+            elif draft.round <= draft.DRAFT_ROUNDS - draft.pitchers:
                 body = random.choice([
-                    f"Choose a batter, {draft.active_drafter}",
+                    f"Choose a batter, {draft.active_drafter}.",
                     f"{draft.active_drafter}, your turn. Pick one.",
-                    f"Pick one to fill your next lineup slot, {draft.active_drafter}",
+                    f"Pick one to fill your next lineup slot, {draft.active_drafter}.",
                     f"Alright, {draft.active_drafter}, choose a batter.",
                 ])
                 message = f"🏏 {message_prefix} {body}"
+            else:
+                body = random.choice([
+                    f"Warning: Pitcher Zone. Enter if you dare, {draft.active_drafter}.",
+                    f"Time to pitch a picker, {draft.active_drafter}.\nWait, that doesn't sound right.",
+                    f"Choose a yeeter, {draft.active_drafter}.\nDid we use that word right?",
+                    f"Choose a pitcher, {draft.active_drafter}."])
+                message = f"⚾️ {message_prefix} {body}"
             await msg.channel.send(
                 message,
                 embed=build_draft_embed(draft.get_draftees(), footer=footer),
@@ -1404,6 +1438,19 @@ class OBLConqueredCommand(Command):
                 except asyncio.TimeoutError:
                     return
 
+class OBLResetCommand(Command):
+    name = "oblreset"
+    template = "m;oblreset"
+    description = "NUKES THE OBL BOARD. BE CAREFUL."
+
+    def isauthorized(self, user):
+        return user.id in config()["owners"]
+
+    async def execute(self, msg, command, flags):
+        if self.isauthorized(msg.author):
+            db.clear_obl()
+            await msg.channel.send("💣")
+
 class TeamsInfoCommand(Command):
     name = "teamcount"
     template = "m;teamcount"
@@ -1441,6 +1488,7 @@ commands = [
     OBLSetRivalCommand(),
     OBLConqueredCommand(),
     OBLLeaderboardCommand(),
+    OBLResetCommand(),
     LeagueClaimCommand(),
     LeagueAddOwnersCommand(),
     StartLeagueCommand(),

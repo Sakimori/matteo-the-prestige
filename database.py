@@ -457,6 +457,15 @@ def set_obl_rival(base_team, rival):
         conn.commit()
     conn.close()
 
+def clear_obl():
+    conn = create_connection()
+    if conn is not None:
+        c=conn.cursor()
+
+        c.execute("DELETE FROM one_big_league")
+        conn.commit()
+    conn.close()
+
 def list_to_newline_string(list):
     string = ""
     for element in list:
