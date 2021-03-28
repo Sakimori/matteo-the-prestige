@@ -831,6 +831,25 @@ Not every team will play every series, due to how the scheduling algorithm is co
         else:
             raise CommandError("Couldn't find that league, boss. Did you save it on the website?")
 
+class LeagueSubscribeCommand(Command):
+    name = "leaguesub"
+    template = "m;leaguesub [league name]"
+    description = "Posts all league feed events to this channel, in addition to the channel the league was started in. Run again to unsubscribe."
+
+    async def execute(self, msg, command, flags):
+        league_name = command.strip()
+        if league_exists(league_name):
+            league = leagues.load_league_file(league_name)
+            if msg.channel.id in league.subbed_channels:
+                league.subbed_channels.pop(league.subbed_channels.index(msg.channel.id))
+                await msg.channel.send("You're off the mailing list, boss. We promise.")
+            else:
+                league.subbed_channels.append(msg.channel.id)
+                await msg.channel.send(f"Thanks for signing up to the {league_name} newsletter.")
+            leagues.save_league(league)
+        else:
+            raise CommandError("That league doesn't exist, boss.")
+
 class LeagueDisplayCommand(Command):
     name = "leaguestandings"
     template = "m;leaguestandings\n[league name]"
@@ -1375,6 +1394,7 @@ commands = [
     LeagueClaimCommand(),
     LeagueAddOwnersCommand(),
     StartLeagueCommand(),
+    LeagueSubscribeCommand(),
     LeaguePauseCommand(),
     LeagueDisplayCommand(),
     LeagueLeadersCommand(),
@@ -1707,12 +1727,18 @@ async def start_tournament_round(channel, tourney, seeding = None):
 
     ext = "?league=" + urllib.parse.quote_plus(tourney.name)
 
-    if tourney.round_check(): #if finals
-        await channel.send(f"The {tourney.name} finals are starting now, at {config()['simmadome_url']+ext}")
+    if tourney.round_check(): #if finals        
+        if tourney.league is not None:
+            await league_subscriber_update(tourney.league, channel, f"The {tourney.name} finals are starting now, at {config()['simmadome_url']+ext}")
+        else:
+            await channel.send(f"The {tourney.name} finals are starting now, at {config()['simmadome_url']+ext}")
         finals = True
 
-    else:
-        await channel.send(f"{len(current_games)} games started for the {tourney.name} tournament, at {config()['simmadome_url']+ext}")
+    else:  
+        if tourney.league is not None:
+            await league_subscriber_update(tourney.league, channel, f"{len(current_games)} games started for the {tourney.name} tournament, at {config()['simmadome_url']+ext}")
+        else:
+            await channel.send(f"{len(current_games)} games started for the {tourney.name} tournament, at {config()['simmadome_url']+ext}")
         finals = False
     await tourney_round_watcher(channel, tourney, current_games, config()['simmadome_url']+ext, finals)
 
@@ -1738,7 +1764,7 @@ async def continue_tournament_series(tourney, queue, games_list, wins_in_series)
         else:
             series_string = f"Best of {tourney.series_length}:"
 
-        state_init["title"] = f"{series_string} {wins_in_series[oldgame.teams['away'].name]} - {wins_in_series[oldgame.teams['home'].name]}"
+        state_init["title"] = f"{series_string} {wins_in_series[away_team.name]} - {wins_in_series[home_team.name]}"
 
         discrim_string = tourney.name     
 
@@ -1774,8 +1800,12 @@ async def tourney_round_watcher(channel, tourney, games_list, filter_url, finals
 
                         final_embed = game_over_embed(game)
                         final_embed.add_field(name="Series score:", value=f"{wins_in_series[game.teams['away'].name]} - {wins_in_series[game.teams['home'].name]}")
-                        await channel.send(f"A {tourney.name} game just ended!")                
-                        await channel.send(embed=final_embed)
+                        if tourney.league is not None:
+                            await league_subscriber_update(tourney.league, channel, f"A {tourney.name} game just ended!")
+                            await league_subscriber_update(tourney.league, channel, final_embed)
+                        else:
+                            await channel.send(f"A {tourney.name} game just ended!")                
+                            await channel.send(embed=final_embed)
                         if wins_in_series[winner_name] >= int((tourney.series_length+1)/2) and not finals:
                             winner_list.append(winner_name)
                         elif wins_in_series[winner_name] >= int((tourney.finals_length+1)/2):
@@ -1812,13 +1842,22 @@ async def tourney_round_watcher(channel, tourney, games_list, filter_url, finals
                             delta = datetime.timedelta(minutes= (60 - now.minute))           
 
                 next_start = (now + delta).replace(second=0, microsecond=0)
-                wait_seconds = (next_start - now).seconds
-                await channel.send(f"The next batch of games for the {tourney.name} will start in {math.ceil(wait_seconds/60)} minutes.")
+                wait_seconds = (next_start - now).seconds               
+                if tourney.league is not None:
+                    await league_subscriber_update(tourney.league, channel, f"The next batch of games for the {tourney.name} will start in {math.ceil(wait_seconds/60)} minutes.")
+                else:
+                    await channel.send(f"The next batch of games for the {tourney.name} will start in {math.ceil(wait_seconds/60)} minutes.")
                 await asyncio.sleep(wait_seconds)
             else:
-                await channel.send(f"The next batch of games for {tourney.name} will start in {int(tourney.delay/60)} minutes.")
+                if tourney.league is not None:
+                    await league_subscriber_update(tourney.league, channel, f"The next batch of games for {tourney.name} will start in {int(tourney.delay/60)} minutes.")
+                else:
+                    await channel.send(f"The next batch of games for {tourney.name} will start in {int(tourney.delay/60)} minutes.")
                 await asyncio.sleep(tourney.delay)
-            await channel.send(f"{len(queued_games)} games for {tourney.name}, starting at {filter_url}")
+            if tourney.league is not None:
+                await league_subscriber_update(tourney.league, channel, f"{len(queued_games)} games for {tourney.name}, starting at {filter_url}")
+            else:
+                await channel.send(f"{len(queued_games)} games for {tourney.name}, starting at {filter_url}")
             games_list = await continue_tournament_series(tourney, queued_games, games_list, wins_in_series)
         else:
             tourney.active = False
@@ -1827,7 +1866,10 @@ async def tourney_round_watcher(channel, tourney, games_list, filter_url, finals
         embed = discord.Embed(color = discord.Color.dark_purple(), title = f"{winner_list[0]} win the {tourney.name} finals!")
         if tourney.league is not None and tourney.day > tourney.league.day:
             tourney.league.day = tourney.day
-        await channel.send(embed=embed)
+        if tourney.league is not None:
+            await league_subscriber_update(tourney.league, channel, embed)
+        else:
+            await channel.send(embed=embed)
         tourney.winner = get_team_fuzzy_search(winner_list[0])
         active_tournaments.pop(active_tournaments.index(tourney))
         return
@@ -1858,7 +1900,7 @@ async def tourney_round_watcher(channel, tourney, games_list, filter_url, finals
 
         next_start = (now + delta).replace(second=0, microsecond=0)
         wait_seconds = (next_start - now).seconds
-        await channel.send(f"""This round of games for the {tourney.name} is now complete! The next round will start in {math.ceil(wait_seconds/60)} minutes.
+        await league_subscriber_update(tourney.league, channel, f"""This round of games for the {tourney.name} is now complete! The next round will start in {math.ceil(wait_seconds/60)} minutes.
 Advancing teams:
 {winners_string}""")
         await asyncio.sleep(wait_seconds)
@@ -2153,16 +2195,16 @@ async def start_league_day(channel, league, partial = False):
     ext = "?league=" + urllib.parse.quote_plus(league.name)
     
     if weather_check_result == 2:
-        await channel.send(f"The entire league is struck by a {league.weather_override.emoji} {league.weather_override.name}! The games must go on.")
+        await league_subscriber_update(league, channel, f"The entire league is struck by a {league.weather_override.emoji} {league.weather_override.name}! The games must go on.")
     elif weather_check_result == 1:
-        await channel.send(f"The {league.weather_override.emoji} {league.weather_override.name} continues to afflict the league.")
+        await league_subscriber_update(league, channel, f"The {league.weather_override.emoji} {league.weather_override.name} continues to afflict the league.")
 
     if league.last_series_check(): #if finals
-        await channel.send(f"The final series of the {league.name} regular season is starting now, at {config()['simmadome_url']+ext}")
+        await league_subscriber_update(league, channel, f"The final series of the {league.name} regular season is starting now, at {config()['simmadome_url']+ext}")
         last = True
 
     else:
-        await channel.send(f"The day {league.day} series of the {league.name} is starting now, at {config()['simmadome_url']+ext}")
+        await league_subscriber_update(league, channel, f"The day {league.day} series of the {league.name} is starting now, at {config()['simmadome_url']+ext}")
         last = False
 
     if partial:
@@ -2219,8 +2261,8 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
                         final_embed = game_over_embed(game)
                         final_embed.add_field(name="Day:", value=league.day)
                         final_embed.add_field(name="Series score:", value=f"{series_results[game.teams['away'].name]['wins']} - {series_results[game.teams['home'].name]['wins']}")
-                        await channel.send(f"A {league.name} game just ended!")                
-                        await channel.send(embed=final_embed)
+                        await league_subscriber_update(league, channel, f"A {league.name} game just ended!")                
+                        await league_subscriber_update(league, channel, final_embed)
                         if series_results[winner_name]["wins"] + series_results[winner_name]["losses"] + missed < league.series_length:
                             queued_games.append(game)                           
                         games_list.pop(i)
@@ -2255,21 +2297,21 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
                 
             leagues.save_league(league)
             active_standings[league] = await channel.send(embed=league.standings_embed())
-            await channel.send(f"The day {league.day} games for the {league.name} will start in {math.ceil(wait_seconds/60)} minutes.")
+            await league_subscriber_update(league, channel, f"The day {league.day} games for the {league.name} will start in {math.ceil(wait_seconds/60)} minutes.")
             weather_check_result = league.weather_event_check()
             if weather_check_result == 2:
-                await channel.send(f"The entire league is struck by a {league.weather_override.emoji} {league.weather_override.name}! The games must go on.")
+                await league_subscriber_update(league, channel, f"The entire league is struck by a {league.weather_override.emoji} {league.weather_override.name}! The games must go on.")
             elif weather_check_result == 1:
-                await channel.send(f"The {league.weather_override.emoji} {league.weather_override.name} continues to afflict the league.")
+                await league_subscriber_update(league, channel, f"The {league.weather_override.emoji} {league.weather_override.name} continues to afflict the league.")
             await asyncio.sleep(wait_seconds)
-            await channel.send(f"A {league.name} series is continuing now at {filter_url}")
+            await league_subscriber_update(league, channel, f"A {league.name} series is continuing now at {filter_url}")
             games_list = await continue_league_series(league, queued_games, games_list, series_results, missed)
         else:
             league.active = False
 
     if league.autoplay == 0 or config()["game_freeze"]: #if number of series to autoplay has been reached
-        active_standings[league] = await channel.send(embed=league.standings_embed())
-        await channel.send(f"The {league.name} is no longer autoplaying.")
+        active_standings[league] = await league_subscriber_update(league, channel, league.standings_embed())
+        await league_subscriber_update(league, channel, f"The {league.name} is no longer autoplaying.")
         if config()["game_freeze"]:
             await channel.send("Patch incoming.")
         leagues.save_league(league)
@@ -2296,7 +2338,7 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
 
         next_start = (now + delta).replace(second=0, microsecond=0)
         wait_seconds = (next_start - now).seconds
-        await channel.send(f"This {league.name} season is now over! The postseason (with any necessary tiebreakers) will be starting in {math.ceil(wait_seconds/60)} minutes.")
+        await league_subscriber_update(league, channel, f"This {league.name} season is now over! The postseason (with any necessary tiebreakers) will be starting in {math.ceil(wait_seconds/60)} minutes.")
         await asyncio.sleep(wait_seconds)
         await league_postseason(channel, league)
 
@@ -2332,8 +2374,8 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
     wait_seconds = (next_start - now).seconds
 
     leagues.save_league(league)
-    active_standings[league] = await channel.send(embed=league.standings_embed())
-    await channel.send(f"""This {league.name} series is now complete! The next series will be starting in {int(wait_seconds/60)} minutes.""")
+    active_standings[league] = await league_subscriber_update(league, channel, league.standings_embed())
+    await league_subscriber_update(league, channel, f"""This {league.name} series is now complete! The next series will be starting in {int(wait_seconds/60)} minutes.""")
     await asyncio.sleep(wait_seconds)
 
     await start_league_day(channel, league)
@@ -2398,7 +2440,7 @@ async def league_postseason(channel, league):
 
             next_start = (now + delta).replace(second=0, microsecond=0)
             wait_seconds = (next_start - now).seconds
-            await channel.send(f"Tiebreakers complete! Postseason starting in {math.ceil(wait_seconds/60)} minutes.")
+            await league_subscriber_update(league, channel, f"Tiebreakers complete! Postseason starting in {math.ceil(wait_seconds/60)} minutes.")
             await asyncio.sleep(wait_seconds)
             
 
@@ -2432,7 +2474,7 @@ async def league_postseason(channel, league):
 
         next_start = (now + delta).replace(second=0, microsecond=0)
         wait_seconds = (next_start - now).seconds
-        await channel.send(f"The {league.name} Championship Series is starting in {math.ceil(wait_seconds/60)} minutes!")
+        await league_subscriber_update(league, channel, f"The {league.name} Championship Series is starting in {math.ceil(wait_seconds/60)} minutes!")
         await asyncio.sleep(wait_seconds)
         await start_tournament_round(channel, world_series)
         league.champion = world_series.winner.name
@@ -2440,5 +2482,14 @@ async def league_postseason(channel, league):
     leagues.save_league(league)
     season_save(league)
     league.season_reset()
+
+async def league_subscriber_update(league, start_channel, message):
+    channel_list = filter(lambda chan : chan.id in league.subbed_channels, client.get_all_channels())
+    channel_list.append(start_channel)
+    for channel in channel_list:
+        if isinstance(message, discord.Embed):
+            await channel.send(embed=message)
+        else:
+            await channel.send(message)
 
 client.run(config()["token"])

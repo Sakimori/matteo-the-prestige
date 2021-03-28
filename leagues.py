@@ -23,6 +23,7 @@ class league_structure(object):
         self.last_weather_event_day = 0
         self.weather_event_duration = 0
         self.postseason = True
+        self.subbed_channels = []
 
     def setup(self, league_dic, division_games = 1, inter_division_games = 1, inter_league_games = 1, games_per_hour = 2):
         self.league = league_dic # { subleague name : { division name : [team object] } }
@@ -653,4 +654,8 @@ def load_league_file(league_name):
             this_league.last_weather_event_day = state_dic["last_weather_event"]
         except:
             this_league.last_weather_event_day = 0
+        try:
+            this_league.subbed_channels = state_dic["subs"]
+        except:
+            this_league.subbed_channels = []
         return this_league
