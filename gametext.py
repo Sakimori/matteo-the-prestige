@@ -107,14 +107,15 @@ class game_strings_base(object):
             index = randrange(0, len(self.steal_caught))
             text = self.steal_caught[index]
 
-        format_list = []
-        for format in self.diff_formats[text]:
-            if format == "runner":
-                format_list.append(runner)
-            elif format == "base_string":
-                format_list.append(base_string)
-            elif format == "defender":
-                format_list.append(defender)
+        if text not in self.no_formats:
+            format_list = []
+            for format in self.diff_formats[text]:
+                if format == "runner":
+                    format_list.append(runner)
+                elif format == "base_string":
+                    format_list.append(base_string)
+                elif format == "defender":
+                    format_list.append(defender)
 
         currentupdate["steals"] = [text.format(*format_list)]
 
@@ -212,10 +213,91 @@ class TheGoddesses(game_strings_base):
 
     twoparts = [groundout[1], groundout[3], flyout[0], flyout[2], flyout[4], walk[2], doubleplay[1], single[0], single[1], single[2], sacrifice[0], double[0], double[2], homerun[0], homerun[1], grandslam[1]]
 
+class TheNewGuy(game_strings_base):
+    def __init__(self):
+        self.intro_counter = 4
+        self.post_format = []
+
+    intro = [("👋","Hey, folks! First day, great to be here."),("👋", "Never played Baseball, or, uh, seen it, but I’m really excited to learn along with you."),("👋", "Here we go! Uh, how’s it go again…"),("👋", "Play baseball!")]
+
+    strikeoutlooking = ["watches the ball go right past ‘em. Think you’re supposed to hit it. And they’re out.",
+                        "waits for the bat to start moving on its own, I guess? It doesn’t, so… they’re out.",
+                        "doesn’t even try to go for the ball, apparently, and they’re out."]
+
+    strikeoutswinging = ["swings, but the ball is already past them! They were off by a mile! They’re out.",
+                         "swings three times, but never actually hits the ball. Out!",
+                         "swings three times, and it looks like they’re headed home! I-in a bad way. As in they’re out."]
+
+    groundout = ["hits the ball! It rolls over to {}, who’s throwing it to first, and… yep. That’s an out, I guess.",
+                 "hits the ball! Nice!! And there they go, running towards first! Wait, since when did {} have the ball— and, whoops, yeah, they’re out at first.",
+                 "hits the ball right onto the ground. It rolls over to {}, who nabs it and tosses it to first, and it looks like {}’s out.",
+                 "hits the ball over to the right side of the field. And it looks like {}’s sending it right over to first, where {}’s out."]
+
+    flyout = [("knocks the ball real hard right over {}.","They leap up and catch it! {} is out!!"),
+              "hits the ball super high up in the air! But it drops right into the hands of {}.",
+              ("absolutely SMASHES that ball! It’s gone!","Woah, hold on, nevermind. It looks like {} jumped up and grabbed it!"),
+              "bops the ball up in the air and over to {}. Worth a go, I guess?",
+              ("winds up a real heavy hit, and the ball goes really fast!", "Not fast enough to faze {}, though, who does a spectacular leap over and nabs it out of the air.")]
+
+    fielderschoice = ["whacks the ball over to the left side of the baseball triangle, where {} sends {} back to their pit. {}’s on base, though!",
+                      ("hits the ball onto the ground, where it rolls over to the second-and-a-half-base guard.","That guard puts a stop to {}’s running, but they forgot about {}!")]
+
+    doubleplay = [("hits the ball over to {}, who picks it up and stops that runner at second.", "And they’re not done! They toss it to first and get {} out, too. Yikes."),
+                  "hits the ball to {}, who gets that runner from first out before tossing it right back at first, and… wow. That went as poorly as it could’ve. They’re both out."]
+
+    sacrifice = [("does a little mini-hit, bumping the ball onto the field. {}’s got it, and, yeah, they’re out at first.", "Wait, when did {} score? Oh, was that— that was clever! Very nice."),
+                 "POUNDS the ball right up into the air! It lands right in the hands of {}, but {} takes the opportunity to stroll over to the one that gives points!"]
+
+    walk = ["watches the ball go right past them four times, and… gets to advance? Okay!",
+            ("just stands there. The umpire’s calling it a ball, which… they’re all balls, aren’t they? It’s baseball, not—", "Oh, uh, right. They’re on first now. I guess."),
+            "hangs out for four throws, gets bored, and walks over to first. Didn’t know you can do that, but good for them!", 
+            "gets smacked with the ball! Yikes! They’re limping over to first, so… we’re… we’re just going to keep going, then. Alright!"]
+
+    single = [("knocks the ball real hard right over {}.", "And get away with it, too, making it to first long before the ball does!"),
+              "hits the ball too hard for anyone to nab it and runs right over to first.",
+              "barely brushes up against the ball with the bat, and it lands pretty close to them. A bunch of folks scramble for it, but not before {} makes it to first!"]
+
+    double = ["hits the ball super hard, and while everyone’s scrambling for it they’re off to first! No, second!!",
+              "whacks the ball and gets out of there, making it to first and then second before anyone on the field can get the ball near them."]
+
+    triple = ["obliterates the ball and gets moving! They’re at first! No, second! No, they’re at third! And... Oh, that’s it, they’re done. Okay.",
+              "hits a three-base baseball whack! They try to go a little extra, but get scared into running back to third. Works."]
+
+    homerun = ["whacks the ball out of the park!! The crowd’s going wild as they run all the way around the baseball triangle and back to zeroth base!",
+              ("absolutely SMASHES that ball! It’s gone!", "And so are they, as they run all the bases and head right back home!"),
+              "hits a home run! Ooh, I know this one!"]
+
+    grandslam = ["hits the ball and chases all their friends home with them!",
+                  "whacks the ball onto the ground reeeally far away. {} gets to it eventually, but not in time to stop ANYONE from making it home!!",
+                  "hits a quadruple home run!"]
+
+    steal_success = ["runs to the next base too early!! You can do that??",
+                    "is cheating!! They just ran to the next base and nobody even hit the ball!",
+                    "gets bored of waiting and takes off, narrowly making it to the next base!"]
+
+    steal_caught = ["tries to run to the next base too early, and gets caught cheating!",
+                    "sees if they can get away with dashing over to the next base. They can’t, turns out.",
+                    "tries running to the next base, but {}’s ready for them. Out!"]
+
+    no_formats = strikeoutlooking + strikeoutswinging + walk + double + triple + steal_success + steal_caught[:2] + [flyout[2][0], flyout[4][0], fielderschoice[1][0], single[0][1], single[1], walk[1][0], walk[1][1],
+                                                                                                                    homerun[0], homerun[1][0], homerun[1][1], homerun[2], grandslam[0], grandslam[2]]
+
+    diff_formats = {groundout[2]: ("defender", "batter"), groundout[3]: ("defender", "batter"),
+                    flyout[0][1]: ("batter",),
+                    fielderschoice[0]: ("defender", "fc_out", "batter"), fielderschoice[1][1]: ("fc_out", "batter"),
+                    doubleplay[0][1]: ("batter",),
+                    sacrifice[0][1]: ("runner",), sacrifice[1]: ("defender", "runner"),
+                    single[2]: ("batter",),
+                    steal_caught[2]: ("defender",)}
+
+    twoparts = [flyout[0], flyout[2], flyout[4], fielderschoice[1], doubleplay[0], sacrifice[0], walk[1], single[0], homerun[1]]
+
+
 
 def all_voices():
     return {"default": game_strings_base,
-        "the goddesses": TheGoddesses}
+        "The Goddesses": TheGoddesses,
+        "The New Guy": TheNewGuy}
 
 
 def base_string(base):
