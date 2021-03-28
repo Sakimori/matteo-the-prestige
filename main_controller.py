@@ -231,7 +231,8 @@ def update_loop():
 
                         state["update_text"] = f"{updatestring}"
 
-                        this_game.weather.modify_atbat_message(this_game, state)
+                        if "twopart" not in this_game.last_update[0].keys():
+                            this_game.weather.modify_atbat_message(this_game, state)
 
             state["bases"] = this_game.named_bases()
 
@@ -255,4 +256,4 @@ def update_loop():
         socket_thread = threading.Thread(target=socketio.emit, args=("states_update", game_states))
         socket_thread.start()
         #socketio.emit("states_update", game_states)
-        time.sleep(1)
+        time.sleep(8)

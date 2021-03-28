@@ -520,12 +520,7 @@ class game(object):
         scores_to_add = 0
 
         if "twopart" not in self.last_update[0]:
-            result = self.at_bat()
-            self.weather.activate(self, result) # possibly modify result in-place
-
-            if "text_only" in result:
-                return (result, 0)  
-        
+            result = self.at_bat()  
     
             if self.top_of_inning:
                 offense_team = self.teams["away"]
@@ -545,6 +540,7 @@ class game(object):
             if "advance" in result.keys() and self.bases[3] is not None:
                 result["outcome"] = appearance_outcomes.sacrifice
                 result["runner"] = self.bases[3].name
+
             text_list = getattr(self.voice, result["outcome"].name)
             voice_index = random.randrange(0, len(text_list))
             result["voiceindex"] = voice_index
@@ -552,6 +548,12 @@ class game(object):
             result = {}
 
         self.voice.activate(self.last_update[0], result, self)
+
+        if "twopart" not in result:
+            self.weather.activate(self, result) # possibly modify result in-place
+
+            if "text_only" in result:
+                return (result, 0)  
 
         if "twopart" in result:
             if self.voice.post_format != []:
