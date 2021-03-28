@@ -98,7 +98,7 @@ def create_league():
         ('inter_league_series', 0)
     ]:
         if config[key] < min_val:
-            return jsonify({'status':'err_invalid_optiion_value', 'cause':key}), 400
+            return jsonify({'status':'err_invalid_option_value', 'cause':key}), 400
 
     new_league = league_structure(config['name'])
     new_league.setup(
