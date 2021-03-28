@@ -1718,8 +1718,8 @@ async def start_tournament_round(channel, tourney, seeding = None):
 
 async def continue_tournament_series(tourney, queue, games_list, wins_in_series):
     for oldgame in queue:
-        away_team = games.get_team(oldgame.teams["away"].name)
-        home_team = games.get_team(oldgame.teams["home"].name)
+        away_team = games.get_team(oldgame.teams["home"].name)
+        home_team = games.get_team(oldgame.teams["away"].name)
 
         if tourney.league is not None:
             if tourney.day is None:
