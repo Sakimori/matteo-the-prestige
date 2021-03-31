@@ -5,10 +5,6 @@ import uuid
 
 import onomancer
 
-DRAFT_SIZE = 20
-REFRESH_DRAFT_SIZE = 4  # fewer players remaining than this and the list refreshes
-DRAFT_ROUNDS = 13
-
 Participant = namedtuple('Participant', ['handle', 'team'])
 BOOKMARK = Participant(handle="bookmark", team=None)  # keep track of start/end of draft round
 
@@ -20,15 +16,19 @@ class Draft:
     """
 
     @classmethod
-    def make_draft(cls):
-        draft = cls()
+    def make_draft(cls, teamsize, draftsize, minsize, pitchers):
+        draft = cls(teamsize, draftsize, minsize, pitchers)
         return draft
 
-    def __init__(self):
+    def __init__(self, teamsize, draftsize, minsize, pitchers):     
+        self.DRAFT_SIZE = draftsize
+        self.REFRESH_DRAFT_SIZE = minsize  # fewer players remaining than this and the list refreshes
+        self.DRAFT_ROUNDS = teamsize
+        self.pitchers = pitchers
         self._id = str(uuid.uuid4())[:6]
         self._participants = []
         self._active_participant = BOOKMARK  # draft mutex
-        self._players = onomancer.get_names(limit=DRAFT_SIZE)
+        self._players = onomancer.get_names(limit=self.DRAFT_SIZE)
         self._round = 0
 
     @property
@@ -68,7 +68,7 @@ class Draft:
         self.advance_draft()
 
     def refresh_players(self):
-        self._players = onomancer.get_names(limit=DRAFT_SIZE)
+        self._players = onomancer.get_names(limit=self.DRAFT_SIZE)
 
     def advance_draft(self):
         """
@@ -104,12 +104,12 @@ class Draft:
                 raise ValueError(f'Player `{player_name}` not in draft list')
         del self._players[player['name']]
 
-        if len(self._players) <= REFRESH_DRAFT_SIZE:
+        if len(self._players) <= self.REFRESH_DRAFT_SIZE:
             self.refresh_players()
 
-        if self._round < DRAFT_ROUNDS:
+        if self._round <= self.DRAFT_ROUNDS - self.pitchers:
             self._active_participant.team.add_lineup(games.player(json.dumps(player)))
-        elif self._round == DRAFT_ROUNDS:
+        else:
             self._active_participant.team.add_pitcher(games.player(json.dumps(player)))
 
         self.advance_draft()

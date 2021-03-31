@@ -1,5 +1,5 @@
 import random, math, roman
-from gametext import appearance_outcomes, base_string
+from gametext import appearance_outcomes, game_strings_base, base_string
 
 class Weather:
     name = "Sunny"
@@ -72,7 +72,7 @@ class SlightTailwind(Weather):
 
     def activate(self, game, result):
 
-        if "mulligan" not in game.last_update[0].keys() and not result["ishit"] and result["text"] != appearance_outcomes.walk: 
+        if "mulligan" not in game.last_update[0].keys() and not result["ishit"] and result["outcome"] != appearance_outcomes.walk: 
             mulligan_roll_target = -((((game.get_batter().stlats["batting_stars"])-5)/6)**2)+1
             if random.random() > mulligan_roll_target and game.get_batter().stlats["batting_stars"] <= 5:
                 result.clear()
@@ -90,7 +90,7 @@ class Starlight(Weather):
 
     def activate(self, game, result):
 
-        if (result["text"] == appearance_outcomes.homerun or result["text"] == appearance_outcomes.grandslam):
+        if (result["outcome"] == appearance_outcomes.homerun or result["outcome"] == appearance_outcomes.grandslam):
             result["weather_message"] = True
             dinger_roll = random.random()
             if "dragon" in game.get_batter().name.lower():
@@ -190,7 +190,7 @@ class ThinnedVeil(Weather):
 
     def activate(self, game, result):
         if result["ishit"]:
-           if result["text"] == appearance_outcomes.homerun or result["text"] == appearance_outcomes.grandslam:
+           if result["outcome"] == appearance_outcomes.homerun or result["outcome"] == appearance_outcomes.grandslam:
                 result["veil"] = True
 
     def modify_atbat_message(self, game, state):
@@ -420,12 +420,47 @@ class Downpour(Weather):
 
     def modify_top_of_inning_message(self, game, state):
         state["update_emoji"] = self.emoji
-        state["update_text"] = "The gods are not yet pleased. Play continues through the storm."
+        if game.teams["away"].score >= self.target: #if the away team has met the target
+            if game.teams["home"].score == game.teams["away"].score: #if the teams are tied
+                state["update_text"] = "The gods demand a victor. Play on."
+            else:
+                state["update_text"] = f"The gods are pleased, but demand more from {game.teams['home'].name}. Take the field."
+        else:
+            state["update_text"] = "The gods are not yet pleased. Play continues through the storm."
 
     def modify_game_end_message(self, game, state):
         state["update_emoji"] = self.emoji
         state["update_text"] = f"{self.target} runs are reached, pleasing the gods. The storm clears."
-            
+
+class SummerMist(Weather):
+    name = "Summer Mist"
+    emoji = "🌁"
+    duration_range = [1,3]
+    substances = ["yellow mustard", "cat fur", "dread", "caramel", "nacho cheese", "mud", "dirt", "justice", "a green goo", "water, probably", "antimatter", "something not of this world", "live ferrets", "snow", "leaves",
+                 "yarn", "seaweed", "sawdust", "stardust", "code fragments", "milk", "lizards", "a large tarp", "feathers"]
+
+    def __init__(self, game):
+        self.missing_players = {game.teams["home"].name: None, game.teams["away"].name: None}
+        self.text = ""
+
+    def activate(self, game, result):
+        if result["outcome"] in [appearance_outcomes.flyout, appearance_outcomes.groundout, appearance_outcomes.sacrifice]:
+            roll = random.random()
+            if roll < .3: #get lost
+                result["mist"] = True
+                self.text = f" {result['batter'].name} gets lost in the mist on the way back to the dugout."
+                if self.missing_players[result["offense_team"].name] is not None:
+                    self.text += f" {self.missing_players[result['offense_team'].name].name} wanders back, covered in {random.choice(self.substances)}!"
+                    result["offense_team"].lineup[result["offense_team"].lineup_position % len(result["offense_team"].lineup)] = self.missing_players[result["offense_team"].name]
+                else:
+                    result["offense_team"].lineup.pop(result["offense_team"].lineup_position % len(result["offense_team"].lineup))
+                self.missing_players[result["offense_team"].name] = result["batter"]
+
+    def modify_atbat_message(self, game, state):
+        if "mist" in game.last_update[0]:
+            state["update_emoji"] = self.emoji
+            state["update_text"] += self.text
+            self.text = ""
 
 def all_weathers():
     weathers_dic = {
@@ -442,31 +477,33 @@ def all_weathers():
             "Meteor Shower" : MeteorShower,
             "Hurricane" : Hurricane,
             "Tornado" : Tornado,
-            "Torrential Downpour" : Downpour
+            "Torrential Downpour" : Downpour,
+            "Summer Mist" : SummerMist
         }
     return weathers_dic
 
 class WeatherChains():
-    light = [SlightTailwind, Twilight, Breezy, Drizzle] #basic starting points for weather, good comfortable spots to return to
+    light = [SlightTailwind, Twilight, Breezy, Drizzle, SummerMist] #basic starting points for weather, good comfortable spots to return to
     magic = [Twilight, ThinnedVeil, MeteorShower, Starlight] #weathers involving breaking the fabric of spacetime
     sudden = [Tornado, Hurricane, Twilight, Starlight, Midnight, Downpour] #weathers that always happen and leave over 1-3 games
     disaster = [Hurricane, Tornado, Downpour, Blizzard] #storms
-    aftermath = [Midnight, Starlight, MeteorShower] #calm epilogues
+    aftermath = [Midnight, Starlight, MeteorShower, SummerMist] #calm epilogues
 
     dictionary = {
             #Supernova : (magic + sudden + disaster, None), supernova happens leaguewide and shouldn't need a chain, but here just in case
-            Midnight : ([SlightTailwind, Breezy, Drizzle, Starlight, MeteorShower, HeatWave],[2,2,2,4,4,1]),
+            Midnight : ([SlightTailwind, Breezy, Drizzle, Starlight, MeteorShower, HeatWave, SummerMist],[2,2,2,4,4,1,2]),
             SlightTailwind : ([Breezy, Drizzle, Tornado], [3,3,1]),
             Blizzard : ([Midnight, Starlight, MeteorShower, Twilight, Downpour], [2,2,2,2,4]),
-            Twilight : ([ThinnedVeil, Midnight, MeteorShower, SlightTailwind], [2,4,2,1]),
+            Twilight : ([ThinnedVeil, Midnight, MeteorShower, SlightTailwind, SummerMist], [2,4,2,1,2]),
             ThinnedVeil : (light, None),
-            HeatWave : ([Tornado, Hurricane, SlightTailwind, Breezy],[4,4,1,1]),
+            HeatWave : ([Tornado, Hurricane, SlightTailwind, Breezy, SummerMist],[4,4,1,1,2]),
             Drizzle : ([Hurricane, Downpour, Blizzard],[2,2,1]),
             Breezy : ([Drizzle, HeatWave, Blizzard, Tornado], [3,3,1,1]),
             Starlight : ([SlightTailwind, Twilight, Breezy, Drizzle, ThinnedVeil, HeatWave], None),
             MeteorShower : ([Starlight, ThinnedVeil, HeatWave], None),
             Hurricane : ([Midnight, Starlight, MeteorShower, Twilight, Downpour], [2,2,2,2,4]),
             Tornado : ([Midnight, Starlight, MeteorShower, Twilight, Downpour],[2,2,2,2,4]),
+            SummerMist : ([Drizzle, Breezy, Hurricane, Downpour],[2, 1, 1, 1]),
             Downpour : (aftermath, None)
         }
 

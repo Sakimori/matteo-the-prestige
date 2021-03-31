@@ -5,6 +5,7 @@ from itertools import chain
 from copy import deepcopy
 from games import team, game
 from discord import Embed, Color
+from uuid import uuid4
 
 data_dir = "data"
 league_dir = "leagues"
@@ -21,6 +22,8 @@ class league_structure(object):
         self.weather_override = None #set to a weather for league-wide weather effects
         self.last_weather_event_day = 0
         self.weather_event_duration = 0
+        self.postseason = True
+        self.subbed_channels = []
 
     def setup(self, league_dic, division_games = 1, inter_division_games = 1, inter_league_games = 1, games_per_hour = 2):
         self.league = league_dic # { subleague name : { division name : [team object] } }
@@ -514,7 +517,7 @@ class tournament(object):
         self.day = None
 
         if id is None:
-            self.id = random.randint(1111,9999)
+            self.id = str(uuid4())
         else:
             self.id = id
 
@@ -651,4 +654,8 @@ def load_league_file(league_name):
             this_league.last_weather_event_day = state_dic["last_weather_event"]
         except:
             this_league.last_weather_event_day = 0
+        try:
+            this_league.subbed_channels = state_dic["subs"]
+        except:
+            this_league.subbed_channels = []
         return this_league

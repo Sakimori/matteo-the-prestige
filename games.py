@@ -1,7 +1,6 @@
-import json, random, os, math, jsonpickle
+import json, random, os, math, jsonpickle, weather
 import database as db
-import weather
-from gametext import base_string, appearance_outcomes
+from gametext import base_string, appearance_outcomes, game_strings_base
 
 data_dir = "data"
 games_config_file = os.path.join(data_dir, "games_config.json")
@@ -82,17 +81,17 @@ class team(object):
 
     def find_player(self, name):
         for index in range(0,len(self.lineup)):
-            if self.lineup[index].name == name:
+            if self.lineup[index].name.replace(" ", " ") == name:
                 return (self.lineup[index], index, self.lineup)
         for index in range(0,len(self.rotation)):
-            if self.rotation[index].name == name:
+            if self.rotation[index].name.replace(" ", " ") == name:
                 return (self.rotation[index], index, self.rotation)
         else:
             return (None, None, None)
 
     def find_player_spec(self, name, roster):
          for s_index in range(0,len(roster)):
-            if roster[s_index].name == name:
+            if roster[s_index].name.replace(" ", " ") == name:
                 return (roster[s_index], s_index)
 
     def average_stars(self):
@@ -223,6 +222,7 @@ class game(object):
             self.max_innings = config()["default_length"]
         self.bases = {1 : None, 2 : None, 3 : None}
         self.weather = weather.Weather(self)
+        self.voice = None
         self.current_batter = None
 
     def occupied_bases(self):
@@ -266,6 +266,7 @@ class game(object):
         defender = random.choice(defender_list) #make pitchers field
 
         outcome["batter"] = batter
+        outcome["pitcher"] = pitcher
         outcome["defender"] = ""
 
         player_rolls = {}
@@ -285,18 +286,18 @@ class game(object):
             outcome["ishit"] = False
             fc_flag = False
             if roll["hitnum"] < -1.5:
-                outcome["text"] = random.choice([appearance_outcomes.strikeoutlooking, appearance_outcomes.strikeoutswinging])
+                outcome["outcome"] = random.choice([appearance_outcomes.strikeoutlooking, appearance_outcomes.strikeoutswinging])
             elif roll["hitnum"] < 1:
-                outcome["text"] = appearance_outcomes.groundout
+                outcome["outcome"] = appearance_outcomes.groundout
                 outcome["defender"] = defender
             elif roll["hitnum"] < 4: 
-                outcome["text"] = appearance_outcomes.flyout
+                outcome["outcome"] = appearance_outcomes.flyout
                 outcome["defender"] = defender
             else:
-                outcome["text"] = appearance_outcomes.walk
+                outcome["outcome"] = appearance_outcomes.walk
 
             if self.bases[1] is not None and roll["hitnum"] < -2 and self.outs != 2:
-                outcome["text"] = appearance_outcomes.doubleplay
+                outcome["outcome"] = appearance_outcomes.doubleplay
                 outcome["defender"] = ""
 
             #for base in self.bases.values():
@@ -313,7 +314,7 @@ class game(object):
             if self.outs < 2 and len(runners) > 1: #fielder's choice replaces not great groundouts if any forceouts are present
                 def_stat = random_star_gen("defense_stars", defender)
                 if -1.5 <= roll["hitnum"] and roll["hitnum"] < -0.5: #poorly hit groundouts
-                    outcome["text"] = appearance_outcomes.fielderschoice
+                    outcome["outcome"] = appearance_outcomes.fielderschoice
                     outcome["defender"] = ""
             
             if 2.5 <= roll["hitnum"] and self.outs < 2: #well hit flyouts can lead to sacrifice flies/advanced runners
@@ -322,16 +323,16 @@ class game(object):
         else:
             outcome["ishit"] = True
             if roll["hitnum"] < 1:
-                outcome["text"] = appearance_outcomes.single
+                outcome["outcome"] = appearance_outcomes.single
             elif roll["hitnum"] < 2.85 or "error" in outcome.keys():
-                outcome["text"] = appearance_outcomes.double
+                outcome["outcome"] = appearance_outcomes.double
             elif roll["hitnum"] < 3.1:
-                outcome["text"] = appearance_outcomes.triple
+                outcome["outcome"] = appearance_outcomes.triple
             else:
                 if self.bases[1] is not None and self.bases[2] is not None and self.bases[3] is not None:
-                    outcome["text"] = appearance_outcomes.grandslam
+                    outcome["outcome"] = appearance_outcomes.grandslam
                 else:
-                    outcome["text"] = appearance_outcomes.homerun
+                    outcome["outcome"] = appearance_outcomes.homerun
         return outcome
 
     def thievery_attempts(self): #returns either false or "at-bat" outcome
@@ -366,7 +367,6 @@ class game(object):
             defense_team = self.teams["away"]
 
         outcome = {}
-        outcome["steals"] = []
 
         for baserunner, start_base in attempts:
             defender = random.choice(defense_team.lineup) #excludes pitcher
@@ -376,13 +376,15 @@ class game(object):
             if start_base == 2:
                 run_roll = run_roll * .9 #stealing third is harder
             if run_roll < 1:
-                outcome["steals"].append(f"{baserunner} was caught stealing {base_string(start_base+1)} base by {defender}!")
+                successful = False  
                 self.get_pitcher().game_stats["outs_pitched"] += 1
                 self.outs += 1
             else:
-                outcome["steals"].append(f"{baserunner} steals {base_string(start_base+1)} base!")
+                successful = True
                 self.bases[start_base+1] = baserunner
             self.bases[start_base] = None
+
+        self.voice.stealing(outcome, baserunner.name, base_string(start_base+1), defender.name, successful)
 
         if self.outs >= 3:
             self.flip_inning()
@@ -391,7 +393,7 @@ class game(object):
 
     def baserunner_check(self, defender, outcome):
         def_stat = random_star_gen("defense_stars", defender)
-        if outcome["text"] == appearance_outcomes.homerun or outcome["text"] == appearance_outcomes.grandslam:
+        if outcome["outcome"] == appearance_outcomes.homerun or outcome["outcome"] == appearance_outcomes.grandslam:
             runs = 1
             for base in self.bases.values():
                 if base is not None:
@@ -407,7 +409,7 @@ class game(object):
         elif "advance" in outcome.keys():
             runs = 0
             if self.bases[3] is not None:
-                outcome["text"] = appearance_outcomes.sacrifice
+                outcome["outcome"] = appearance_outcomes.sacrifice
                 self.get_batter().game_stats["sacrifices"] += 1 
                 self.bases[3] = None
                 runs = 1
@@ -418,10 +420,12 @@ class game(object):
                     self.bases[2] = None
             return runs
 
-        elif outcome["text"] == appearance_outcomes.fielderschoice:
+        elif outcome["outcome"] == appearance_outcomes.fielderschoice:
             furthest_base, runner = outcome["runners"].pop() #get furthest baserunner
             self.bases[furthest_base] = None 
             outcome["fc_out"] = (runner.name, base_string(furthest_base+1)) #runner thrown out
+            outcome["runner"] = runner.name
+            outcome["base"] = furthest_base+1
             for index in range(0,len(outcome["runners"])):
                 base, this_runner = outcome["runners"].pop()
                 self.bases[base+1] = this_runner #includes batter, at base 0
@@ -430,20 +434,20 @@ class game(object):
                 return 1
             return 0
 
-        elif outcome["text"] == appearance_outcomes.groundout or outcome["text"] == appearance_outcomes.doubleplay:
+        elif outcome["outcome"] == appearance_outcomes.groundout or outcome["outcome"] == appearance_outcomes.doubleplay:
             runs = 0
             if self.bases[3] is not None:
                 runs += 1
                 self.bases[3] = None
             if self.bases[2] is not None:
                 run_roll = random.gauss(2*math.erf((random_star_gen("baserunning_stars", self.bases[2])-def_stat)/4)-1,3)
-                if run_roll > 1.5 or outcome["text"] == appearance_outcomes.doubleplay: #double play gives them time to run, guaranteed
+                if run_roll > 1.5 or outcome["outcome"] == appearance_outcomes.doubleplay: #double play gives them time to run, guaranteed
                     self.bases[3] = self.bases[2]
                     self.bases[2] = None
             if self.bases[1] is not None: #double plays set this to None before this call
                 run_roll = random.gauss(2*math.erf((random_star_gen("baserunning_stars", self.bases[1])-def_stat)/4)-1,3)
                 if run_roll < 2 or self.bases[2] is not None: #if runner can't make it or if baserunner blocking on second, convert to fielder's choice
-                    outcome["text"] == appearance_outcomes.fielderschoice
+                    outcome["outcome"] == appearance_outcomes.fielderschoice
                     runners = [(0,self.get_batter())]
                     for base in range(1,4):
                         if self.bases[base] == None:
@@ -458,7 +462,7 @@ class game(object):
 
         elif outcome["ishit"]:
             runs = 0
-            if outcome["text"] == appearance_outcomes.single:
+            if outcome["outcome"] == appearance_outcomes.single:
                 if self.bases[3] is not None:
                     runs += 1
                     self.bases[3] = None
@@ -483,7 +487,7 @@ class game(object):
                 self.bases[1] = self.get_batter()
                 return runs
 
-            elif outcome["text"] == appearance_outcomes.double:
+            elif outcome["outcome"] == appearance_outcomes.double:
                 runs = 0
                 if self.bases[3] is not None:
                     runs += 1
@@ -503,7 +507,7 @@ class game(object):
                 return runs
                     
 
-            elif outcome["text"] == appearance_outcomes.triple:
+            elif outcome["outcome"] == appearance_outcomes.triple:
                 runs = 0
                 for basenum in self.bases.keys():
                     if self.bases[basenum] is not None:
@@ -515,45 +519,75 @@ class game(object):
 
     def batterup(self):
         scores_to_add = 0
-        result = self.at_bat()
 
-        self.weather.activate(self, result) # possibly modify result in-place
-
-        if "text_only" in result:
-            return (result, 0)            
+        if "twopart" not in self.last_update[0]:
+            result = self.at_bat()  
     
-        if self.top_of_inning:
-            offense_team = self.teams["away"]
-            defense_team = self.teams["home"]
+            if self.top_of_inning:
+                offense_team = self.teams["away"]
+                defense_team = self.teams["home"]
+            else:
+                offense_team = self.teams["home"]
+                defense_team = self.teams["away"]
+
+
+            defenders = defense_team.lineup.copy()
+            defenders.append(defense_team.pitcher)
+            defender = random.choice(defenders) #pitcher can field outs now :3
+            result["defender"] = defender
+            result["defense_team"] = defense_team
+            result["offense_team"] = offense_team
+
+            if "advance" in result.keys() and self.bases[3] is not None:
+                result["outcome"] = appearance_outcomes.sacrifice
+                result["runner"] = self.bases[3].name
+
+            text_list = getattr(self.voice, result["outcome"].name)
+            voice_index = random.randrange(0, len(text_list))
+            result["voiceindex"] = voice_index
         else:
-            offense_team = self.teams["home"]
-            defense_team = self.teams["away"]
+            result = {}
 
+        self.voice.activate(self.last_update[0], result, self)
 
-        defenders = defense_team.lineup.copy()
-        defenders.append(defense_team.pitcher)
-        defender = random.choice(defenders) #pitcher can field outs now :3
+        if "twopart" not in result:
+            self.weather.activate(self, result) # possibly modify result in-place
+
+            if "text_only" in result:
+                return (result, 0)  
+
+        if "twopart" in result:
+            if self.voice.post_format != []:
+                format_list = []
+                for extra_format in self.voice.post_format:
+                    if extra_format == "base":
+                        format_list.append(base_string(result["base"]))
+                    elif extra_format == "runner":
+                        format_list.append(result["runner"])
+                self.voice.post_format = []
+                result["displaytext"] = result["displaytext"].format(*format_list)
+            return (result, 0)
 
         if result["ishit"]: #if batter gets a hit:
             self.get_batter().game_stats["hits"] += 1
             self.get_pitcher().game_stats["hits_allowed"] += 1
 
-            if result["text"] == appearance_outcomes.single:
+            if result["outcome"] == appearance_outcomes.single:
                 self.get_batter().game_stats["total_bases"] += 1               
-            elif result["text"] == appearance_outcomes.double:
+            elif result["outcome"] == appearance_outcomes.double:
                 self.get_batter().game_stats["total_bases"] += 2
-            elif result["text"] == appearance_outcomes.triple:
+            elif result["outcome"] == appearance_outcomes.triple:
                 self.get_batter().game_stats["total_bases"] += 3
-            elif result["text"] == appearance_outcomes.homerun or result["text"] == appearance_outcomes.grandslam:
+            elif result["outcome"] == appearance_outcomes.homerun or result["outcome"] == appearance_outcomes.grandslam:
                 self.get_batter().game_stats["total_bases"] += 4
                 self.get_batter().game_stats["home_runs"] += 1
 
 
 
-            scores_to_add += self.baserunner_check(defender, result)
+            scores_to_add += self.baserunner_check(result["defender"], result)
 
         else: #batter did not get a hit
-            if result["text"] == appearance_outcomes.walk:
+            if result["outcome"] == appearance_outcomes.walk:
                 walkers = [(0,self.get_batter())]
                 for base in range(1,4):
                     if self.bases[base] == None:
@@ -570,29 +604,30 @@ class game(object):
                 self.get_batter().game_stats["walks_taken"] += 1
                 self.get_pitcher().game_stats["walks_allowed"] += 1
             
-            elif result["text"] == appearance_outcomes.doubleplay:
+            elif result["outcome"] == appearance_outcomes.doubleplay:
                 self.get_pitcher().game_stats["outs_pitched"] += 2
                 self.outs += 2
                 self.bases[1] = None     
                 if self.outs < 3:
-                    scores_to_add += self.baserunner_check(defender, result)
+                    scores_to_add += self.baserunner_check(result["defender"], result)
                     self.get_batter().game_stats["rbis"] -= scores_to_add #remove the fake rbi from the player in advance
 
-            elif result["text"] == appearance_outcomes.fielderschoice or result["text"] == appearance_outcomes.groundout:
+            elif result["outcome"] == appearance_outcomes.fielderschoice or result["outcome"] == appearance_outcomes.groundout:
                 self.get_pitcher().game_stats["outs_pitched"] += 1
                 self.outs += 1
                 if self.outs < 3:
-                    scores_to_add += self.baserunner_check(defender, result)
+                    scores_to_add += self.baserunner_check(result["defender"], result)
 
-            elif "advance" in result.keys():
+            elif "advance" in result.keys() or result["outcome"] == appearance_outcomes.sacrifice:
                 self.get_pitcher().game_stats["outs_pitched"] += 1
                 self.outs += 1
                 if self.outs < 3:
                     if self.bases[3] is not None:
+                        result["runner"] = self.bases[3].name
                         self.get_batter().game_stats["sacrifices"] += 1
-                    scores_to_add += self.baserunner_check(defender, result)
+                    scores_to_add += self.baserunner_check(result["defender"], result)
 
-            elif result["text"] == appearance_outcomes.strikeoutlooking or result["text"] == appearance_outcomes.strikeoutswinging:
+            elif result["outcome"] == appearance_outcomes.strikeoutlooking or result["outcome"] == appearance_outcomes.strikeoutswinging:
                 self.get_pitcher().game_stats["outs_pitched"] += 1
                 self.outs += 1
                 self.get_batter().game_stats["strikeouts_taken"] += 1
@@ -604,13 +639,24 @@ class game(object):
 
         self.get_batter().game_stats["plate_appearances"] += 1
         
+        if self.voice.post_format != []:
+            format_list = []
+            for extra_format in self.voice.post_format:
+                if extra_format == "base":
+                    format_list.append(base_string(result["base"]))
+                elif extra_format == "runner":
+                    format_list.append(result["runner"])
+            self.voice.post_format = []
+            result["displaytext"] = result["displaytext"].format(*format_list)
+        
+        
         if self.outs < 3:
-            offense_team.score += scores_to_add #only add points if inning isn't over
+            result["offense_team"].score += scores_to_add #only add points if inning isn't over
         else:
             scores_to_add = 0
         self.get_batter().game_stats["rbis"] += scores_to_add
         self.get_pitcher().game_stats["runs_allowed"] += scores_to_add
-        offense_team.lineup_position += 1 #put next batter up
+        result["offense_team"].lineup_position += 1 #put next batter up
         self.choose_next_batter()
         if self.outs >= 3:
             self.flip_inning()
@@ -666,7 +712,7 @@ class game(object):
     def gamestate_update_full(self):
         self.play_has_begun = True
         attempts = self.thievery_attempts()
-        if attempts == False:
+        if attempts == False or "twopart" in self.last_update[0]:
             self.last_update = self.batterup()
         else:
             self.last_update = attempts

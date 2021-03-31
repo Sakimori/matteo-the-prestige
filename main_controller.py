@@ -1,4 +1,4 @@
-import asyncio, time, datetime, games, json, threading, jinja2, leagues, os, leagues, gametext
+import asyncio, time, datetime, games, json, threading, jinja2, leagues, os, leagues, gametext, logging
 from leagues import league_structure
 from league_storage import league_exists
 from flask import Flask, url_for, Response, render_template, request, jsonify, send_from_directory, abort
@@ -10,6 +10,10 @@ app.config['SECRET KEY'] = 'dev'
 #url = "sakimori.space:5000"
 #app.config['SERVER_NAME'] = url
 socketio = SocketIO(app)
+socket_thread = None
+log = logging.getLogger('werkzeug')
+log.disabled = True
+app.logger.disabled = True
 
 # Serve React App
 @app.route('/', defaults={'path': ''})
@@ -90,11 +94,11 @@ def create_league():
 
     for (key, min_val) in [
         ('division_series', 1), 
-        ('inter_division_series', 1), 
-        ('inter_league_series', 1)
+        ('inter_division_series', 0), 
+        ('inter_league_series', 0)
     ]:
         if config[key] < min_val:
-            return jsonify({'status':'err_invalid_optiion_value', 'cause':key}), 400
+            return jsonify({'status':'err_invalid_option_value', 'cause':key}), 400
 
     new_league = league_structure(config['name'])
     new_league.setup(
@@ -126,7 +130,10 @@ def handle_new_conn(data):
 
 def update_loop():
     global game_states
+    global socket_thread
     while True:
+        if socket_thread is not None:
+            socket_thread.join()
         game_states = []
         game_ids = iter(master_games_dic.copy().keys())
         for game_id in game_ids:
@@ -142,8 +149,13 @@ def update_loop():
             state["home_score"] = this_game.teams["home"].score #update_pause = 0
                                                                 #victory_lap = False
             if not this_game.play_has_begun:                    #weather_emoji
-                state["update_emoji"] = "🎆"                    #weather_text
-                state["update_text"] = "Play ball!"            #they also need a timestamp
+                if state["start_delay"] - this_game.voice.intro_counter > -1:
+                    state["update_emoji"] = "🪑"                    #weather_text
+                    state["update_text"] = "The broadcast booth is being prepared..."             #they also need a timestamp
+                else:
+                    state["update_emoji"] = this_game.voice.intro[-this_game.voice.intro_counter][0]
+                    state["update_text"] = this_game.voice.intro[-this_game.voice.intro_counter][1]
+                    this_game.voice.intro_counter -= 1
                 state["start_delay"] -= 1
             
             state["display_top_of_inning"] = state["top_of_inning"]
@@ -168,9 +180,9 @@ def update_loop():
                         if this_game.victory_lap and winning_team == this_game.teams['home'].name:
                             state["update_text"] = f"{winning_team} wins with a victory lap!"
                         elif winning_team == this_game.teams['home'].name:
-                            state["update_text"] = f"{winning_team} wins, shaming {this_game.teams['away'].name}!"
+                            state["update_text"] = f"{winning_team} wins with a partial victory lap!"
                         else:
-                            state["update_text"] = f"{winning_team} wins!"
+                            state["update_text"] = f"{winning_team} wins on the road!"
                         state["pitcher"] = "-"
                         state["batter"] = "-"
 
@@ -189,11 +201,13 @@ def update_loop():
 
                 elif state["update_pause"] != 1 and this_game.play_has_begun:
 
-                    if "weather_message" in this_game.last_update[0].keys():
+                    if "twopart" in this_game.last_update[0].keys():
+                        state["update_emoji"] = "💬"
+                    elif "weather_message" in this_game.last_update[0].keys():
                         state["update_emoji"] = this_game.weather.emoji
                     elif "ishit" in this_game.last_update[0].keys() and this_game.last_update[0]["ishit"]:
                         state["update_emoji"] = "🏏"
-                    elif "text" in this_game.last_update[0].keys() and this_game.last_update[0]["text"] == gametext.appearance_outcomes.walk:
+                    elif "outcome" in this_game.last_update[0].keys() and this_game.last_update[0]["outcome"] == gametext.appearance_outcomes.walk:
                         state["update_emoji"] = "👟"
                     else:
                         state["update_emoji"] = "🗞"
@@ -209,23 +223,16 @@ def update_loop():
                     elif "text_only" in this_game.last_update[0].keys(): #this handles many weather messages
                         state["update_text"] = this_game.last_update[0]["text"]
                     else:
-                        updatestring = ""
-                        punc = ""
-                        if this_game.last_update[0]["defender"] != "":
-                            punc = ". "
+                        updatestring = this_game.last_update[0]["displaytext"]
 
-                        if "fc_out" in this_game.last_update[0].keys():
-                            name, out_at_base_string = this_game.last_update[0]['fc_out']
-                            updatestring = f"{this_game.last_update[0]['batter']} {this_game.last_update[0]['text'].value.format(name, out_at_base_string)} {this_game.last_update[0]['defender']}{punc}"
-                        else:
-                            updatestring = f"{this_game.last_update[0]['batter']} {this_game.last_update[0]['text'].value} {this_game.last_update[0]['defender']}{punc}"
                         if this_game.last_update[1] > 0:
-                                updatestring += f"{this_game.last_update[1]} runs scored!"
+                                updatestring += f" {this_game.last_update[1]} runs scored!"
 
 
-                        state["update_text"] = updatestring
+                        state["update_text"] = f"{updatestring}"
 
-                        this_game.weather.modify_atbat_message(this_game, state)
+                        if "twopart" not in this_game.last_update[0].keys():
+                            this_game.weather.modify_atbat_message(this_game, state)
 
             state["bases"] = this_game.named_bases()
 
@@ -246,5 +253,7 @@ def update_loop():
 
             state["update_pause"] -= 1
 
-        socketio.emit("states_update", game_states)
+        socket_thread = threading.Thread(target=socketio.emit, args=("states_update", game_states))
+        socket_thread.start()
+        #socketio.emit("states_update", game_states)
         time.sleep(8)
