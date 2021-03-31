@@ -87,6 +87,8 @@ class game_strings_base(object):
                 out_list.append("{}")
             elif string == "batter":
                 out_list.append(update['batter'].name)
+            elif string == "pitcher":
+                out_list.append(update['pitcher'].name)
             elif string == "fc_out" or string == "runner":
                 self.post_format.append("runner")
                 out_list.append("{}")
@@ -292,12 +294,95 @@ class TheNewGuy(game_strings_base):
 
     twoparts = [flyout[0], flyout[2], flyout[4], fielderschoice[1], doubleplay[0], sacrifice[0], walk[1], single[0], homerun[1]]
 
+class TrespassOracle(game_strings_base):
+    def __init__(self):
+        self.intro_counter = 1
+        self.post_format = []
+
+    intro = [("👁‍🗨", "Trespass Oracle here for Channel 16, bringing you this full game live and ad-free thanks to the generous supporters on Patreon.")]
+
+    strikeoutlooking = ["punches out on that one. Strike 3!",
+                        "stands by like a couch on the side of the road for that ball. Strike 3!",
+                        "gets caught looking there. Can't take your eyes off the pitcher for a second."]
+
+    strikeoutswinging = ["whiffs on that last ball and they're outta here! Strike 3!",
+    "gets nothing but air on that ball. Strike 3!",
+    "squares up for a bunt, two strikes-- and it goes foul! It's gonna be a long walk back to the dugout for {}."]
+
+    groundout = ["rolls out the red carpet to {} on that ball. Easy out.",
+    "hits it into shallow right field there, where {} scoops the ball up and throws it to first. {} is outta here!",
+    "jumps on that pitch and makes a run for it, but {} throws them out at first!"]
+
+    flyout = ["hits a fly ball deep into centre field, and {} catches it!",
+    ("hits a high fly into right field--", "{} dives-- and gets it! {} is out!"),
+    "hits the ball deep into left field-- but {} says it's not gonna be that easy, and robs them of a home run!",
+    ("hits a high fly into right field--", "but {} dives into the stands to catch it! I've seen it, and I still don't believe what I just witnessed!")]
+
+    fielderschoice = ["hits it hard on the ground-- tough play. {} reaches on fielder's choice!",
+    "hits that one shallow, and {}'s made their choice: {} is outta here, but {} reaches!"]
+
+    doubleplay = ["grounds out into the double play! We really do hate to see it.",
+    "rolls out the red carpet to {}, and they turn the double play. They're making it look easy out there!",
+    "hits deep, but {} throws it into the double play there! Just a well-oiled defensive machine on the field tonight."]
+
+    sacrifice = [("hits that one deep, and {} tags up--", "They're safe! Shook hands with danger on that one!"),
+    "bunts on that one, letting {} come home on the sacrifice!",
+    "hits a sacrifice fly! {} tags up to keep this rally alive!"]
+
+    walk = ["draws a walk on that one. {} must not have wanted to risk it.",
+    "makes the walk to first.",
+    "gets hit by a beanball-- that one looks like it smarts! They're taking the long way round to First.",
+    "draws the walk there. Sometimes you've just gotta take what you can get."]
+
+    single = ["hits that one shallow, and just makes it before {} throws to first!",
+    "hits the ball deep, with {} running for it-- but {} dives to first in the knick of time! This league needs instant replay!",
+    "hits that one deep, but {} is on it like a hawk-- Don't get cocky, kid! {} puts on the brakes, safe at first with time to spare!"]
+
+    double = ["hits it deep and makes it to second with time to spare. The most dangerous base!",
+    "knocks that one into left field, swiftly rounds first-- and ends up safe at second!",
+    "nails the double and stops safe at second! You're halfway home, kid!"]
+
+    triple = ["puts an exclamation point on that one! Just enough time for {} to make it to third!",
+    "hits a high fly on that one-- {} runs for it but it hits the grass! {} makes it to third in the knick of time!",
+    "absolutely nails that one-- and safe at third! We love to see it!!",
+    "hits that one with authority and makes it to third! But they're still a long way from home!"]
+
+    homerun = ["hits one deep into left field-- No doubt about it, this one's a Home Run!",
+    "hits a high fly deep into right field-- and it's GONE! Home Run!",
+    "sends that one right into the stands!! HOME RUN! Wow, they are unbelievable!"]
+
+    grandslam = ["with the GRAND SLAM! AND THIS IS, INDEED, THE GREATEST NIGHT IN THE HISTORY OF OUR SPORT.",
+    "with a high fly into right field there-- and it's GONE! That's a GRAND SLAM!",
+    "with the GRAND SLAM! And if you had any dobuts about them, that should put them to rest right there!"]
+
+    steal_caught = ["{} was caught stealing {} base by {}!"]
+    steal_success = ["{} steals {} base!"]
+
+    no_formats = strikeoutlooking + strikeoutswinging[:2] + walk[1:] + double + triple[2:] + homerun + grandslam + [flyout[1][0] + flyout[3][0] + doubleplay[0] + sacrifice[0][1]]
+
+    diff_formats = {strikeoutswinging[2]: ("batter",),
+                    groundout[1]: ("defender", "batter"),
+                    flyout[1][1]: ("defender", "batter"),
+                    fielderschoice[0]: ("batter",), fielderschoice[1]: ("defender", "runner", "batter"),
+                    sacrifice[0][0]: ("runner",), sacrifice[1]: ("runner",), sacrifice[2]: ("runner",),
+                    walk[0]: ("pitcher",),
+                    single[1]: ("defender", "batter"), single[2]: ("defender", "batter"),
+                    triple[0]: ("batter",), triple[1]: ("defender", "batter"),
+                    steal_success[0]: ("runner", "base_string"),
+                    steal_caught[0]: ("runner", "base_string", "defender")}
+
+    twoparts = [flyout[1], flyout[3], sacrifice[0]]
+
 
 
 def all_voices():
     return {"default": game_strings_base,
         "The Goddesses": TheGoddesses,
-        "The New Guy": TheNewGuy}
+        "The New Guy": TheNewGuy,
+        "Trespass Oracle": TrespassOracle}
+
+def weighted_voices(): #these are the ones accessible to random games
+    return [game_strings_base, TheGoddesses, TheNewGuy], [6, 4, 2]
 
 
 def base_string(base):

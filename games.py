@@ -266,6 +266,7 @@ class game(object):
         defender = random.choice(defender_list) #make pitchers field
 
         outcome["batter"] = batter
+        outcome["pitcher"] = pitcher
         outcome["defender"] = ""
 
         player_rolls = {}
