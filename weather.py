@@ -446,7 +446,7 @@ class SummerMist(Weather):
     def activate(self, game, result):
         if result["outcome"] in [appearance_outcomes.flyout, appearance_outcomes.groundout, appearance_outcomes.sacrifice]:
             roll = random.random()
-            if roll < .3: #get lost
+            if roll < .4: #get lost
                 result["mist"] = True
                 self.text = f" {result['batter'].name} gets lost in the mist on the way back to the dugout."
                 if self.missing_players[result["offense_team"].name] is not None:
