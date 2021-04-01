@@ -118,8 +118,10 @@ class game_strings_base(object):
                     format_list.append(base_string)
                 elif format == "defender":
                     format_list.append(defender)
-
-        currentupdate["steals"] = [text.format(*format_list)]
+            currentupdate["steals"] = [text.format(*format_list)]
+        else:
+            currentupdate["steals"] = [text]
+        
 
 class TheGoddesses(game_strings_base):
 
@@ -242,7 +244,7 @@ class TheNewGuy(game_strings_base):
               ("winds up a real heavy hit, and the ball goes really fast!", "Not fast enough to faze {}, though, who does a spectacular leap over and nabs it out of the air.")]
 
     fielderschoice = ["whacks the ball over to the left side of the baseball triangle, where {} sends {} back to their pit. {}’s on base, though!",
-                      ("hits the ball onto the ground, where it rolls over to the second-and-a-half-base guard.","That guard puts a stop to {}’s running, but they forgot about {}!")]
+                      ("hits the ball onto the ground, where it rolls over to the second-and-a-half-base guard. They put a stop to {}’s running, but they forgot about {}!")]
 
     doubleplay = [("hits the ball over to {}, who picks it up and stops that runner at second.", "And they’re not done! They toss it to first and get {} out, too. Yikes."),
                   "hits the ball to {}, who gets that runner from first out before tossing it right back at first, and… wow. That went as poorly as it could’ve. They’re both out."]
@@ -286,13 +288,13 @@ class TheNewGuy(game_strings_base):
 
     diff_formats = {groundout[2]: ("defender", "batter"), groundout[3]: ("defender", "batter"),
                     flyout[0][1]: ("batter",),
-                    fielderschoice[0]: ("defender", "fc_out", "batter"), fielderschoice[1][1]: ("fc_out", "batter"),
+                    fielderschoice[0]: ("defender", "fc_out", "batter"), fielderschoice[1]: ("fc_out", "batter"),
                     doubleplay[0][1]: ("batter",),
                     sacrifice[0][1]: ("runner",), sacrifice[1]: ("defender", "runner"),
                     single[2]: ("batter",),
                     steal_caught[2]: ("defender",)}
 
-    twoparts = [flyout[0], flyout[2], flyout[4], fielderschoice[1], doubleplay[0], sacrifice[0], walk[1], single[0], homerun[1]]
+    twoparts = [flyout[0], flyout[2], flyout[4], doubleplay[0], sacrifice[0], walk[1], single[0], homerun[1]]
 
 class TrespassOracle(game_strings_base):
     def __init__(self):
@@ -382,7 +384,7 @@ def all_voices():
         "Trespass Oracle": TrespassOracle}
 
 def weighted_voices(): #these are the ones accessible to random games
-    return [game_strings_base, TheGoddesses, TheNewGuy], [6, 4, 2]
+    return [game_strings_base, TheGoddesses, TheNewGuy], [6, 2, 2]
 
 
 def base_string(base):

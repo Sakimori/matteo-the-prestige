@@ -1784,7 +1784,7 @@ def prepare_game(newgame, league = None, weather_name = None):
         newgame.weather = weathers[random.choice(list(weathers.keys()))](newgame)
 
     if newgame.voice is None:
-        newgame.voice = random.choices(gametext.weighted_voices()[0], weights=gametext.weighted_voices()[1])
+        newgame.voice = random.choices(gametext.weighted_voices()[0], weights=gametext.weighted_voices()[1])[0]()
 
     state_init = {
         "away_name" : newgame.teams['away'].name,
