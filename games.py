@@ -642,10 +642,13 @@ class game(object):
         if self.voice.post_format != []:
             format_list = []
             for extra_format in self.voice.post_format:
-                if extra_format == "base":
-                    format_list.append(base_string(result["base"]))
-                elif extra_format == "runner":
-                    format_list.append(result["runner"])
+                try:
+                    if extra_format == "base":
+                        format_list.append(base_string(result["base"]))
+                    elif extra_format == "runner":
+                        format_list.append(result["runner"])
+                except KeyError:
+                    format_list.append("None")
             self.voice.post_format = []
             result["displaytext"] = result["displaytext"].format(*format_list)
         
