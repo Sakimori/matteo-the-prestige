@@ -890,26 +890,29 @@ class LeagueDisplayCommand(Command):
     description = "Displays the current standings for the given league. Use `--season X` or `-s X` to get standings from season X of that league."
 
     async def execute(self, msg, command, flags):
-        if league_exists(command.split("\n")[1].strip()):
-            try:
-                league = leagues.load_league_file(command.split("\n")[1].strip())
-            except IndexError:
-                raise CommandError("League name goes on the second line now, boss.")
+        try:
+            if league_exists(command.split("\n")[1].strip()):
+                try:
+                    league = leagues.load_league_file(command.split("\n")[1].strip())
+                except IndexError:
+                    raise CommandError("League name goes on the second line now, boss.")
 
-            for flag in flags:
-                if flag[0] == "s":
-                    try:
-                        season_num = int(flag[1])
-                        await msg.channel.send(embed=league.past_standings(season_num))
-                        return
-                    except ValueError:
-                        raise CommandError("Give us a proper number, boss.")
-                    except TypeError:
-                        raise CommandError("That season hasn't been played yet, chief.")
+                for flag in flags:
+                    if flag[0] == "s":
+                        try:
+                            season_num = int(flag[1])
+                            await msg.channel.send(embed=league.past_standings(season_num))
+                            return
+                        except ValueError:
+                            raise CommandError("Give us a proper number, boss.")
+                        except TypeError:
+                            raise CommandError("That season hasn't been played yet, chief.")
 
-            await msg.channel.send(embed=league.standings_embed())
-        else:
-            raise CommandError("Can't find that league, boss.")
+                await msg.channel.send(embed=league.standings_embed())
+            else:
+                raise CommandError("Can't find that league, boss.")
+        except IndexError:
+            raise CommandError("League name goes on the second line now, boss.")
 
 class LeagueLeadersCommand(Command):
     name = "leagueleaders"
