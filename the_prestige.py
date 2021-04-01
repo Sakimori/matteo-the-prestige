@@ -661,9 +661,9 @@ class StartDraftCommand(Command):
 
         if teamsize-pitchers > 20 or pitchers > 8:
             raise CommandError("You can't fit that many players on a team, chief. Slow your roll.")
-        if teamsize < 3 or pitchers < 1 or draftsize < 10 or minsize < 2:
-            raise CommandError("One of those numbers is too low. Draft size has to be at least 10, the rest should be obvious.")
-        if drafsize > 40:
+        if teamsize < 3 or pitchers < 1 or draftsize < 5 or minsize < 2:
+            raise CommandError("One of those numbers is too low. Draft size has to be at least 5, the rest should be obvious.")
+        if draftsize > 40:
             raise CommandError("40 players is the max. We're not too confident about pushing for more.")
 
         draft = Draft.make_draft(teamsize, draftsize, minsize, pitchers)
