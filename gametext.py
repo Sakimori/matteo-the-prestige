@@ -79,23 +79,26 @@ class game_strings_base(object):
 
     def parse_formats(self, format_tuple, update):
         out_list = []
-        for string in format_tuple:
-            if string == "defender":
-                out_list.append(update['defender'].name)
-            elif string == "base_string":
-                self.post_format.append("base")
-                out_list.append("{}")
-            elif string == "batter":
-                out_list.append(update['batter'].name)
-            elif string == "pitcher":
-                out_list.append(update['pitcher'].name)
-            elif string == "fc_out" or string == "runner":
-                self.post_format.append("runner")
-                out_list.append("{}")
-            elif string == "defense_team":
-                out_list.append(update['defense_team'].name)
-            elif string == "offense_team":
-                out_list.append(update['offense_team'].name)
+        try:
+            for string in format_tuple:
+                if string == "defender":
+                    out_list.append(update['defender'].name)
+                elif string == "base_string":
+                    self.post_format.append("base")
+                    out_list.append("{}")
+                elif string == "batter":
+                    out_list.append(update['batter'].name)
+                elif string == "pitcher":
+                    out_list.append(update['pitcher'].name)
+                elif string == "fc_out" or string == "runner":
+                    self.post_format.append("runner")
+                    out_list.append("{}")
+                elif string == "defense_team":
+                    out_list.append(update['defense_team'].name)
+                elif string == "offense_team":
+                    out_list.append(update['offense_team'].name)
+        except KeyError:
+            out_list.append("None")
         return tuple(out_list)
 
     def activate_weather(self, lastupdate, currentupdate, game):
