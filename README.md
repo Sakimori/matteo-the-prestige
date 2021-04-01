@@ -32,20 +32,29 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
 * [Attribution](https://github.com/Sakimori/matteo-the-prestige#attribution)
   
 ## FAQ:
+- Q: What is sim16?  
+  A: This thread provides outlines the basics pretty well, give it a read: https://twitter.com/FHelltiger/status/1374119998780755969?s=20
+
+- Q: How do I get started with sim16?  
+  A: If you aren't already in a discord server that has the bot, add it to your server with the link at the start. Once you've done that or if you're already in a server with it, start by making a team using m;saveteam, you can see a description of how to use this here in the readme or by using m;help saveteam. Once you have a team, I recommend looking into the OBL starting my doing m;oblhelp. Other than that, I recommend joining the main discord above and having a look at the #lfg channel there if you're interested in participating in a league, otherwise just look around the readme and do what sounds fun to you!
+
 - Q: I'm trying to make a league on the website but when I click the 'submit' button it doesn't do anything and doesn't give an error message.  
   A: This is a known issue, to avoid it make sure you have an even number of divisions and subleagues and an equal number of teams in each division. These are all requirements for a league and sometimes if some of them aren't met the submit button will fail silently. If you're still having this issue after doing all of this correctly please submit a bug report via the form.
 
 - Q: What is the maximum and minimum sizes for teams?  
   A: The minimum size is 1 batter and 1 pitcher, the maximum size is 20 batters and 8 pitchers.
 
+- Q: What does [weather] do?  
+  A: See the weathers section of the readme for a description of all the weathers except the current patch's weathers, those you have to figure out yourself (or just ask and someone will probably tell you).
+
 - Q: My league stopped playing randomly and I don't know why, what should I do?  
-  A: There were probably server issues or a patch went out, use the startleague command again and things should resume from where they left off.  
+  A: There were probably server issues or a patch went out, use the startleague command again and things should resume from where they left off, if this doesn't fix it submit an issue to the issue reporting form and we can troubleshoot it for you.  
 
 - Q: Why aren't all the teams playing on every day of my league/why do teams have an uneven amount of games played in my league?  
   A: Scheduling algorithms are hard and due to how this one was coded, sometimes teams have bye weeks and rest for some games the season, this should all even out by the end of the season and each team will play the same number of games.
 
 - Q: What should I do if my question isn't answered by this FAQ, this readme, or the help text for the commands, or I find a bug?  
-  A: If you have any mechanical questions, feel free to stop by the sim16 discord linked at the beginning and ask your question in the lobby there. If you have an issue or think you've found a bug, please submit it to this form and it will be passed along if it's something we can do anything about. https://forms.gle/PjbpfT46yuMDGca46
+  A: If you have any mechanical questions, feel free to stop by the sim16 discord linked at the beginning and ask your question in the lobby there. If you have an issue or think you've found a bug, submit it to the issue reporting form and we'll look into it.
 
 
 ## Commands: (Everything here is case sensitive, and can be prefixed with either m; or m!)
@@ -101,10 +110,11 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
   
 ### Game Commands:
 #### Individual Game Commands:
-- m;startgame --day # or -d #, -w [Weather Name] or --weather [Weather Name]
+- m;startgame --day # or -d #, -w [Weather Name] or --weather [Weather Name], -v [Commentator Name] or --voice [Commentator Name]
   - Starts a game with premade teams made using saveteam. Provides a link to the website where you can watch the game. 
   - The --day/-d is an optional flag, if used it'll force the game to use the #th spot in each team's rotations. If this number is larger than the number of pitchers in one or both of the teams' rotations it'll wrap around. If it is not used pitchers will be chosen randomly from the teams' rotations.
   - The -w/--weather is the same, if used it'll force the game to be the specified weather, weathers must be spelled out exactly with the first letter capitalized, see further down for a full list of weathers and their exact names.
+  - The -v/--voice flag forces a specified commentator for the game, the current options are: default, The Goddesses, The New Guy
   - Use this command at the top of a list with entries separated by new lines:
 	- The away team's name.
 	- The home team's name.
@@ -132,8 +142,13 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
 - m;oblstandings
   - Displays the 15 teams with the most OBL points in this meta-season.  
 #### Draft Commands
-- m;startdraft
-  - Starts a draft with an arbitrary number of participants. Use this command at the top of a list with entries separated by new lines:
+- m;startdraft -t #, -d # -m #, -p #
+  - Starts a draft with an arbitrary number of participants. By default teams will draft in order from a pool of 20 players until there are 5 left at which point the pool will refresh. By default each team will select 13 players, 12 hitters and 1 pitcher in that order, many of these things can be modified via the flags.
+  - The -t # flag changes the size of the teams, the number of batters will be this number minus the number provided for -p, by default 1.
+  - The -d # flag sets the size of the draft pool, by default this is 20.
+  - The -m # flag sets the minimum size the pool can reach before resetting, by default this is 5, this cannot be set to the same as -m but if set to one lower the pool will refresh after every pick.
+  - The -p # flag sets the number of pitchers each team will have, by default this is 1 but you may want to change this if drafting with the intention to use a team in a league.
+  - Use this command with any chosen flags at the top of a list with entries separated by new lines:
 	- For each participant's entry you need three lines:
 	  - Their discord @
 	  - Their team name
@@ -150,15 +165,20 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
     - Sets yourself as the owner of an unclaimed league created on the website. Make sure to do this as soon as possible since if someone does this before you, you will not have access to the league.
   - m;addleagueowner [league name]
     - Use this command at the top of a list of @mentions, with entries separated by new lines, of people you want to have owner powers in your league.
-  - m;startleague [league name] --queue #/-q # --noautopostseason
+  - m;startleague [league name] --queue #/-q # -a/--autopostseason, -s/--skippostseason
     - Send this command with the number of games per hour you want on the next line, minimum 1 (one game every hour), maximum 12 (one game every 5 minutes, uses spillover rules).
 	- Starts the playing of league games at the pace specified, by default will play the entire season and the postseason unless an owner pauses the league with the m;pauseleague command. 
 	- If you use the --queue #/-q # flag, the league will only play # series' at a time before automatically pausing until you use this command again, by default it will play the entire season unless stopped.
-	- If you use the --noautopostseason flag, instead of starting automatically, the league will pause at the end of the regular season and not start the postseason until you use this command again.
+	- If you use the --autopostseason/-a flag, the league will automatically play the postseason after the regular season, if not use you will need to use m;startleague again after the season to start the postseason.
+	- If you use the --skippostseason/-s flag, the league will not have an automatic postseason. Only use this flag if you're absolutely sure this is what you want to do, for example if you want to run a custom post-season. 
   - m;pauseleague [league name]
     - Pauses the specified league after the current series finishes until the league is started again with m;startleague.
   - m;leagueseasonreset [league name]
     - Completely scraps the given league's current season, resetting everything to day 1 of the current season. Make sure to use m;startleague again to restart the season afterwards.
+  - m;leaguereplaceteam [league name] [team to remove] [team to add]
+    - Replaces a team in a league with a new team. Can only be done in the offseason. Sent this command with the team league name on the line of the command and the teams to remove/add on the next lines. Replaces a team in a league with a new team. Can only be done in the offseason.
+  - m;swapteams [league name] [team a] [team b]
+    - Swaps the division/conference of two teams in a league. Sent this command with the team league name on the line of the command and the teams to swap on the next lines.    
 - General Commands (all of these can be used by anyone):
   - m;leaguestandings [league name] --season #/-s #
     - Displays the current standings for the specified league.
@@ -172,9 +192,10 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
   - m;leagueleaders [league name] [stat]
     - Displays a league's leaders in the given stat.
 	- The currently available starts are:
-	  - for batters: avg (batting average), slg (slugging percentage), obp (on-base percentage), ops (on-base plus slugging), home runs, walks drawn. 
-	  - for pitchers era (earned run average), whip (walks and hits per innings pitched), kper9 (strikeouts per 9 innings), bbper9 (walks per 9 innings), kperbb (strikeout to walk ratio), eramin (players with the worst earned run average). 
-  
+	  - For batters: avg (batting average), slg (slugging percentage), obp (on-base percentage), ops (on-base plus slugging), home runs, walks drawn. 
+	  - For pitchers era (earned run average), whip (walks and hits per innings pitched), kper9 (strikeouts per 9 innings), bbper9 (walks per 9 innings), kperbb (strikeout to walk ratio), eramin (players with the worst earned run average). 
+  - m;leaguesub [league name]
+    - Posts all league feed events to this channel, in addition to the channel the league was started in. Run again to unsubscribe.
 [Return to the top](https://github.com/Sakimori/matteo-the-prestige#matteo-the-prestige)
 
 ### Player Commands:	 
@@ -210,9 +231,10 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
   - Breezy 🎐: Occasionally swaps letters of a player's name, altering their name for the remainder of the game and changing their stats.
   - Starlight 🌃: The stars are displeased with dingers and will cancel most of them out by pulling them foul.
   - Meteor Shower 🌠: Has a chance to warp runners on base to none base causing them to score.
-  - Hurricane 🌀: Current patch weather, its effects will be revealed when new weathers are added.
-  - Tornado 🌪: Current patch weather, its effects will be revealed when new weathers are added.
-  - Torrential Downpour ⛈: Current patch weather, its effects will be revealed when new weathers are added. 
+  - Hurricane 🌀: Flips the scoreboard every few innings.
+  - Tornado 🌪: Occasionally shuffles baserunners around to different bases.
+  - Torrential Downpour ⛈: The game does not end until one team scores X runs where X is the original inning count of the game, 9 by default.
+  - Summer Mist 🌁: Current patch weather, its effects will be added to here with the next patch.
   
 [Return to the top](https://github.com/Sakimori/matteo-the-prestige#matteo-the-prestige)
 
