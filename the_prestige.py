@@ -2396,6 +2396,8 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
             now = datetime.datetime.now()
 
             validminutes = [int((60 * div)/league.games_per_hour) for div in range(0,league.games_per_hour)]
+            delta = datetime.timedelta()
+
             for i in range(0, len(validminutes)):
                 if now.minute > validminutes[i]:
                     if i <= len(validminutes)-3:
@@ -2440,6 +2442,7 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
     if last: #if last game of the season
         now = datetime.datetime.now()
         validminutes = [int((60 * div)/league.games_per_hour) for div in range(0,league.games_per_hour)]
+        delta = datetime.timedelta()
         for i in range(0, len(validminutes)):
             if now.minute > validminutes[i]:
                 if i <= len(validminutes)-3:
@@ -2474,6 +2477,7 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
     now = datetime.datetime.now()
 
     validminutes = [int((60 * div)/league.games_per_hour) for div in range(0,league.games_per_hour)]
+    delta = datetime.timedelta()
     for i in range(0, len(validminutes)):
         if now.minute > validminutes[i]:
             if i <= len(validminutes)-3:
@@ -2542,6 +2546,7 @@ async def league_postseason(channel, league):
             now = datetime.datetime.now()
 
             validminutes = [int((60 * div)/league.games_per_hour) for div in range(0,league.games_per_hour)]
+            delta = datetime.timedelta()
             for i in range(0, len(validminutes)):
                 if now.minute > validminutes[i]:
                     if i <= len(validminutes)-3:
@@ -2576,6 +2581,7 @@ async def league_postseason(channel, league):
         now = datetime.datetime.now()
 
         validminutes = [int((60 * div)/league.games_per_hour) for div in range(0,league.games_per_hour)]
+        delta = datetime.timedelta()
         for i in range(0, len(validminutes)):
             if now.minute > validminutes[i]:
                 if i <= len(validminutes)-3:
