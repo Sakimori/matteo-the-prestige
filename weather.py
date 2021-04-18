@@ -29,6 +29,12 @@ class Weather:
     def activate(self, game, result):
         # activates after the batter calculation. modify result, or just return another thing
         pass
+    
+    def steal_activate(self, game, result):
+        pass
+
+    def steal_post_activate(self, game, result):
+        pass
 
     def post_activate(self, game, result):
         pass
@@ -475,39 +481,69 @@ class LeafEddies(Weather):
     out_counter = 0
     sent = False
     first = True
+    
+
+    def __init__(self, game):
+        self.name = f"Leaf Eddies: {roman.roman_convert(str(game.max_innings*3))}"
+        self.original_innings = game.max_innings
+        game.max_innings = 1
+        self.inning_text = "The umpires have remembered their jobs. They shoo the defenders off the field!"
 
     def activate(self, game, result):
-        if out_counter >= (game.max_innings * 3):
-            result["swap"] = True
-        elif out_counter % 3 == 0 and not out_counter == 0 and not sent:
-            if first:
-                first = False
-                updatetext = "The leaves have distracted the umpires, and they've been unable to keep track of outs!"               
-            else:
-                leaf = random.choice(leaves)
-                eddy = random.choice(eddy_types)
-                updatetext = f"A{eddy} of {leaf} blows through, and the umpires remain distracted!"
-            sent = True
-            result.clear()
-            result.update({
-                    "text": updatetext,
-                    "text_only": True,
-                    "weather_message": True
-                })
+        if game.inning == 1:
+            if self.out_counter % 3 == 0 and not self.out_counter == 0 and not self.sent:
+                if self.first:
+                    self.first = False
+                    updatetext = "The leaves have distracted the umpires, and they've been unable to keep track of outs!"               
+                else:
+                    leaf = random.sample(self.leaves, 2)
+                    eddy = random.choice(self.eddy_types)
+                    updatetext = f"A{eddy} of {leaf[0]} and {leaf[1]} leaves blows through, and the umpires remain distracted!"
+                self.sent = True
+                result.clear()
+                result.update({
+                        "text": updatetext,
+                        "text_only": True,
+                        "weather_message": True
+                    })
+        else:
+            game.outs = 2
+
+    def steal_post_activate(self, game, result):
+        self.post_activate(game, result)
 
     def post_activate(self, game, result):
-        if game.outs > 0:
-            self.out_counter += game.outs
-            sent = False
-            game.outs = 0
-
-        if "swap" in result and game.top_of_inning:
-            self.out_counter = 0
+        if game.inning == 1:
+            if game.outs > 0:
+                self.out_counter += game.outs
+                game.outs = 0
+                self.sent = False
+                if self.out_counter < (self.original_innings * 3):
+                    self.name = f"Leaf Eddies: {roman.roman_convert(str(self.original_innings*3-self.out_counter))}"
+                else:
+                    self.name = "Leaf Eddies"
+                    self.out_counter = 0
+                    game.outs = 3
+        elif game.teams["home"].score != game.teams["away"].score:
             game.outs = 3
+            if game.top_of_inning:
+                game.inning += 1
+                game.top_of_inning = False
 
     def modify_top_of_inning_message(self, game, state):
         state["update_emoji"] = self.emoji
-        state["update_text"] = "The umpires have remembered their jobs. They shoo the defenders off the field, and the sides finally switch!"
+        if game.inning == 1:
+            self.name = f"Leaf Eddies: {roman.roman_convert(str(self.original_innings*3-self.out_counter))}"
+        else:
+            self.name = "Leaf Eddies: Golden Run"
+            state["update_emoji"] = "⚠"
+            self.inning_text = "SUDDEN DEATH ⚠"
+        state["update_text"] = self.inning_text
+        state["weather_text"] = self.name
+
+    def modify_atbat_message(self, game, state):
+        if game.inning == 1:
+            state["weather_text"] = self.name
 
 def all_weathers():
     weathers_dic = {

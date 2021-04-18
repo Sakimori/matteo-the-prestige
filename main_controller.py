@@ -256,4 +256,4 @@ def update_loop():
         socket_thread = threading.Thread(target=socketio.emit, args=("states_update", game_states))
         socket_thread.start()
         #socketio.emit("states_update", game_states)
-        time.sleep(8)
+        time.sleep(3)

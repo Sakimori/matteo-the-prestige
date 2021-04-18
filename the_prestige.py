@@ -170,7 +170,7 @@ class StartGameCommand(Command):
         except ValueError:
             raise CommandError("That number of innings isn't even an integer, chief. We can't do fractional innings, nor do we want to.")
 
-        if innings is not None and innings < 2:
+        if innings is not None and innings < 2 and msg.author.id not in config()["owners"]:
             raise CommandError("Anything less than 2 innings isn't even an outing. Try again.")
                                                     
         elif innings is not None and innings > 200 and msg.author.id not in config()["owners"]:
@@ -2245,7 +2245,10 @@ async def game_watcher():
         await asyncio.sleep(4)
 
 def game_over_embed(game):
-    title_string = f"{game.teams['away'].name} at {game.teams['home'].name} ended after {game.inning-1} innings"
+    if game.inning != 2:
+        title_string = f"{game.teams['away'].name} at {game.teams['home'].name} ended after {game.inning-1} innings"
+    else:
+        title_string = f"{game.teams['away'].name} at {game.teams['home'].name} ended after 1 inning"
     if (game.inning - 1) > game.max_innings: #if extra innings
         title_string += f" with {game.inning - (game.max_innings+1)} extra innings.\n"
     else:

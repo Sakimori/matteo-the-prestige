@@ -386,6 +386,8 @@ class game(object):
 
         self.voice.stealing(outcome, baserunner.name, base_string(start_base+1), defender.name, successful)
 
+        self.weather.steal_post_activate(self, outcome)
+
         if self.outs >= 3:
             self.flip_inning()
 
@@ -654,8 +656,7 @@ class game(object):
                     format_list.append("None")
             self.voice.post_format = []
             result["displaytext"] = result["displaytext"].format(*format_list)
-        
-        
+
         if self.outs < 3:
             result["offense_team"].score += scores_to_add #only add points if inning isn't over
         else:
@@ -663,7 +664,7 @@ class game(object):
         self.get_batter().game_stats["rbis"] += scores_to_add
         self.get_pitcher().game_stats["runs_allowed"] += scores_to_add
         result["offense_team"].lineup_position += 1 #put next batter up
-        self.choose_next_batter()
+        self.choose_next_batter()    
 
         self.weather.post_activate(self, result)
 
