@@ -664,6 +664,9 @@ class game(object):
         self.get_pitcher().game_stats["runs_allowed"] += scores_to_add
         result["offense_team"].lineup_position += 1 #put next batter up
         self.choose_next_batter()
+
+        self.weather.post_activate(self, result)
+
         if self.outs >= 3:
             self.flip_inning()
             

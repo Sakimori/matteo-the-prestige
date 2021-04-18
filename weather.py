@@ -30,6 +30,9 @@ class Weather:
         # activates after the batter calculation. modify result, or just return another thing
         pass
 
+    def post_activate(self, game, result):
+        pass
+
     def on_choose_next_batter(self, game):
         pass
 
@@ -462,6 +465,50 @@ class SummerMist(Weather):
             state["update_text"] += self.text
             self.text = ""
 
+class LeafEddies(Weather):
+    name = "Leaf Eddies"
+    emoji = "🍂"
+    duration_range = [1,2]
+
+    leaves = ["orange", "brown", "yellow", "red", "fake", "real", "green", "magenta", "violet", "black", "infrared", "cosmic", "microscopic", "celestial", "spiritual", "ghostly", "transparent"]
+    eddy_types = [" cloud", " small tornado", "n orb", " sheet", "n eddy", " smattering", " large number", " pair"]
+    out_counter = 0
+    sent = False
+    first = True
+
+    def activate(self, game, result):
+        if out_counter >= (game.max_innings * 3):
+            result["swap"] = True
+        elif out_counter % 3 == 0 and not out_counter == 0 and not sent:
+            if first:
+                first = False
+                updatetext = "The leaves have distracted the umpires, and they've been unable to keep track of outs!"               
+            else:
+                leaf = random.choice(leaves)
+                eddy = random.choice(eddy_types)
+                updatetext = f"A{eddy} of {leaf} blows through, and the umpires remain distracted!"
+            sent = True
+            result.clear()
+            result.update({
+                    "text": updatetext,
+                    "text_only": True,
+                    "weather_message": True
+                })
+
+    def post_activate(self, game, result):
+        if game.outs > 0:
+            self.out_counter += game.outs
+            sent = False
+            game.outs = 0
+
+        if "swap" in result and game.top_of_inning:
+            self.out_counter = 0
+            game.outs = 3
+
+    def modify_top_of_inning_message(self, game, state):
+        state["update_emoji"] = self.emoji
+        state["update_text"] = "The umpires have remembered their jobs. They shoo the defenders off the field, and the sides finally switch!"
+
 def all_weathers():
     weathers_dic = {
             "Supernova" : Supernova,
@@ -478,21 +525,22 @@ def all_weathers():
             "Hurricane" : Hurricane,
             "Tornado" : Tornado,
             "Torrential Downpour" : Downpour,
-            "Summer Mist" : SummerMist
+            "Summer Mist" : SummerMist,
+            "Leaf Eddies" : LeafEddies
         }
     return weathers_dic
 
 class WeatherChains():
-    light = [SlightTailwind, Twilight, Breezy, Drizzle, SummerMist] #basic starting points for weather, good comfortable spots to return to
+    light = [SlightTailwind, Twilight, Breezy, Drizzle, SummerMist, LeafEddies] #basic starting points for weather, good comfortable spots to return to
     magic = [Twilight, ThinnedVeil, MeteorShower, Starlight] #weathers involving breaking the fabric of spacetime
     sudden = [Tornado, Hurricane, Twilight, Starlight, Midnight, Downpour] #weathers that always happen and leave over 1-3 games
     disaster = [Hurricane, Tornado, Downpour, Blizzard] #storms
-    aftermath = [Midnight, Starlight, MeteorShower, SummerMist] #calm epilogues
+    aftermath = [Midnight, Starlight, MeteorShower, SummerMist, LeafEddies] #calm epilogues
 
     dictionary = {
             #Supernova : (magic + sudden + disaster, None), supernova happens leaguewide and shouldn't need a chain, but here just in case
             Midnight : ([SlightTailwind, Breezy, Drizzle, Starlight, MeteorShower, HeatWave, SummerMist],[2,2,2,4,4,1,2]),
-            SlightTailwind : ([Breezy, Drizzle, Tornado], [3,3,1]),
+            SlightTailwind : ([Breezy, Drizzle, LeafEddies, Tornado], [3,3,3,1]),
             Blizzard : ([Midnight, Starlight, MeteorShower, Twilight, Downpour], [2,2,2,2,4]),
             Twilight : ([ThinnedVeil, Midnight, MeteorShower, SlightTailwind, SummerMist], [2,4,2,1,2]),
             ThinnedVeil : (light, None),
@@ -501,9 +549,10 @@ class WeatherChains():
             Breezy : ([Drizzle, HeatWave, Blizzard, Tornado], [3,3,1,1]),
             Starlight : ([SlightTailwind, Twilight, Breezy, Drizzle, ThinnedVeil, HeatWave], None),
             MeteorShower : ([Starlight, ThinnedVeil, HeatWave], None),
-            Hurricane : ([Midnight, Starlight, MeteorShower, Twilight, Downpour], [2,2,2,2,4]),
-            Tornado : ([Midnight, Starlight, MeteorShower, Twilight, Downpour],[2,2,2,2,4]),
+            Hurricane : ([LeafEddies, Midnight, Starlight, MeteorShower, Twilight, Downpour], [3,2,2,2,2,4]),
+            Tornado : ([LeafEddies, Midnight, Starlight, MeteorShower, Twilight, Downpour],[3,2,2,2,2,4]),
             SummerMist : ([Drizzle, Breezy, Hurricane, Downpour],[2, 1, 1, 1]),
+            LeafEddies : ([Breezy, Tornado, SummerMist, ThinnedVeil], None),
             Downpour : (aftermath, None)
         }
 
