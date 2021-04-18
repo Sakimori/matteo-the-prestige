@@ -51,20 +51,23 @@ class game_strings_base(object):
     no_formats = strikeoutlooking + strikeoutswinging + doubleplay + walk + single + double + triple + homerun + grandslam
 
     def activate(self, lastupdate, currentupdate, game):
-        if "twopart" in lastupdate:
-            for key, value in lastupdate.items():
-                if key != "twopart":
-                    currentupdate[key] = value
-            currentupdate["displaytext"] = self.format_gamestring(getattr(self, currentupdate["outcome"].name)[currentupdate["voiceindex"]][1], currentupdate)
+        try:
+            if "twopart" in lastupdate:
+                for key, value in lastupdate.items():
+                    if key != "twopart":
+                        currentupdate[key] = value
+                currentupdate["displaytext"] = self.format_gamestring(getattr(self, currentupdate["outcome"].name)[currentupdate["voiceindex"]][1], currentupdate)
 
-        elif "outcome" in currentupdate:
-            if self.check_for_twopart(getattr(self, currentupdate["outcome"].name)[currentupdate["voiceindex"]]):
-                currentupdate.update({
-                    "twopart": True,
-                    "displaytext": f"{currentupdate['batter']} {self.format_gamestring(getattr(self, currentupdate['outcome'].name)[currentupdate['voiceindex']][0], currentupdate)}"
-                    })
-            else:
-                currentupdate["displaytext"] = f"{currentupdate['batter']} {self.format_gamestring(getattr(self, currentupdate['outcome'].name)[currentupdate['voiceindex']], currentupdate)}"
+            elif "outcome" in currentupdate:
+                if self.check_for_twopart(getattr(self, currentupdate["outcome"].name)[currentupdate["voiceindex"]]):
+                    currentupdate.update({
+                        "twopart": True,
+                        "displaytext": f"{currentupdate['batter']} {self.format_gamestring(getattr(self, currentupdate['outcome'].name)[currentupdate['voiceindex']][0], currentupdate)}"
+                        })
+                else:
+                    currentupdate["displaytext"] = f"{currentupdate['batter']} {self.format_gamestring(getattr(self, currentupdate['outcome'].name)[currentupdate['voiceindex']], currentupdate)}"
+        except:
+            game_strings_base().activate(lastupdate, currentupdate, game)
 
     def check_for_twopart(self, gamestring): 
         return gamestring in self.twoparts
@@ -105,25 +108,29 @@ class game_strings_base(object):
         pass
 
     def stealing(self, currentupdate, runner, base_string, defender, is_successful):
-        if is_successful:
-            index = randrange(0, len(self.steal_success))
-            text = self.steal_success[index]
-        else:
-            index = randrange(0, len(self.steal_caught))
-            text = self.steal_caught[index]
+        try:
+            if is_successful:
+                index = randrange(0, len(self.steal_success))
+                text = self.steal_success[index]
+            else:
+                index = randrange(0, len(self.steal_caught))
+                text = self.steal_caught[index]
 
-        if text not in self.no_formats:
-            format_list = []
-            for format in self.diff_formats[text]:
-                if format == "runner":
-                    format_list.append(runner)
-                elif format == "base_string":
-                    format_list.append(base_string)
-                elif format == "defender":
-                    format_list.append(defender)
-            currentupdate["steals"] = [text.format(*format_list)]
-        else:
-            currentupdate["steals"] = [text]
+            if text not in self.no_formats:
+                format_list = []
+                for format in self.diff_formats[text]:
+                    if format == "runner":
+                        format_list.append(runner)
+                    elif format == "base_string":
+                        format_list.append(base_string)
+                    elif format == "defender":
+                        format_list.append(defender)
+                currentupdate["steals"] = [text.format(*format_list)]
+            else:
+                currentupdate["steals"] = [text]
+        except:
+            game_strings_base().stealing(currentupdate, runner, base_string, defender, is_successful)
+
         
 
 class TheGoddesses(game_strings_base):
