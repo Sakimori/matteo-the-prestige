@@ -234,7 +234,8 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
   - Hurricane 🌀: Flips the scoreboard every few innings.
   - Tornado 🌪: Occasionally shuffles baserunners around to different bases.
   - Torrential Downpour ⛈: The game does not end until one team scores X runs where X is the original inning count of the game, 9 by default.
-  - Summer Mist 🌁: Current patch weather, its effects will be added to here with the next patch.
+  - Summer Mist 🌁: When a player hits into an out, they have a chance to get lost in the mist and be temporarily removed from the lineup. If another player gets lost in the mist the first player returns and takes the newly lost player's spot in the lineup.
+  - Leaf Eddies 🍂: Current patch weather, its effects will be added to here with the next patch.
   
 [Return to the top](https://github.com/Sakimori/matteo-the-prestige#matteo-the-prestige)
 
