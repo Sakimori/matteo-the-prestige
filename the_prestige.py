@@ -574,7 +574,7 @@ class StartTournamentCommand(Command):
                     raise CommandError("Finals series length has to be an odd positive integer.")
                 if msg.author.id not in config()["owners"] and finals_series_length > 21:
                     raise CommandError("That's too long, boss. We have to run patches *some* time.")
-            if flag[0] == "s": #seeding
+            elif flag[0] == "s": #seeding
                 if flag[1] == "stars":
                     rand_seed = False
                 elif flag[1] == "given":
