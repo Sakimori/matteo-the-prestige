@@ -142,11 +142,11 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
 - m;oblstandings
   - Displays the 15 teams with the most OBL points in this meta-season.  
 #### Draft Commands
-- m;startdraft -t #, -d # -m #, -p #
+- m;startdraft -t #, -d # -r #, -p #
   - Starts a draft with an arbitrary number of participants. By default teams will draft in order from a pool of 20 players until there are 5 left at which point the pool will refresh. By default each team will select 13 players, 12 hitters and 1 pitcher in that order, many of these things can be modified via the flags.
   - The -t # flag changes the size of the teams, the number of batters will be this number minus the number provided for -p, by default 1.
   - The -d # flag sets the size of the draft pool, by default this is 20.
-  - The -m # flag sets the minimum size the pool can reach before resetting, by default this is 5, this cannot be set to the same as -m but if set to one lower the pool will refresh after every pick.
+  - The -r # flag sets the minimum size the pool can reach before resetting, by default this is 5, this cannot be set to the same as -d but if set to one lower the pool will refresh after every pick.
   - The -p # flag sets the number of pitchers each team will have, by default this is 1 but you may want to change this if drafting with the intention to use a team in a league.
   - Use this command with any chosen flags at the top of a list with entries separated by new lines:
 	- For each participant's entry you need three lines:
