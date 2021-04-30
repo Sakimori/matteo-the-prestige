@@ -302,8 +302,6 @@ function validRequest(name:string, structure: LeagueStructureState, options:Leag
 
 		validNumber(options.games_series) && 
 		validNumber(options.intra_division_series) && 
-		validNumber(options.inter_division_series) && 
-		validNumber(options.inter_league_series) &&
 		validNumber(options.top_postseason) &&
 		validNumber(options.wildcards, 0) &&
 
