@@ -1961,7 +1961,10 @@ async def tourney_round_watcher(channel, tourney, games_list, filter_url, finals
                             delta = datetime.timedelta(minutes= (60 - now.minute))           
 
                 next_start = (now + delta).replace(second=0, microsecond=0)
-                wait_seconds = (next_start - now).seconds               
+                wait_seconds = (next_start - now).seconds
+                if (wait_seconds > int(60 * 60 * 60)/tourney.league.games_perHour) ##theres a glitch where it'll go to 1440 minutes if the games end right when the next games should begin
+                    wait_seconds = int(60 * 60 * 60)/tourney.league.games_perHour) ##set it so it delays by only one game instead of for an entire day
+                    ## this might not work i don't know how to compile python code into a discord bot
                 if tourney.league is not None:
                     await league_subscriber_update(tourney.league, channel, f"The next batch of games for the {tourney.name} will start in {math.ceil(wait_seconds/60)} minutes.")
                 else:
