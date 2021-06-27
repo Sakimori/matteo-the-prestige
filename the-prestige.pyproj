@@ -46,6 +46,9 @@
     <Compile Include="games.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="real_players.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="roman.py" />
     <Compile Include="the_draft.py" />
     <Compile Include="the_prestige.py" />

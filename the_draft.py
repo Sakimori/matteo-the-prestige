@@ -2,7 +2,7 @@ from collections import namedtuple
 import games
 import json
 import uuid
-
+import real_players
 import onomancer
 
 Participant = namedtuple('Participant', ['handle', 'team'])
@@ -16,19 +16,22 @@ class Draft:
     """
 
     @classmethod
-    def make_draft(cls, teamsize, draftsize, minsize, pitchers):
-        draft = cls(teamsize, draftsize, minsize, pitchers)
+    def make_draft(cls, teamsize, draftsize, minsize, pitchers, ono_ratio):
+        draft = cls(teamsize, draftsize, minsize, pitchers, ono_ratio)
         return draft
 
-    def __init__(self, teamsize, draftsize, minsize, pitchers):     
-        self.DRAFT_SIZE = draftsize
+    def __init__(self, teamsize, draftsize, minsize, pitchers, ono_ratio):     
+        self.DRAFT_SIZE = int(draftsize * ono_ratio)
+        self.REAL_SIZE = draftsize - self.DRAFT_SIZE
         self.REFRESH_DRAFT_SIZE = minsize  # fewer players remaining than this and the list refreshes
         self.DRAFT_ROUNDS = teamsize
         self.pitchers = pitchers
         self._id = str(uuid.uuid4())[:6]
         self._participants = []
         self._active_participant = BOOKMARK  # draft mutex
-        self._players = onomancer.get_names(limit=self.DRAFT_SIZE)
+        nameslist = onomancer.get_names(limit=self.DRAFT_SIZE)
+        nameslist.update(real_players.get_real_players(self.REAL_SIZE))
+        self._players = nameslist
         self._round = 0
 
     @property
@@ -68,7 +71,9 @@ class Draft:
         self.advance_draft()
 
     def refresh_players(self):
-        self._players = onomancer.get_names(limit=self.DRAFT_SIZE)
+        nameslist = onomancer.get_names(limit=self.DRAFT_SIZE)
+        nameslist.update(real_players.get_real_players(self.REAL_SIZE))
+        self._players = nameslist
 
     def advance_draft(self):
         """
