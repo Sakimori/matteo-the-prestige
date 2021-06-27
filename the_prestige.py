@@ -147,7 +147,7 @@ class StartGameCommand(Command):
                 weather_name = flag[1]
                 if weather_name not in weather.all_weathers():
                     raise CommandError("We can't find that weather, chief. Try again.")
-            elif flag[0] == "v":
+            elif flag[0] == "v" or flag[0] == "a":
                 if flag[1] in gametext.all_voices():
                     voice = gametext.all_voices()[flag[1]]
                 else:

@@ -550,7 +550,7 @@ class game(object):
         else:
             result = {}
 
-        self.voice.activate(self.last_update[0], result, self)
+        result = self.voice.activate(self.last_update[0], result, self)
 
         if "twopart" not in result:
             self.weather.activate(self, result) # possibly modify result in-place

@@ -66,6 +66,7 @@ class game_strings_base(object):
                         })
                 else:
                     currentupdate["displaytext"] = f"{currentupdate['batter']} {self.format_gamestring(getattr(self, currentupdate['outcome'].name)[currentupdate['voiceindex']], currentupdate)}"
+            return currentupdate
         except:
             game_strings_base().activate(lastupdate, currentupdate, game)
 
