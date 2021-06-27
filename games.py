@@ -550,7 +550,7 @@ class game(object):
         else:
             result = {}
 
-        self.voice.activate(self.last_update[0], result, self)
+        result = self.voice.activate(self.last_update[0], result, self)
 
         if "twopart" not in result:
             self.weather.activate(self, result) # possibly modify result in-place
@@ -690,7 +690,7 @@ class game(object):
             self.inning += 1
             if self.inning > self.max_innings and self.teams["home"].score != self.teams["away"].score: #game over
                 self.over = True
-                if self.max_innings >= 9:
+                if self.max_innings >= 9 or self.weather.name in ["Leaf Eddies", "Torrential Downpour"]:
                     if self.teams["home"].score == 16:
                         this_xvi_team = self.teams["home"]
                     elif self.teams["away"].score == 16:

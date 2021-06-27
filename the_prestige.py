@@ -147,7 +147,7 @@ class StartGameCommand(Command):
                 weather_name = flag[1]
                 if weather_name not in weather.all_weathers():
                     raise CommandError("We can't find that weather, chief. Try again.")
-            elif flag[0] == "v":
+            elif flag[0] == "v" or flag[0] == "a":
                 if flag[1] in gametext.all_voices():
                     voice = gametext.all_voices()[flag[1]]
                 else:
@@ -545,6 +545,8 @@ class StartTournamentCommand(Command):
         rand_seed = True
         pre_seeded = False
 
+        list_of_team_names = command.split("\n")[2:]
+
         if config()["game_freeze"]:
             raise CommandError("Patch incoming. We're not allowing new games right now.")
 
@@ -565,6 +567,8 @@ class StartTournamentCommand(Command):
                     raise CommandError("Series length has to be an odd positive integer.")
                 if msg.author.id not in config()["owners"] and series_length > 21:
                     raise CommandError("That's too long, boss. We have to run patches *some* time.")
+                if len(list_of_team_names) == 2:
+                    raise CommandError("--bestof is only for non-finals matches! You probably want --finalsbestof, boss. -f works too, if you want to pay respects.")
             elif flag[0] == "f": #pay respects (finalsbestof)
                 try:
                     finals_series_length = int(flag[1])
@@ -588,7 +592,6 @@ class StartTournamentCommand(Command):
                 raise CommandError("One or more of those flags wasn't right. Try and fix that for us and we'll see about sorting you out.")
 
         tourney_name = command.split("\n")[1]
-        list_of_team_names = command.split("\n")[2:]
         team_dic = {}
         for name in list_of_team_names:
             team = get_team_fuzzy_search(name.strip())
@@ -1623,7 +1626,10 @@ async def on_message(msg):
                         flags.append((flag.split(" ")[0][0].lower(), flag.split(" ",1)[1].strip()))
                     except IndexError:
                         flags.append((flag.split(" ")[0][0].lower(), None))
-            await comm.execute(msg, send_text, flags)
+
+            if comm.isauthorized(msg.author): #only execute command if authorized
+                await comm.execute(msg, send_text, flags)
+
         except StopIteration:
             await msg.channel.send("Can't find that command, boss; try checking the list with `m;help`.")
         except CommandError as ce:
@@ -2418,6 +2424,9 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
 
             next_start = (now + delta).replace(second=0, microsecond=0)
             wait_seconds = (next_start - now).seconds
+
+            if wait_seconds > 3601: #there's never a situation to wait longer than an hour so hoo ray bugfixes the easy way
+                wait_seconds = 60
                 
             leagues.save_league(league)
             active_standings[league] = await channel.send(embed=league.standings_embed())

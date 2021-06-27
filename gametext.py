@@ -45,7 +45,7 @@ class game_strings_base(object):
 
     twoparts = []
 
-    diff_formats = {fielderschoice[0]: ("defender", "base_string"),
+    diff_formats = {fielderschoice[0]: ("batter", "base_string"),
                     steal_success[0]: ("runner", "base_string"),
                     steal_caught[0]: ("runner", "base_string", "defender")}
     no_formats = strikeoutlooking + strikeoutswinging + doubleplay + walk + single + double + triple + homerun + grandslam
@@ -66,6 +66,7 @@ class game_strings_base(object):
                         })
                 else:
                     currentupdate["displaytext"] = f"{currentupdate['batter']} {self.format_gamestring(getattr(self, currentupdate['outcome'].name)[currentupdate['voiceindex']], currentupdate)}"
+            return currentupdate
         except:
             game_strings_base().activate(lastupdate, currentupdate, game)
 
@@ -285,15 +286,15 @@ class TheNewGuy(game_strings_base):
                   "whacks the ball onto the ground reeeally far away. {} gets to it eventually, but not in time to stop ANYONE from making it home!!",
                   "hits a quadruple home run!"]
 
-    steal_success = ["runs to the next base too early!! You can do that??",
-                    "is cheating!! They just ran to the next base and nobody even hit the ball!",
-                    "gets bored of waiting and takes off, narrowly making it to the next base!"]
+    steal_success = ["{} runs to the next base too early!! You can do that??",
+                    "{} is cheating!! They just ran to the next base and nobody even hit the ball!",
+                    "{} gets bored of waiting and takes off, narrowly making it to the next base!"]
 
-    steal_caught = ["tries to run to the next base too early, and gets caught cheating!",
-                    "sees if they can get away with dashing over to the next base. They can’t, turns out.",
-                    "tries running to the next base, but {}’s ready for them. Out!"]
+    steal_caught = ["{} tries to run to the next base too early, and gets caught cheating!",
+                    "{} sees if they can get away with dashing over to the next base. They can’t, turns out.",
+                    "{} tries running to the next base, but {}’s ready for them. Out!"]
 
-    no_formats = strikeoutlooking + strikeoutswinging + walk + double + triple + steal_success + steal_caught[:2] + [flyout[2][0], flyout[4][0], fielderschoice[1][0], single[0][1], single[1], walk[1][0], walk[1][1],
+    no_formats = strikeoutlooking + strikeoutswinging + walk + double + triple + [flyout[2][0], flyout[4][0], fielderschoice[1][0], single[0][1], single[1], walk[1][0], walk[1][1],
                                                                                                                     homerun[0], homerun[1][0], homerun[1][1], homerun[2], grandslam[0], grandslam[2]]
 
     diff_formats = {groundout[2]: ("defender", "batter"), groundout[3]: ("defender", "batter"),
@@ -302,7 +303,8 @@ class TheNewGuy(game_strings_base):
                     doubleplay[0][1]: ("batter",),
                     sacrifice[0][1]: ("runner",), sacrifice[1]: ("defender", "runner"),
                     single[2]: ("batter",),
-                    steal_caught[2]: ("defender",)}
+                    steal_success[0]: ("runner",), steal_success[1]: ("runner",), steal_success[2]: ("runner",),
+                    steal_caught[0]: ("runner",), steal_caught[1]: ("runner",), steal_caught[2]: ("runner", "defender")}
 
     twoparts = [flyout[0], flyout[2], flyout[4], doubleplay[0], sacrifice[0], walk[1], single[0], homerun[1]]
 
