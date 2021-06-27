@@ -1623,7 +1623,10 @@ async def on_message(msg):
                         flags.append((flag.split(" ")[0][0].lower(), flag.split(" ",1)[1].strip()))
                     except IndexError:
                         flags.append((flag.split(" ")[0][0].lower(), None))
-            await comm.execute(msg, send_text, flags)
+
+            if comm.isauthorized(msg.author): #only execute command if authorized
+                await comm.execute(msg, send_text, flags)
+
         except StopIteration:
             await msg.channel.send("Can't find that command, boss; try checking the list with `m;help`.")
         except CommandError as ce:
