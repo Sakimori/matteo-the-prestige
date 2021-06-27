@@ -690,7 +690,7 @@ class game(object):
             self.inning += 1
             if self.inning > self.max_innings and self.teams["home"].score != self.teams["away"].score: #game over
                 self.over = True
-                if self.max_innings >= 9:
+                if self.max_innings >= 9 or self.weather.name in ["Leaf Eddies"]:
                     if self.teams["home"].score == 16:
                         this_xvi_team = self.teams["home"]
                     elif self.teams["away"].score == 16:
