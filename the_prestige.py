@@ -813,7 +813,7 @@ class StartDraftCommand(Command):
 class StartLeagueCommand(Command):
     name = "startleague"
     template = "m;startleague [league name]\n[games per hour]"
-    description = """Optional flags for the first line: `--queue X` or `-q X` to play X number of series before stopping; `--noautopostseason` will pause the league before starting postseason.
+    description = """Optional flags for the first line: `--queue X` or `-q X` to play X number of series before stopping; `--autopostseason` will automatically start postseason at the end of the season.
 Starts games from a league with a given name, provided that league has been saved on the website and has been claimed using claimleague. The games per hour sets how often the games will start (e.g. GPH 2 will start games at X:00 and X:30). By default it will play the entire season followed by the postseason and then stop but this can be customized using the flags.
 Not every team will play every series, due to how the scheduling algorithm is coded but it will all even out by the end."""
 
