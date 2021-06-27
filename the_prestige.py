@@ -545,6 +545,8 @@ class StartTournamentCommand(Command):
         rand_seed = True
         pre_seeded = False
 
+        list_of_team_names = command.split("\n")[2:]
+
         if config()["game_freeze"]:
             raise CommandError("Patch incoming. We're not allowing new games right now.")
 
@@ -565,6 +567,8 @@ class StartTournamentCommand(Command):
                     raise CommandError("Series length has to be an odd positive integer.")
                 if msg.author.id not in config()["owners"] and series_length > 21:
                     raise CommandError("That's too long, boss. We have to run patches *some* time.")
+                if len(list_of_team_names) == 2:
+                    raise CommandError("--bestof is only for non-finals matches! You probably want --finalsbestof, boss. -f works too, if you want to pay respects.")
             elif flag[0] == "f": #pay respects (finalsbestof)
                 try:
                     finals_series_length = int(flag[1])
@@ -588,7 +592,6 @@ class StartTournamentCommand(Command):
                 raise CommandError("One or more of those flags wasn't right. Try and fix that for us and we'll see about sorting you out.")
 
         tourney_name = command.split("\n")[1]
-        list_of_team_names = command.split("\n")[2:]
         team_dic = {}
         for name in list_of_team_names:
             team = get_team_fuzzy_search(name.strip())
