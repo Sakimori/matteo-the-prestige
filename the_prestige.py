@@ -2418,6 +2418,9 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
 
             next_start = (now + delta).replace(second=0, microsecond=0)
             wait_seconds = (next_start - now).seconds
+
+            if wait_seconds > 3601: #there's never a situation to wait longer than an hour so hoo ray bugfixes the easy way
+                wait_seconds = 60
                 
             leagues.save_league(league)
             active_standings[league] = await channel.send(embed=league.standings_embed())
