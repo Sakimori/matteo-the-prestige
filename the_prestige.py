@@ -1,4 +1,4 @@
-import discord, json, math, os, roman, games, asyncio, random, main_controller, threading, time, urllib, leagues, datetime, gametext
+import discord, json, math, os, roman, games, asyncio, random, main_controller, threading, time, urllib, leagues, datetime, gametext, real_players
 import database as db
 import onomancer as ono
 from league_storage import league_exists, season_save, season_restart
@@ -646,10 +646,12 @@ class StartDraftCommand(Command):
         draftsize = 20
         minsize = 4
         pitchers = 3
+        ono_ratio = 0.5
+        timeout = 120
 
         for flag in flags:
             try:
-                if flag[0] == "t":
+                if flag[0] == "t": 
                     teamsize = int(flag[1])
                 elif flag[0] == "d":
                     draftsize = int(flag[1])
@@ -657,10 +659,16 @@ class StartDraftCommand(Command):
                     minsize = int(flag[1])
                 elif flag[0] == "p":
                     pitchers = int(flag[1])
+                elif flag[0] == "c":
+                    ono_ratio = float(flag[1])
+                    if ono_ratio > 1 or ono_ratio < 0:
+                        raise CommandError("The Chaos value needs to be between 0 and 1, chief. Probability has rules.")
+                elif flag[0] == "w": #wait
+                    timeout = int(flag[1])
                 else:
                     raise CommandError(f"We don't recognize that {flag[0]} flag.")
             except ValueError:
-                raise CommandError(f"Your {flag[0]} flag isn't a valid integer, boss.")
+                raise CommandError(f"Your {flag[0]} flag isn't a valid nummber, boss.")
 
         if teamsize-pitchers > 20 or pitchers > 8:
             raise CommandError("You can't fit that many players on a team, chief. Slow your roll.")
@@ -669,7 +677,13 @@ class StartDraftCommand(Command):
         if draftsize > 40:
             raise CommandError("40 players is the max. We're not too confident about pushing for more.")
 
-        draft = Draft.make_draft(teamsize, draftsize, minsize, pitchers)
+        await msg.channel.send("Got it, boss. Give me a sec to find all the paperwork.")
+
+        try:
+            draft = Draft.make_draft(teamsize, draftsize, minsize, pitchers, ono_ratio)
+        except ConnectionError:
+            await msg.channel.send("Baseball Reference isn't playing nice. Could you try again for us in a minute or so?")
+
         mentions = {f'<@!{m.id}>' for m in msg.mentions}
         content = msg.content.split('\n')[1:]  # drop command out of message
         if not content or len(content) % 3:
@@ -683,7 +697,7 @@ class StartDraftCommand(Command):
                     handle = mention
                     break
             else:
-                await msg.channel.send(f"I don't recognize {handle_token}")
+                await msg.channel.send(f"I don't recognize {handle_token}.")
                 return
             team_name = content[i + 1].strip()
             if games.get_team(team_name):
@@ -727,7 +741,7 @@ class StartDraftCommand(Command):
                 embed=build_draft_embed(draft.get_draftees(), footer=footer),
             )
             try:
-                draft_message = await self.wait_draft(msg.channel, draft)
+                draft_message = await self.wait_draft(msg.channel, draft, timeout)
                 draft.draft_player(f'<@!{draft_message.author.id}>', draft_message.content.split(' ', 1)[1])
             except SlowDraftError:
                 player = random.choice(draft.get_draftees())
@@ -777,7 +791,7 @@ class StartDraftCommand(Command):
                 return False
         return False
 
-    async def wait_draft(self, channel, draft):
+    async def wait_draft(self, channel, draft, timeout):
 
         def check(m):
             if m.channel != channel:
@@ -790,16 +804,16 @@ class StartDraftCommand(Command):
             return False
 
         try:
-            draft_message = await client.wait_for('message', timeout=120.0, check=check)
+            draft_message = await client.wait_for('message', timeout=timeout, check=check)
         except asyncio.TimeoutError:
-            raise SlowDraftError('Too slow')
+            raise SlowDraftError('Too slow, boss.')
         return draft_message
 
             
 class StartLeagueCommand(Command):
     name = "startleague"
     template = "m;startleague [league name]\n[games per hour]"
-    description = """Optional flags for the first line: `--queue X` or `-q X` to play X number of series before stopping; `--noautopostseason` will pause the league before starting postseason.
+    description = """Optional flags for the first line: `--queue X` or `-q X` to play X number of series before stopping; `--autopostseason` will automatically start postseason at the end of the season.
 Starts games from a league with a given name, provided that league has been saved on the website and has been claimed using claimleague. The games per hour sets how often the games will start (e.g. GPH 2 will start games at X:00 and X:30). By default it will play the entire season followed by the postseason and then stop but this can be customized using the flags.
 Not every team will play every series, due to how the scheduling algorithm is coded but it will all even out by the end."""
 
@@ -2095,6 +2109,16 @@ def build_team_embed(team):
 def build_star_embed(player_json):
     starkeys = {"batting_stars" : "Batting", "pitching_stars" : "Pitching", "baserunning_stars" : "Baserunning", "defense_stars" : "Defense"}
     embed = discord.Embed(color=discord.Color.purple(), title=player_json["name"])
+
+    if player_json["name"] == "Tim Locastro": #the tim easter egg
+        for key in ["batting_stars", "pitching_stars", "baserunning_stars", "defense_stars"]:
+            #random star value between 0 and 6.5
+            stars = random.randint(0,6)
+            half_star = random.random() < 0.5 #half star addition
+            if half_star:
+                stars = half_star + 0.5
+            player_json[key] = stars
+
     for key in starkeys.keys():
         embedstring = ""
         starstring = str(player_json[key])

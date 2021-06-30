@@ -50,6 +50,8 @@ class player(object):
                             "strikeouts_taken" : 0
             }
         self.stat_name = self.name
+        if self.name == "Tim Locastro":
+            self.randomize_stars()
         
     def star_string(self, key):
         str_out = ""
@@ -67,6 +69,15 @@ class player(object):
 
     def __str__(self):
         return self.name
+
+    def randomize_stars(self):
+        for key in ["batting_stars", "pitching_stars", "baserunning_stars", "defense_stars"]:
+            #random star value between 0 and 6.5
+            stars = random.randint(0,6)
+            half_star = random.random() < 0.5 #half star addition
+            if half_star:
+                stars = half_star + 0.5
+            self.stlats[key] = stars
 
 
 class team(object):
@@ -208,6 +219,7 @@ class game(object):
 
     def __init__(self, team1, team2, length=None):
         self.over = False
+        self.random_weather_flag = False
         self.teams = {"away" : team1, "home" : team2}
         self.inning = 1
         self.outs = 0
@@ -682,6 +694,9 @@ class game(object):
 
         self.top_of_inning = not self.top_of_inning
 
+        if self.random_weather_flag and self.top_of_inning:
+            setattr(self, "weather", random.choice(list(weather.safe_weathers().values()))(self))
+
         self.weather.on_flip_inning(self)
 
         self.choose_next_batter()
@@ -690,14 +705,18 @@ class game(object):
             self.inning += 1
             if self.inning > self.max_innings and self.teams["home"].score != self.teams["away"].score: #game over
                 self.over = True
-                if self.max_innings >= 9 or self.weather.name in ["Leaf Eddies", "Torrential Downpour"]:
-                    if self.teams["home"].score == 16:
-                        this_xvi_team = self.teams["home"]
-                    elif self.teams["away"].score == 16:
-                        this_xvi_team = self.teams["away"]
-                    else:
-                        this_xvi_team = None
-                    db.save_obl_results(self.teams["home"] if self.teams["home"].score > self.teams["away"].score else self.teams["away"], self.teams["home"] if self.teams["home"].score < self.teams["away"].score else self.teams["away"], xvi_team=this_xvi_team)
+                try: #if something goes wrong with OBL don't erase game
+                    if self.max_innings >= 9 or self.weather.name in ["Leaf Eddies", "Torrential Downpour"]:
+                        if self.teams["home"].score == 16:
+                            this_xvi_team = self.teams["home"]
+                        elif self.teams["away"].score == 16:
+                            this_xvi_team = self.teams["away"]
+                        else:
+                            this_xvi_team = None
+                        db.save_obl_results(self.teams["home"] if self.teams["home"].score > self.teams["away"].score else self.teams["away"], self.teams["home"] if self.teams["home"].score < self.teams["away"].score else self.teams["away"], xvi_team=this_xvi_team)
+                except:
+                    pass
+                
 
 
     def end_of_game_report(self):
@@ -798,6 +817,9 @@ def get_team(name):
                 team_json.rotation.append(team_json.pitcher)
                 team_json.pitcher = None
                 update_team(team_json)
+            for player in team_json.rotation + team_json.lineup:
+                if player.name == "Tim Locastro":
+                    player.randomize_stars()
             return team_json
         return None
     except AttributeError:
@@ -818,6 +840,9 @@ def get_team_and_owner(name):
                 team_json.rotation.append(team_json.pitcher)
                 team_json.pitcher = None
                 update_team(team_json)
+            for player in team_json.rotation + team_json.lineup:
+                if player.name == "Tim Locastro":
+                    player.randomize_stars()
             return (team_json, owner_id)
         return None
     except AttributeError:
@@ -864,6 +889,9 @@ def search_team(search_term):
                     team_json.rotation.append(team_json.pitcher)
                     team_json.pitcher = None
                     update_team(team_json)
+            for player in team_json.rotation + team_json.lineup:
+                if player.name == "Tim Locastro":
+                    player.randomize_stars()
         except AttributeError:
             team_json.rotation = []
             team_json.rotation.append(team_json.pitcher)

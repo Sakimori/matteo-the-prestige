@@ -45,7 +45,7 @@ class game_strings_base(object):
 
     twoparts = []
 
-    diff_formats = {fielderschoice[0]: ("batter", "base_string"),
+    diff_formats = {fielderschoice[0]: ("runner", "base_string"),
                     steal_success[0]: ("runner", "base_string"),
                     steal_caught[0]: ("runner", "base_string", "defender")}
     no_formats = strikeoutlooking + strikeoutswinging + doubleplay + walk + single + double + triple + homerun + grandslam
