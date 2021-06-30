@@ -219,6 +219,7 @@ class game(object):
 
     def __init__(self, team1, team2, length=None):
         self.over = False
+        self.random_weather_flag = False
         self.teams = {"away" : team1, "home" : team2}
         self.inning = 1
         self.outs = 0
@@ -693,6 +694,9 @@ class game(object):
 
         self.top_of_inning = not self.top_of_inning
 
+        if self.random_weather_flag and self.top_of_inning:
+            setattr(self, "weather", random.choice(list(weather.safe_weathers().values()))(self))
+
         self.weather.on_flip_inning(self)
 
         self.choose_next_batter()
@@ -701,14 +705,18 @@ class game(object):
             self.inning += 1
             if self.inning > self.max_innings and self.teams["home"].score != self.teams["away"].score: #game over
                 self.over = True
-                if self.max_innings >= 9 or self.weather.name in ["Leaf Eddies", "Torrential Downpour"]:
-                    if self.teams["home"].score == 16:
-                        this_xvi_team = self.teams["home"]
-                    elif self.teams["away"].score == 16:
-                        this_xvi_team = self.teams["away"]
-                    else:
-                        this_xvi_team = None
-                    db.save_obl_results(self.teams["home"] if self.teams["home"].score > self.teams["away"].score else self.teams["away"], self.teams["home"] if self.teams["home"].score < self.teams["away"].score else self.teams["away"], xvi_team=this_xvi_team)
+                try: #if something goes wrong with OBL don't erase game
+                    if self.max_innings >= 9 or self.weather.name in ["Leaf Eddies", "Torrential Downpour"]:
+                        if self.teams["home"].score == 16:
+                            this_xvi_team = self.teams["home"]
+                        elif self.teams["away"].score == 16:
+                            this_xvi_team = self.teams["away"]
+                        else:
+                            this_xvi_team = None
+                        db.save_obl_results(self.teams["home"] if self.teams["home"].score > self.teams["away"].score else self.teams["away"], self.teams["home"] if self.teams["home"].score < self.teams["away"].score else self.teams["away"], xvi_team=this_xvi_team)
+                except:
+                    pass
+                
 
 
     def end_of_game_report(self):

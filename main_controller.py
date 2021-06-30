@@ -190,13 +190,17 @@ def update_loop():
                     else:
                         if this_game.top_of_inning: 
                             state["update_text"] = f"Top of {this_game.inning}. {this_game.teams['away'].name} batting!"
+                            this_game.weather.modify_top_of_inning_message(this_game, state)
+                            if this_game.random_weather_flag:
+                                this_game.weather.weather_report(this_game, state)
                         else:
                             if this_game.inning >= this_game.max_innings:
                                 if this_game.teams["home"].score > this_game.teams["away"].score:
                                     this_game.victory_lap = True
                             state["update_text"] = f"Bottom of {this_game.inning}. {this_game.teams['home'].name} batting!"
+                            this_game.weather.modify_top_of_inning_message(this_game, state)
 
-                        this_game.weather.modify_top_of_inning_message(this_game, state)
+                        
 
 
                 elif state["update_pause"] != 1 and this_game.play_has_begun:
@@ -256,4 +260,4 @@ def update_loop():
         socket_thread = threading.Thread(target=socketio.emit, args=("states_update", game_states))
         socket_thread.start()
         #socketio.emit("states_update", game_states)
-        time.sleep(8)
+        time.sleep(3)

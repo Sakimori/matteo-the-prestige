@@ -57,6 +57,11 @@ class Weather:
     def modify_game_end_message(self, game, state):
         pass
 
+    def weather_report(self, game, state):
+        game.weather = random.choice(list(safe_weathers().values()))(game)
+        state["update_emoji"] = "🚌"
+        state["update_text"] += f" Weather report: {game.weather.name} {game.weather.emoji}"
+
 
 class Supernova(Weather):
     name = "Supernova"
@@ -545,6 +550,18 @@ class LeafEddies(Weather):
         if game.inning == 1:
             state["weather_text"] = self.name
 
+class Smog(Weather):
+    name = "Smog"
+    emoji = "🚌"
+    duration_range = [1,1]
+
+    def __init__(self, game):
+        game.random_weather_flag = True
+        setattr(game, "weather", random.choice(list(safe_weathers().values()))(game))
+        pass
+
+
+
 def all_weathers():
     weathers_dic = {
             "Supernova" : Supernova,
@@ -562,7 +579,26 @@ def all_weathers():
             "Tornado" : Tornado,
             "Torrential Downpour" : Downpour,
             "Summer Mist" : SummerMist,
-            "Leaf Eddies" : LeafEddies
+            "Leaf Eddies" : LeafEddies,
+            "Smog" : Smog
+        }
+    return weathers_dic
+
+def safe_weathers():
+    """weathers safe to swap in mid-game"""
+    weathers_dic = {
+            "Supernova" : Supernova,
+            "Midnight": Midnight,
+            "Slight Tailwind": SlightTailwind,
+            "Twilight" : Twilight, 
+            "Thinned Veil" : ThinnedVeil,
+            "Drizzle" : Drizzle,
+            "Breezy": Breezy,
+            "Starlight" : Starlight,
+            "Meteor Shower" : MeteorShower,
+            "Hurricane" : Hurricane,
+            "Tornado" : Tornado,
+            "Summer Mist" : SummerMist
         }
     return weathers_dic
 
