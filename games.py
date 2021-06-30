@@ -50,6 +50,8 @@ class player(object):
                             "strikeouts_taken" : 0
             }
         self.stat_name = self.name
+        if self.name == "Tim Locastro":
+            self.randomize_stars()
         
     def star_string(self, key):
         str_out = ""
@@ -67,6 +69,15 @@ class player(object):
 
     def __str__(self):
         return self.name
+
+    def randomize_stars(self):
+        for key in ["batting_stars", "pitching_stars", "baserunning_stars", "defense_stars"]:
+            #random star value between 0 and 6.5
+            stars = random.randint(0,6)
+            half_star = random.random() < 0.5 #half star addition
+            if half_star:
+                stars = half_star + 0.5
+            self.stlats[key] = stars
 
 
 class team(object):
@@ -798,6 +809,9 @@ def get_team(name):
                 team_json.rotation.append(team_json.pitcher)
                 team_json.pitcher = None
                 update_team(team_json)
+            for player in team_json.rotation + team_json.lineup:
+                if player.name == "Tim Locastro":
+                    player.randomize_stars()
             return team_json
         return None
     except AttributeError:
@@ -818,6 +832,9 @@ def get_team_and_owner(name):
                 team_json.rotation.append(team_json.pitcher)
                 team_json.pitcher = None
                 update_team(team_json)
+            for player in team_json.rotation + team_json.lineup:
+                if player.name == "Tim Locastro":
+                    player.randomize_stars()
             return (team_json, owner_id)
         return None
     except AttributeError:
@@ -864,6 +881,9 @@ def search_team(search_term):
                     team_json.rotation.append(team_json.pitcher)
                     team_json.pitcher = None
                     update_team(team_json)
+            for player in team_json.rotation + team_json.lineup:
+                if player.name == "Tim Locastro":
+                    player.randomize_stars()
         except AttributeError:
             team_json.rotation = []
             team_json.rotation.append(team_json.pitcher)

@@ -2109,6 +2109,16 @@ def build_team_embed(team):
 def build_star_embed(player_json):
     starkeys = {"batting_stars" : "Batting", "pitching_stars" : "Pitching", "baserunning_stars" : "Baserunning", "defense_stars" : "Defense"}
     embed = discord.Embed(color=discord.Color.purple(), title=player_json["name"])
+
+    if player_json["name"] == "Tim Locastro": #the tim easter egg
+        for key in ["batting_stars", "pitching_stars", "baserunning_stars", "defense_stars"]:
+            #random star value between 0 and 6.5
+            stars = random.randint(0,6)
+            half_star = random.random() < 0.5 #half star addition
+            if half_star:
+                stars = half_star + 0.5
+            player_json[key] = stars
+
     for key in starkeys.keys():
         embedstring = ""
         starstring = str(player_json[key])
