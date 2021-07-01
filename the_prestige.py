@@ -629,6 +629,20 @@ class DraftPlayerCommand(Command):
         """
         pass
 
+class DraftFlagsCommand(Command):
+    name = "draftflags"
+    template = "m;draftflags"
+    description = "Shows all currently accepted flags for the startdraft command."
+
+    async def execute(self, msg, command, flags):
+        text = """Currently accepted flags:
+--draftsize or -d: Sets the size of each draft pool.
+--minsize or -m: Sets the size at which the pool completely refreshes.
+--teamsize or -t: How big each team should be, including pitchers.
+--pitchercount or -p: How many pitchers each team should have.
+--wait or -w: Sets the timeout, in seconds, to wait for draftees to pick a player.
+--chaos or -c: The percentage of onomancer names in the pool. Higher numbers mean less real names, but faster pool generation. Accepts any number between 0 and 1.
+"""
 
 class StartDraftCommand(Command):
     name = "startdraft"
@@ -1546,6 +1560,7 @@ commands = [
     RomanCommand(),
     HelpCommand(),
     StartDraftCommand(),
+    DraftFlagsCommand(),
     DraftPlayerCommand()
 ]
 
