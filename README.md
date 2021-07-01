@@ -142,12 +142,14 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
 - m;oblstandings
   - Displays the 15 teams with the most OBL points in this meta-season.  
 #### Draft Commands
-- m;startdraft -t #, -d # -r #, -p #
+- m;startdraft -t #, -d # -r #, -p #, -c #, -w #
   - Starts a draft with an arbitrary number of participants. By default teams will draft in order from a pool of 20 players until there are 5 left at which point the pool will refresh. By default each team will select 13 players, 12 hitters and 1 pitcher in that order, many of these things can be modified via the flags.
   - The -t # flag changes the size of the teams, the number of batters will be this number minus the number provided for -p, by default 1.
   - The -d # flag sets the size of the draft pool, by default this is 20.
   - The -r # flag sets the minimum size the pool can reach before resetting, by default this is 5, this cannot be set to the same as -d but if set to one lower the pool will refresh after every pick.
   - The -p # flag sets the number of pitchers each team will have, by default this is 1 but you may want to change this if drafting with the intention to use a team in a league.
+  - The -c # flag sets the 'chaos ratio', must be a number between 0 and 1 with 0 being 0% chaos, or 100% real player names, and 1 being 100% chaos, or 100% onomancer names. By default this is set to .25.
+  - The -w # flag sets the wait time before the draft skips someone's pick for inactivity, in seconds. By default this is 120, or 2 mintutes.
   - Use this command with any chosen flags at the top of a list with entries separated by new lines:
 	- For each participant's entry you need three lines:
 	  - Their discord @
@@ -235,7 +237,8 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
   - Tornado 🌪: Occasionally shuffles baserunners around to different bases.
   - Torrential Downpour ⛈: The game does not end until one team scores X runs where X is the original inning count of the game, 9 by default.
   - Summer Mist 🌁: When a player hits into an out, they have a chance to get lost in the mist and be temporarily removed from the lineup. If another player gets lost in the mist the first player returns and takes the newly lost player's spot in the lineup.
-  - Leaf Eddies 🍂: Current patch weather, its effects will be added to here with the next patch.
+  - Leaf Eddies 🍂: The visiting team plays all of their outs in a row without inning breaks, then the home team does the same, if the game ends tied, each team plays sudden death 1-out 'golden run' innings until the game is decided.
+  - Smog 🚌: Current patch weather, its effects will be revealed the next time a weather is implemented.
   
 [Return to the top](https://github.com/Sakimori/matteo-the-prestige#matteo-the-prestige)
 
