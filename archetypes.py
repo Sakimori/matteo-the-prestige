@@ -25,3 +25,19 @@ class Archetype:
     def steal_check(self, outcome, steal_roll):
         """make a runner more or less likely to steal"""
         pass
+
+    def modify_steal_attempt(self, outcome, steal_success_roll):
+        """affect a runner's ability to successfully steal"""
+        pass
+
+    def modify_tag_up_roll(self, outcome, run_roll):
+        """change the runner's decision to tag-up"""
+        pass
+
+    def modify_advance_roll(self, outcome, run_roll):
+        """change the runner's decision to advance on groundouts"""
+        pass
+
+    def modify_extra_running_roll(self, outcome, run_roll):
+        """change the runner's ability to advance extra bases on base hits by a teammate"""
+        pass

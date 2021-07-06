@@ -444,6 +444,9 @@ class game(object):
             outcome["baserunner_archetype"].modify_steal_attempt(outcome, run_roll)
             outcome["pitcher_archetype"].modify_steal_attempt(outcome, run_roll)
 
+            if defender.name in self.defense_archetypes.keys():
+                self.defense_archetypes[defender.name].modify_steal_attempt(outcome, run_roll)
+
             if start_base == 2:
                 run_roll = run_roll * .9 #stealing third is harder
             if run_roll < 1:
@@ -488,6 +491,11 @@ class game(object):
                 runs = 1
             if self.bases[2] is not None:
                 run_roll = random.gauss(2*math.erf((random_star_gen("baserunning_stars", self.bases[2])-def_stat)/4)-1,3)
+
+                if self.bases[2].name in self.offense_archetypes.keys():
+                    self.offense_archetypes[self.bases[2].name].modify_tag_up_roll(outcome, run_roll)
+                outcome["defender_archetype"].modify_tag_up_roll(outcome, run_roll)
+
                 if run_roll > 2:
                     self.bases[3] = self.bases[2]
                     self.bases[2] = None
@@ -514,11 +522,21 @@ class game(object):
                 self.bases[3] = None
             if self.bases[2] is not None:
                 run_roll = random.gauss(2*math.erf((random_star_gen("baserunning_stars", self.bases[2])-def_stat)/4)-1,3)
+
+                if self.bases[2].name in self.offense_archetypes.keys():
+                    self.offense_archetypes[self.bases[2].name].modify_advance_roll(outcome, run_roll)
+                outcome["defender_archetype"].modify_advance_roll(outcome, run_roll)
+
                 if run_roll > 1.5 or outcome["outcome"] == appearance_outcomes.doubleplay: #double play gives them time to run, guaranteed
                     self.bases[3] = self.bases[2]
                     self.bases[2] = None
             if self.bases[1] is not None: #double plays set this to None before this call
                 run_roll = random.gauss(2*math.erf((random_star_gen("baserunning_stars", self.bases[1])-def_stat)/4)-1,3)
+
+                if self.bases[1].name in self.offense_archetypes.keys():
+                    self.offense_archetypes[self.bases[1].name].modify_advance_roll(outcome, run_roll)
+                outcome["defender_archetype"].modify_advance_roll(outcome, run_roll)
+
                 if run_roll < 2 or self.bases[2] is not None: #if runner can't make it or if baserunner blocking on second, convert to fielder's choice
                     outcome["outcome"] == appearance_outcomes.fielderschoice
                     runners = [(0,self.get_batter())]
@@ -541,6 +559,11 @@ class game(object):
                     self.bases[3] = None
                 if self.bases[2] is not None:
                     run_roll = random.gauss(math.erf(random_star_gen("baserunning_stars", self.bases[2])-def_stat)-.5,1.5)
+
+                    if self.bases[2].name in self.offense_archetypes.keys():
+                        self.offense_archetypes[self.bases[2].name].modify_extra_running_roll(outcome, run_roll)
+                    outcome["defender_archetype"].modify_extra_running_roll(outcome, run_roll)
+
                     if run_roll > 0:
                         runs += 1
                     else:
@@ -549,6 +572,11 @@ class game(object):
                 if self.bases[1] is not None:
                     if self.bases[3] is None:
                         run_roll = random.gauss(math.erf(random_star_gen("baserunning_stars", self.bases[1])-def_stat)-.5,1.5)
+
+                        if self.bases[1].name in self.offense_archetypes.keys():
+                            self.offense_archetypes[self.bases[1].name].modify_extra_running_roll(outcome, run_roll)
+                        outcome["defender_archetype"].modify_extra_running_roll(outcome, run_roll)
+
                         if run_roll > 0.75:
                             self.bases[3] = self.bases[1]
                         else:
@@ -570,6 +598,11 @@ class game(object):
                     self.bases[2] = None
                 if self.bases[1] is not None:
                     run_roll = random.gauss(math.erf(random_star_gen("baserunning_stars", self.bases[1])-def_stat)-.5,1.5)
+
+                    if self.bases[1].name in self.offense_archetypes.keys():
+                        self.offense_archetypes[self.bases[1].name].modify_extra_running_roll(outcome, run_roll)
+                    outcome["defender_archetype"].modify_extra_running_roll(outcome, run_roll)
+
                     if run_roll > 1:
                         runs += 1
                         self.bases[1] = None
