@@ -939,7 +939,7 @@ def get_team_and_owner(name):
                 if player.name == "Tim Locastro":
                     player.randomize_stars()
             return (team_json, owner_id)
-        return None
+        return (None, None)
     except AttributeError:
         team_json.rotation = []
         team_json.rotation.append(team_json.pitcher)

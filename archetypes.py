@@ -41,3 +41,14 @@ class Archetype:
     def modify_extra_running_roll(self, outcome, run_roll):
         """change the runner's ability to advance extra bases on base hits by a teammate"""
         pass
+
+def all_archetypes():
+    return [
+        Archetype
+        ]
+
+def search_archetypes(name):
+    for archetype in all_archetypes():
+        if archetype.name == name or archetype.display_name == name:
+            return archetype
+    return None

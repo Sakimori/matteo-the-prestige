@@ -1,4 +1,4 @@
-import discord, json, math, os, roman, games, asyncio, random, main_controller, threading, time, urllib, leagues, datetime, gametext, real_players
+import discord, json, math, os, roman, games, asyncio, random, main_controller, threading, time, urllib, leagues, datetime, gametext, real_players, archetypes
 import database as db
 import onomancer as ono
 from league_storage import league_exists, season_save, season_restart, get_mods, get_team_mods, set_mods
@@ -256,6 +256,43 @@ If you did it correctly, you'll get a team embed with a prompt to confirm. hit t
         else:
             name = command.split('\n',1)[1].split('\n')[0]
             raise CommandError(f"{name} already exists. Try a new name, maybe?")
+
+class AssignArchetypeCommand(Command):
+    name = "archetype"
+    template = "m;archetype [team name]\n[player name]\n[archetype name]"
+    description = """Assigns an archetype to a player on your team. This can be changed at any time! For a description of a specific archetype, or a list of all archetypes, use m;archetypehelp."""
+
+    async def execute(self, msg, command, flags):
+        lines = command.split("\n")
+        try:
+            team = get_team_fuzzy_search(lines[0].strip())
+            player_name = lines[1].strip()
+            archetype_name = lines[2].strip()
+        except IndexError:
+            raise CommandError("You didn't give us enough info, boss. Check the help text.")
+        if team is None:
+            raise CommandError("We can't find that team.")
+        
+        team, ownerid = games.get_team_and_owner(team.name)
+        if ownerid != msg.author.id and user.id not in config()["owners"]:
+            raise CommandError("That team ain't yours, and we're not about to help you cheat.")
+
+        player = team.find_player(player_name)[0]
+        if player is None:
+            raise CommandError("That player isn't on your team, boss.")
+        
+        archetype = archetypes.search_archetypes(archetype_name)
+        if archetype is None:
+            raise CommandError("We can't find that archetype, chief. Try m;archetypehelp.")
+
+        try:
+            team.archetypes[player.name] = archetype
+        except AttributeError:
+            team.archetypes = {player.name : archetype}
+        games.update_team(team)
+
+        await msg.channel.send("Player specialization is a beautiful thing, ain't it? Here's hoping they like it.")
+
 
 class ImportCommand(Command):
     name = "import"
@@ -1552,6 +1589,7 @@ commands = [
     ShowPlayerCommand(),
     SetupGameCommand(),
     SaveTeamCommand(),
+    AssignArchetypeCommand(),
     ImportCommand(),
     SwapPlayerCommand(),
     MovePlayerCommand(),
