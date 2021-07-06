@@ -1,4 +1,4 @@
-import json, random, os, math, jsonpickle, weather
+import json, random, os, math, jsonpickle, weather, archetypes
 import database as db
 from league_storage import get_mods, get_team_mods
 from gametext import base_string, appearance_outcomes, game_strings_base
@@ -91,6 +91,7 @@ class team(object):
         self.lineup = []
         self.lineup_position = 0
         self.rotation = []
+        self.archetypes = {}
         self.pitcher = None
         self.score = 0
         self.slogan = None
@@ -234,6 +235,9 @@ class game(object):
         self.over = False
         self.random_weather_flag = False
         self.teams = {"away" : team1, "home" : team2}
+        self.archetypes = {team1.name : team1.archetypes, team2.name : team2.archetypes}
+        self.offense_archetypes = {}
+        self.defense_archetypes = {}
         self.inning = 1
         self.outs = 0
         self.top_of_inning = True
@@ -294,6 +298,21 @@ class game(object):
         outcome["pitcher"] = pitcher
         outcome["defender"] = ""
 
+        if pitcher.name in self.defense_archetypes.keys():
+            outcome["pitcher_archetype"] = self.defense_archetypes[pitcher.name]
+        else:
+            outcome["pitcher_archetype"] = archetypes.Archetype
+
+        if batter.name in self.offense_archetypes.keys():
+            outcome["batter_archetype"] = self.offense_archetypes[batter.name]
+        else:
+            outcome["batter_archetype"] = archetypes.Archetype
+
+        if defender.name in self.defense_archetypes.keys():
+            outcome["defender_archetype"] = self.defense_archetypes[defender.name]
+        else:
+            outcome["defender_archetype"] = archetypes.Archetype
+
         player_rolls = {}
         player_rolls["bat_stat"] = random_star_gen("batting_stars", batter)
         player_rolls["pitch_stat"] = random_star_gen("pitching_stars", pitcher)
@@ -305,6 +324,9 @@ class game(object):
         roll["hitnum"] = random.gauss(2*math.erf(player_rolls["bat_stat"]/4)-1,3)
 
         self.weather.modify_atbat_roll(outcome, roll, defender)
+
+        outcome["batter_archetype"].modify_bat_rolls(outcome, roll)
+        outcome["pitcher_archetype"].modify_bat_rolls(outcome, roll)
 
         
         if roll["pb_system_stat"] <= 0:
@@ -320,6 +342,9 @@ class game(object):
                 outcome["defender"] = defender
             else:
                 outcome["outcome"] = appearance_outcomes.walk
+
+            outcome["batter_archetype"].modify_out_type(outcome)
+            outcome["pitcher_archetype"].modify_out_type(outcome)
 
             if self.bases[1] is not None and roll["hitnum"] < -2 and self.outs != 2:
                 outcome["outcome"] = appearance_outcomes.doubleplay
@@ -358,6 +383,10 @@ class game(object):
                     outcome["outcome"] = appearance_outcomes.grandslam
                 else:
                     outcome["outcome"] = appearance_outcomes.homerun
+
+            outcome["batter_archetype"].modify_hit_type(outcome)
+            outcome["pitcher_archetype"].modify_hit_type(outcome)
+
         return outcome
 
     def thievery_attempts(self): #returns either false or "at-bat" outcome
@@ -375,8 +404,21 @@ class game(object):
 
             self.weather.modify_steal_stats(stats)
 
+            if pitcher.name in self.defense_archetypes.keys():
+                outcome["pitcher_archetype"] = self.defense_archetypes[pitcher.name]
+            else:
+                outcome["pitcher_archetype"] = archetypes.Archetype
+
+            if baserunner.name in self.offense_archetypes.keys():
+                outcome["baserunner_archetype"] = self.offense_archetypes[baserunner.name]
+            else:
+                outcome["baserunner_archetype"] = archetypes.Archetype
+
+            outcome["pitcher_archetype"].hold_runner(outcome, stats)
+
             if stats["run_stars"] >= (stats["def_stars"] - 1.5): #if baserunner isn't worse than pitcher
                 roll = random.random()
+                outcome["baserunner_archetype"].steal_check(outcome, roll)
                 if roll >= (-(((stats["run_stars"]+1)/14)**2)+1): #plug it into desmos or something, you'll see
                     attempts.append((baserunner, start_base))
 
@@ -398,6 +440,10 @@ class game(object):
             run_stat = random_star_gen("baserunning_stars", baserunner)
             def_stat = random_star_gen("defense_stars", defender)
             run_roll = random.gauss(2*math.erf((run_stat-def_stat)/4)-1,3)*config()["stolen_base_success_mod"]
+
+            outcome["baserunner_archetype"].modify_steal_attempt(outcome, run_roll)
+            outcome["pitcher_archetype"].modify_steal_attempt(outcome, run_roll)
+
             if start_base == 2:
                 run_roll = run_roll * .9 #stealing third is harder
             if run_roll < 1:
@@ -556,6 +602,9 @@ class game(object):
             else:
                 offense_team = self.teams["home"]
                 defense_team = self.teams["away"]
+
+            self.offense_archetypes = self.archetypes[offense_team.name]
+            self.defense_archetypes = self.archetypes[defense_team.name]
 
 
             defenders = defense_team.lineup.copy()

@@ -24,6 +24,9 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="archetypes.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="database.py">
       <SubType>Code</SubType>
     </Compile>
