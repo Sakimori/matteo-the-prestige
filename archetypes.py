@@ -5,6 +5,7 @@ class Archetype:
     name = "basic"
     display_name = "Jack of All Trades"
     display_symbol = "🃏"
+    description= "Master of none. This archetype has no bonuses and no penalties."
 
     def modify_bat_rolls(self, outcome, rolls):
         """"modify the rolls used in batting before using the rolled values"""
@@ -47,8 +48,8 @@ def all_archetypes():
         Archetype
         ]
 
-def search_archetypes(name):
+def search_archetypes(text):
     for archetype in all_archetypes():
-        if archetype.name == name or archetype.display_name == name:
+        if archetype.name == text or archetype.display_name == text:
             return archetype
     return None

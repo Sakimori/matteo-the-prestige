@@ -260,7 +260,7 @@ If you did it correctly, you'll get a team embed with a prompt to confirm. hit t
 class AssignArchetypeCommand(Command):
     name = "archetype"
     template = "m;archetype [team name]\n[player name]\n[archetype name]"
-    description = """Assigns an archetype to a player on your team. This can be changed at any time! For a description of a specific archetype, or a list of all archetypes, use m;archetypehelp."""
+    description = """Assigns an archetype to a player on your team. This can be changed at any time! For a description of a specific archetype, or a list of all archetypes, use m;listarchetypes."""
 
     async def execute(self, msg, command, flags):
         lines = command.split("\n")
@@ -293,6 +293,31 @@ class AssignArchetypeCommand(Command):
 
         await msg.channel.send("Player specialization is a beautiful thing, ain't it? Here's hoping they like it.")
 
+class ArchetypeHelpCommand(Command):
+    name = "listarchetypes"
+    template = "m;listarchetypes\nm;listarchetypes [archetype name]"
+    description = "Prints a list of all archetypes, or describes a given archetype."
+
+    async def execute(self, msg, command, flags):
+        archetype_list = archetypes.all_archetypes()
+        try:
+            archetype_name = command.split(" ",1)[1].strip()
+        except IndexError:
+            #this means it's just the command, hoo-ray            
+            string_list = ""
+            for arch in archetype_list:
+                string_list += arch.display_name + "\n"
+            await msg.channel.send(string_list)
+            return
+
+        arch = archetypes.search_archetypes(archetype_name)
+        if arch is None:
+            raise CommandError("We don't know what that archetype is. If you're trying to break new ground, here isn't the time *or* the place.")
+
+        await msg.channel.send(f"""{arch.display_name}
+Short name: {arch.name}
+
+{arch.description}""")
 
 class ImportCommand(Command):
     name = "import"
@@ -1590,6 +1615,7 @@ commands = [
     SetupGameCommand(),
     SaveTeamCommand(),
     AssignArchetypeCommand(),
+    ArchetypeHelpCommand(),
     ImportCommand(),
     SwapPlayerCommand(),
     MovePlayerCommand(),
