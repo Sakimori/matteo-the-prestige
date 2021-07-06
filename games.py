@@ -392,6 +392,7 @@ class game(object):
     def thievery_attempts(self): #returns either false or "at-bat" outcome
         thieves = []
         attempts = []
+        outcome = {}
         for base in self.bases.keys():
             if self.bases[base] is not None and base != 3: #no stealing home in simsim, sorry stu
                 if self.bases[base+1] is None: #if there's somewhere to go
@@ -404,8 +405,8 @@ class game(object):
 
             self.weather.modify_steal_stats(stats)
 
-            if pitcher.name in self.defense_archetypes.keys():
-                outcome["pitcher_archetype"] = self.defense_archetypes[pitcher.name]
+            if self.get_pitcher().name in self.defense_archetypes.keys():
+                outcome["pitcher_archetype"] = self.defense_archetypes[self.get_pitcher().name]
             else:
                 outcome["pitcher_archetype"] = archetypes.Archetype
 
@@ -425,15 +426,13 @@ class game(object):
         if len(attempts) == 0:
             return False
         else:     
-            return (self.steals_check(attempts), 0) #effectively an at-bat outcome with no score
+            return (self.steals_check(attempts, outcome), 0) #effectively an at-bat outcome with no score
 
-    def steals_check(self, attempts):
+    def steals_check(self, attempts, outcome):
         if self.top_of_inning:
             defense_team = self.teams["home"]
         else:
             defense_team = self.teams["away"]
-
-        outcome = {}
 
         for baserunner, start_base in attempts:
             defender = random.choice(defense_team.lineup) #excludes pitcher
@@ -915,6 +914,8 @@ def get_team(name):
             for player in team_json.rotation + team_json.lineup:
                 if player.name == "Tim Locastro":
                     player.randomize_stars()
+            if not hasattr(team_json, "archetypes"):
+                team_json.archetypes = {}
             return team_json
         return None
     except AttributeError:
@@ -938,6 +939,8 @@ def get_team_and_owner(name):
             for player in team_json.rotation + team_json.lineup:
                 if player.name == "Tim Locastro":
                     player.randomize_stars()
+            if not hasattr(team_json, "archetypes"):
+                team_json.archetypes = {}
             return (team_json, owner_id)
         return (None, None)
     except AttributeError:
@@ -987,6 +990,8 @@ def search_team(search_term):
             for player in team_json.rotation + team_json.lineup:
                 if player.name == "Tim Locastro":
                     player.randomize_stars()
+            if not hasattr(team_json, "archetypes"):
+                team_json.archetypes = {}
         except AttributeError:
             team_json.rotation = []
             team_json.rotation.append(team_json.pitcher)
