@@ -1,7 +1,7 @@
 import discord, json, math, os, roman, games, asyncio, random, main_controller, threading, time, urllib, leagues, datetime, gametext, real_players
 import database as db
 import onomancer as ono
-from league_storage import league_exists, season_save, season_restart
+from league_storage import league_exists, season_save, season_restart, get_mods, get_team_mods, set_mods
 from the_draft import Draft
 from flask import Flask
 from uuid import uuid4
@@ -643,6 +643,7 @@ class DraftFlagsCommand(Command):
 --wait or -w: Sets the timeout, in seconds, to wait for draftees to pick a player.
 --chaos or -c: The percentage of onomancer names in the pool. Higher numbers mean less real names, but faster pool generation. Accepts any number between 0 and 1.
 """
+        await msg.channel.send(text)
 
 class StartDraftCommand(Command):
     name = "startdraft"
@@ -895,6 +896,36 @@ Not every team will play every series, due to how the scheduling algorithm is co
                 raise CommandError("You don't have permission to manage that league.")
         else:
             raise CommandError("Couldn't find that league, boss. Did you save it on the website?")
+
+class LeagueSetPlayerModifiersCommand(Command):
+    name = "setplayermods"
+    template = "m;setplayermods [league name]\n[team name]\n[player name]\n4 numbers, seperated by a space, for batting pitching baserunning defense"
+    description = "Set a pack of modifiers to a specific player in your league. Commissioners only."
+
+    async def execute(self, msg, command, flags):
+        if league_exists(command.split("\n")[0].strip()):
+            try:
+                league = leagues.load_league_file(command.split("\n")[0].strip())
+            except IndexError:
+                raise CommandError("League name goes on the second line now, boss.")
+        else:
+            raise CommandError("Can't find that league, boss.")
+
+        try:
+            team_name = command.split("\n")[1].strip()
+            player_name = command.split("\n")[2].strip()
+            mods_text_list = command.split("\n")[3].strip().split(" ")
+            keys = ["batting_stars", "pitching_stars", "baserunning_stars", "defense_stars"]
+            mod_dic = {}
+            for i in range(0,4):
+                mod_dic[keys[i]] = float(mods_text_list[i])
+            set_mods(league.name, player_name, team_name, mod_dic)
+            await msg.channel.send("You got it, boss. Divine intervention, served by yours truly.")
+        except IndexError:
+            raise CommandError("You didn't give us enough info, chief. Check the help text.")
+        #except ValueError:
+            #raise CommandError("Those modifiers didn't make a lick of sense. Try again with sensible numbers this time.")
+                
 
 class LeagueSubscribeCommand(Command):
     name = "leaguesub"
@@ -1542,6 +1573,7 @@ commands = [
     OBLResetCommand(),
     LeagueClaimCommand(),
     LeagueAddOwnersCommand(),
+    LeagueSetPlayerModifiersCommand(),
     StartLeagueCommand(),
     LeagueSubscribeCommand(),
     LeaguePauseCommand(),
@@ -1841,6 +1873,9 @@ def prepare_game(newgame, league = None, weather_name = None):
         state_init["is_league"] = False
     else:
         state_init["is_league"] = True
+        newgame.teams['away'].apply_team_mods(league.name)
+        newgame.teams['home'].apply_team_mods(league.name)
+
 
     return newgame, state_init
 
@@ -2345,9 +2380,8 @@ async def start_league_day(channel, league, partial = False):
 
             this_game = games.game(away.finalize(), home.finalize(), length = game_length)
             this_game.weather = league.get_weather_now(home.name)(this_game)
-            this_game, state_init = prepare_game(this_game)
+            this_game, state_init = prepare_game(this_game, league=league)
 
-            state_init["is_league"] = True
             if not partial:
                 series_string = "Series score:"
                 state_init["title"] = f"{series_string} 0 - 0"
@@ -2562,9 +2596,8 @@ async def continue_league_series(league, queue, games_list, series_results, miss
         home_team.set_pitcher(rotation_slot=league.day)
         this_game = games.game(away_team.finalize(), home_team.finalize(), length = league.game_length)
         this_game.weather = league.get_weather_now(home_team.name)(this_game)
-        this_game, state_init = prepare_game(this_game)
+        this_game, state_init = prepare_game(this_game, league=league)
 
-        state_init["is_league"] = True
         series_string = f"Series score:"
 
         if missed <= 0:

@@ -17,6 +17,14 @@ def create_connection(league_name):
         # enable write-ahead log for performance and resilience
         conn.execute('pragma journal_mode=wal')
 
+        modifications_table_check_string = """ CREATE TABLE IF NOT EXISTS mods (
+                                                counter integer PRIMARY KEY,
+                                                name text NOT NULL,
+                                                team_name text NOT NULL,
+                                                modifications_json text
+                                            );"""
+        conn.execute(modifications_table_check_string)
+
         return conn
     except:
         print("oops, db connection no work")
@@ -124,10 +132,18 @@ def init_league_db(league):
                                             run_diff integer DEFAULT 0
                                         ); """
 
+    modifications_table_check_string = """ CREATE TABLE IF NOT EXISTS mods (
+                                                counter integer PRIMARY KEY,
+                                                name text NOT NULL,
+                                                team_name text NOT NULL,
+                                                modifications_json text
+                                            );"""
+
     if conn is not None:
         c = conn.cursor()
         c.execute(player_stats_table_check_string)
         c.execute(teams_table_check_string)
+        c.execute(modifications_table_check_string)
 
         for team in league.teams_in_league():
             c.execute("INSERT INTO teams (name) VALUES (?)", (team.name,))
@@ -194,6 +210,63 @@ def get_stats(league_name, stat, is_batter=True, day = 10):
             stats = c.fetchall()
     conn.close()
     return stats
+
+def get_mods(league_name, player:str, team:str):
+    """returns a player's modifications dict"""
+    conn = create_connection(league_name)
+    if conn is not None:
+        c = conn.cursor()
+        c.execute("SELECT * FROM stats WHERE name=? AND team_name=?", (player, team)) #check stats table to make sure player actually exists in the league
+        row = c.fetchone()
+        if row is None:
+            return False
+        c.execute("SELECT modifications_json FROM mods WHERE name=? AND team_name=?", (player, team))
+        mod_string = c.fetchone()
+        if mod_string is None:
+            return None
+        mods = json.loads(mod_string[0])
+        conn.close()
+        return mods
+    return False
+
+def get_team_mods(league_name, team:str):
+    """returns a dictionary of player modifications belonging to a team"""
+    conn = create_connection(league_name)
+    if conn is not None:
+        c = conn.cursor()
+        c.execute("SELECT * FROM stats WHERE team_name=?", (team,)) #check stats table to make sure team actually exists in the league
+        row = c.fetchone()
+        if row is None:
+            return False
+        c.execute("SELECT name, modifications_json FROM mods WHERE team_name=?",(team,))
+        rows = c.fetchall()
+        if len(rows) == 0:
+            return None
+        mods_dic = {}
+        for row in rows:
+            mods_dic[row[0]] = json.loads(row[1])
+        return mods_dic
+
+def set_mods(league_name, player:str, team:str, modifications:dict):
+    """Overwrites a player's modifications with an entirely new set"""
+    conn = create_connection(league_name)
+    if conn is not None:
+        c = conn.cursor()
+        c.execute("SELECT * FROM stats WHERE name=? AND team_name=?", (player, team)) #check stats table to make sure player actually exists in the league
+        row = c.fetchone()
+        if row is None:
+            return False
+        mod_string = json.dumps(modifications)
+        c.execute("SELECT counter FROM mods WHERE name=? AND team_name=?", (player, team)) #check stats table to make sure player actually exists in the league
+        counter = c.fetchone()
+        if counter is None:
+            c.execute("INSERT INTO mods(name, team_name, modifications_json) VALUES (?,?,?)", (player, team, mod_string))
+        else:
+            c.execute("UPDATE mods SET modifications_json = ? WHERE counter=?", (mod_string, counter))
+        conn.commit()
+        conn.close
+        return True
+    return False
 
 def update_standings(league_name, update_dic):
     if league_exists(league_name):

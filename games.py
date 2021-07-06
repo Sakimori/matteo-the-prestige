@@ -1,5 +1,6 @@
 import json, random, os, math, jsonpickle, weather
 import database as db
+from league_storage import get_mods, get_team_mods
 from gametext import base_string, appearance_outcomes, game_strings_base
 
 data_dir = "data"
@@ -78,6 +79,10 @@ class player(object):
             if half_star:
                 stars = half_star + 0.5
             self.stlats[key] = stars
+
+    def apply_mods(self, mod_dic):
+        for stat in iter(mod_dic.keys()):
+            self.stlats[stat] = self.stlats[stat] + mod_dic[stat]
 
 
 class team(object):
@@ -189,6 +194,14 @@ class team(object):
             self.rotation = [self.pitcher]
             self.pitcher = None
             return (len(self.lineup) >= 1 and len(self.rotation) > 0)
+
+    def apply_team_mods(self, league_name):
+        mod_dic = get_team_mods(league_name, self.name)
+        if mod_dic != {} and mod_dic != None:
+            for player_name in iter(mod_dic.keys()):
+                this_player = self.find_player(player_name)[0]
+                if this_player is not None:
+                    this_player.apply_mods(mod_dic[player_name])
 
     def prepare_for_save(self):
         self.lineup_position = 0
