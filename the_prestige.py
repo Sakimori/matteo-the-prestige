@@ -274,7 +274,7 @@ class AssignArchetypeCommand(Command):
             raise CommandError("We can't find that team.")
         
         team, ownerid = games.get_team_and_owner(team.name)
-        if ownerid != msg.author.id and user.id not in config()["owners"]:
+        if ownerid != msg.author.id and msg.author.id not in config()["owners"]:
             raise CommandError("That team ain't yours, and we're not about to help you cheat.")
 
         player = team.find_player(player_name)[0]

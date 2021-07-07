@@ -254,6 +254,11 @@ class game(object):
         self.voice = None
         self.current_batter = None
 
+        for this_team in [team1, team2]:
+            for this_player in this_team.lineup + this_team.rotation:
+                if this_player.name in this_team.archetypes.keys():
+                    this_team.archetypes[this_player.name].modify_player_stats(this_player)
+
     def occupied_bases(self):
         occ_dic = {}
         for base in self.bases.keys():
@@ -367,7 +372,7 @@ class game(object):
                     outcome["outcome"] = appearance_outcomes.fielderschoice
                     outcome["defender"] = ""
             
-            if 2.5 <= roll["hitnum"] and self.outs < 2: #well hit flyouts can lead to sacrifice flies/advanced runners
+            if outcome["outcome"] not in [appearance_outcomes.strikeoutlooking, appearance_outcomes.strikeoutswinging] and 2.5 <= roll["hitnum"] and self.outs < 2: #well hit flyouts can lead to sacrifice flies/advanced runners
                 if self.bases[2] is not None or self.bases[3] is not None:
                     outcome["advance"] = True
         else:
