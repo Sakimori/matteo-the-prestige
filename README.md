@@ -192,7 +192,7 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
   - m;teamchedule [league name] [team name]
     - Displays the upcoming schedule for the specified team within the specified league including the weather forecast. Shows the current series and the next six series after that for the given team.
   - m;leagueleaders [league name] [stat]
-    - Displays a league's leaders in the given stat.
+    - Put the stat you want to display on a new line. Displays a league's leaders in the given stat.
 	- The currently available starts are:
 	  - For batters: avg (batting average), slg (slugging percentage), obp (on-base percentage), ops (on-base plus slugging), home runs, walks drawn. 
 	  - For pitchers era (earned run average), whip (walks and hits per innings pitched), kper9 (strikeouts per 9 innings), bbper9 (walks per 9 innings), kperbb (strikeout to walk ratio), eramin (players with the worst earned run average). 
