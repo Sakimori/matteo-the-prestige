@@ -260,7 +260,7 @@ If you did it correctly, you'll get a team embed with a prompt to confirm. hit t
 class AssignArchetypeCommand(Command):
     name = "archetype"
     template = "m;archetype [team name]\n[player name]\n[archetype name]"
-    description = """Assigns an archetype to a player on your team. This can be changed at any time! For a description of a specific archetype, or a list of all archetypes, use m;listarchetypes."""
+    description = """Assigns an archetype to a player on your team. This can be changed at any time! For a description of a specific archetype, or a list of all archetypes, use m;archetypehelp."""
 
     async def execute(self, msg, command, flags):
         lines = command.split("\n")
@@ -294,8 +294,8 @@ class AssignArchetypeCommand(Command):
         await msg.channel.send("Player specialization is a beautiful thing, ain't it? Here's hoping they like it.")
 
 class ArchetypeHelpCommand(Command):
-    name = "listarchetypes"
-    template = "m;listarchetypes\nm;listarchetypes [archetype name]"
+    name = "archetypehelp"
+    template = "m;archetypehelp\nm;archetypehelp [archetype name]"
     description = "Prints a list of all archetypes, or describes a given archetype."
 
     async def execute(self, msg, command, flags):
@@ -318,6 +318,25 @@ class ArchetypeHelpCommand(Command):
 Short name: {arch.name}
 
 {arch.description}""")
+
+class ViewArchetypesCommand(Command):
+    name = "teamarchetypes"
+    template = "m;teamarchetypes [team name]"
+    description = "Lists the current archetypes on the given team."
+
+    async def execute(self, msg, command, flags):
+        team = get_team_fuzzy_search(command.strip())
+        if team is None:
+            raise CommandError("We can't find that team, boss.")
+        elif team.archetypes == {}:
+            raise CommandError("That team doesn't have any specializations set.")
+
+        embed_string = ""
+        for player_name, archetype in team.archetypes.items():
+            embed_string += f"**{player_name}**:\n{archetype.display_name}\n\n"
+        embed = discord.Embed(color=discord.Color.dark_green(), title=f"{team.name} Archetypes")
+        embed.add_field(name="-",value=embed_string)
+        await msg.channel.send(embed=embed)
 
 class ImportCommand(Command):
     name = "import"
@@ -1615,6 +1634,7 @@ commands = [
     SetupGameCommand(),
     SaveTeamCommand(),
     AssignArchetypeCommand(),
+    ViewArchetypesCommand(),
     ArchetypeHelpCommand(),
     ImportCommand(),
     SwapPlayerCommand(),
@@ -1740,7 +1760,7 @@ async def on_message(msg):
         await msg.channel.send(ono.get_scream(msg.author.display_name))
     else:
         try:
-            comm = next(c for c in commands if command.startswith(c.name))
+            comm = next(c for c in commands if command.split(" ",1)[0].lower() == c.name)
             send_text = command[len(comm.name):]
             first_line = send_text.split("\n")[0]
             flags = []
