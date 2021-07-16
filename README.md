@@ -145,7 +145,7 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
 - m;oblstandings
   - Displays the 15 teams with the most OBL points in this meta-season.  
 #### Draft Commands
-- m;startdraft -t #, -d # -m #, -p #, -c #, -w #
+- m;startdraft -d #, -m # -t #, -p #, -w #, -c #
   - Starts a draft with an arbitrary number of participants. By default teams will draft in order from a pool of 20 players until there are 5 left at which point the pool will refresh. By default each team will select 13 players, 12 hitters and 1 pitcher in that order, many of these things can be modified via the flags.
   - The -d # flag sets the size of the draft pool, by default this is 20.
   - The -m # flag sets the minimum size the pool can reach before resetting, by default this is 5, this cannot be set to the same as -d but if set to one lower the pool will refresh after every pick.
@@ -209,13 +209,13 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
 ### Player Commands:
 #### General Player Commands:	 
   - m;showplayer [name]
-    - Displays any name's stars, there's a limit of 70 characters, that should be *plenty*. Note: if you want to lookup a lot of different players you can do it at the source on onomancer instead of spamming this command a bunch and clogging up discord: https://onomancer.sibr.dev/reflect
+    - Displays any name's stars, there's a limit of 70 characters which is the max which can be used on a team. Note: if you want to lookup a lot of different players you can do it at the source on onomancer instead of spamming this command a bunch and clogging up discord: https://onomancer.sibr.dev/reflect
   - m;idolize [name]
     - Records any name as your idol, mostly for fun.
   - m;showidol 
     - Displays your idol's name and stars in a discord embed.
 #### Archetype Commands:
-- Archetypes are modifications that effect a player only on a specific team, they all have positives and negatives and are intended to help provide flavor to teams. A full list of archetypes can be found [here](https://github.com/Sakimori/matteo-the-prestige#archetypes) or with the m;archetypehelp command.
+- Archetypes are modifications that affect a player only on a specific team, they all have positives and negatives and are intended to help provide flavor to teams. A full list of archetypes can be found [here](https://github.com/Sakimori/matteo-the-prestige#archetypes) or with the m;archetypehelp command.
   - m;archetype [team name] [player name] [archetype name]
     - Assigns an archetype to a player on a team, put each part of the command on a seperate line in that order. You can either use the full name or the short name for this command, both will work.
   - m;archetypehelp ([archetype name])
