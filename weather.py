@@ -559,6 +559,33 @@ class Smog(Weather):
         game.random_weather_flag = True
         setattr(game, "weather", random.choice(list(safe_weathers().values()))(game))
 
+class Dusk(Weather):
+    name = "Dusk"
+    emoji = "🌆"
+    duration_range = [2,3]
+
+    def __init__(self, game):
+        for team in game.teams.values():
+            random.shuffle(team.lineup)
+
+    def activate(self, game, result):
+        if result["outcome"] in [appearance_outcomes.strikeoutlooking, appearance_outcomes.strikeoutswinging, appearance_outcomes.groundout, appearance_outcomes.flyout, appearance_outcomes.fielderschoice, appearance_outcomes.doubleplay, appearance_outcomes.sacrifice]:
+            result["offense_team"].lineup_position -= 1
+            result["weather_message"] = True
+            if game.outs >= 2 or (game.outs >= 1 and result["outcome"] == appearance_outcomes.doubleplay):
+                result["displaytext"] += random.choice([" A shade returns to the dugout with them, waiting.",
+                                                        " They return to the dugout alongside a shade.",
+                                                        " A shade waits patiently."])
+            else:
+                if random.random() < 0.01:
+                    result["displaytext"] += " But it refused."
+                else:
+                    result["displaytext"] += random.choice([" They leave a shade behind!",
+                                                            " A shade of the self remains.",
+                                                            " They leave a shade in the light of the setting sun.",
+                                                            " They return to the dugout, but their shade remains.",
+                                                            " They leave a shade at the plate for another plate appearance.",
+                                                            " Their shade refuses to leave the plate, and shoulders the bat."])
 
 
 def all_weathers():
@@ -579,7 +606,8 @@ def all_weathers():
             "Torrential Downpour" : Downpour,
             "Summer Mist" : SummerMist,
             "Leaf Eddies" : LeafEddies,
-            "Smog" : Smog
+            "Smog" : Smog,
+            "Dusk" : Dusk
         }
     return weathers_dic
 
@@ -597,35 +625,37 @@ def safe_weathers():
             "Meteor Shower" : MeteorShower,
             "Hurricane" : Hurricane,
             "Tornado" : Tornado,
-            "Summer Mist" : SummerMist
+            "Summer Mist" : SummerMist,
+            "Dusk" : Dusk
         }
     return weathers_dic
 
 class WeatherChains():
     light = [SlightTailwind, Twilight, Breezy, Drizzle, SummerMist, LeafEddies] #basic starting points for weather, good comfortable spots to return to
-    magic = [Twilight, ThinnedVeil, MeteorShower, Starlight] #weathers involving breaking the fabric of spacetime
+    magic = [Twilight, ThinnedVeil, MeteorShower, Starlight, Dusk] #weathers involving breaking the fabric of spacetime
     sudden = [Tornado, Hurricane, Twilight, Starlight, Midnight, Downpour, Smog] #weathers that always happen and leave over 1-3 games
     disaster = [Hurricane, Tornado, Downpour, Blizzard] #storms
-    aftermath = [Midnight, Starlight, MeteorShower, SummerMist, LeafEddies] #calm epilogues
+    aftermath = [Midnight, Starlight, MeteorShower, SummerMist, LeafEddies, Dusk] #calm epilogues
 
     dictionary = {
             #Supernova : (magic + sudden + disaster, None), supernova happens leaguewide and shouldn't need a chain, but here just in case
             Midnight : ([SlightTailwind, Breezy, Drizzle, Starlight, MeteorShower, HeatWave, SummerMist],[2,2,2,4,4,1,2]),
             SlightTailwind : ([Breezy, Drizzle, LeafEddies, Smog, Tornado], [3,3,3,3,1]),
-            Blizzard : ([Midnight, Starlight, MeteorShower, Twilight, Downpour], [2,2,2,2,4]),
+            Blizzard : ([Midnight, Starlight, MeteorShower, Twilight, Downpour, Dusk], [2,2,2,2,4,2]),
             Twilight : ([ThinnedVeil, Midnight, MeteorShower, SlightTailwind, SummerMist], [2,4,2,1,2]),
             ThinnedVeil : (light, None),
-            HeatWave : ([Tornado, Hurricane, SlightTailwind, Breezy, SummerMist],[4,4,1,1,2]),
+            HeatWave : ([Tornado, Hurricane, SlightTailwind, Breezy, SummerMist, Dusk],[4,4,1,1,2,1]),
             Drizzle : ([Hurricane, Downpour, Blizzard],[2,2,1]),
             Breezy : ([Drizzle, HeatWave, Blizzard, Smog, Tornado], [3,3,1,3,1]),
             Starlight : ([SlightTailwind, Twilight, Breezy, Drizzle, ThinnedVeil, HeatWave], None),
             MeteorShower : ([Starlight, ThinnedVeil, HeatWave, Smog], None),
             Hurricane : ([LeafEddies, Midnight, Starlight, MeteorShower, Twilight, Downpour], [3,2,2,2,2,4]),
             Tornado : ([LeafEddies, Midnight, Starlight, MeteorShower, Twilight, Downpour],[3,2,2,2,2,4]),
-            SummerMist : ([Drizzle, Breezy, Hurricane, Downpour],[2, 1, 1, 1]),
+            SummerMist : ([Drizzle, Breezy, Hurricane, Downpour, Dusk],[2, 1, 1, 1,4]),
             LeafEddies : ([Breezy, Tornado, SummerMist, ThinnedVeil, Smog], None),
             Downpour : (aftermath, None),
-            Smog : (disaster + [Drizzle], None)
+            Smog : (disaster + [Drizzle], None),
+            Dusk : ([ThinnedVeil, Midnight, MeteorShower, Starlight], [4,2,2,3])
         }
 
     chains = [

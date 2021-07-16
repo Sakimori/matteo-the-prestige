@@ -1760,7 +1760,7 @@ async def on_message(msg):
         await msg.channel.send(ono.get_scream(msg.author.display_name))
     else:
         try:
-            comm = next(c for c in commands if command.split(" ",1)[0].lower() == c.name)
+            comm = next(c for c in commands if command.split(" ",1)[0].split("\n",1)[0].lower() == c.name)
             send_text = command[len(comm.name):]
             first_line = send_text.split("\n")[0]
             flags = []
