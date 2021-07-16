@@ -160,7 +160,7 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
 	  - Their team slogan
 	- Post this with all three of these things for all participants and the draft will begin.
   - The draft will begin once all participants have given a 👍 and will proceed in the order that participants were entered. Each participant will select 12 hitters and 1 pitcher from a pool of 20 random players which will refresh automatically when it becomes small.
--m;drafflags
+-m;draftflags
   - Shows dectiptions of all of draft flags for reference since there are a lot of them.
 - m;draft [name]
   - Use this on your turn during a draft to pick your player.
@@ -264,7 +264,7 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
   - Torrential Downpour ⛈: The game does not end until one team scores X runs where X is the original inning count of the game, 9 by default.
   - Summer Mist 🌁: When a player hits into an out, they have a chance to get lost in the mist and be temporarily removed from the lineup. If another player gets lost in the mist the first player returns and takes the newly lost player's spot in the lineup.
   - Leaf Eddies 🍂: The visiting team plays all of their outs in a row without inning breaks, then the home team does the same, if the game ends tied, each team plays sudden death 1-out 'golden run' innings until the game is decided.
-  - Smog 🚌: Picks a new random weather at the beginning of each inning from: Supernova, Midnight, Slight Tailwind, Twilight, Thinned Veil, Drizzle, Breezy, Starlight, Meteor Shower, Hurricane, Tornado, Summer Mist, and Dusk
+  - Smog 🚌: Picks a new random weather at the beginning of each inning from: Supernova, Midnight, Slight Tailwind, Twilight, Thinned Veil, Drizzle, Breezy, Starlight, Meteor Shower, Hurricane, Tornado, Summer Mist, and Dusk.
   - Dusk 🌆: New patch weather, its effects will be revealed next time a new weather in implemented.
   
 [Return to the top](https://github.com/Sakimori/matteo-the-prestige#matteo-the-prestige)
