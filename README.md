@@ -26,6 +26,7 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
 	- [Draft Commands](https://github.com/Sakimori/matteo-the-prestige#draft-commands)
 	- [League Commands](https://github.com/Sakimori/matteo-the-prestige#league-commands)	
   - [Player Commands](https://github.com/Sakimori/matteo-the-prestige#player-commands)
+    - [General Player Commands](https://github.com/Sakimori/matteo-the-prestige#general-player-commands)
     - [Archetpe Commands](https://github.com/Sakimori/matteo-the-prestige#archetype-commands)
   - [Other Commands](https://github.com/Sakimori/matteo-the-prestige#other-commands)
 * [Archetypes](https://github.com/Sakimori/matteo-the-prestige#archetypes)
@@ -202,10 +203,11 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
 	  - For pitchers era (earned run average), whip (walks and hits per innings pitched), kper9 (strikeouts per 9 innings), bbper9 (walks per 9 innings), kperbb (strikeout to walk ratio), eramin (players with the worst earned run average). 
   - m;leaguesub [league name]
     - Posts all league feed events to this channel, in addition to the channel the league was started in. Run again to unsubscribe.
+
 [Return to the top](https://github.com/Sakimori/matteo-the-prestige#matteo-the-prestige)
 
 ### Player Commands:
-- General Player Commands:	 
+#### General Player Commands:	 
   - m;showplayer [name]
     - Displays any name's stars, there's a limit of 70 characters, that should be *plenty*. Note: if you want to lookup a lot of different players you can do it at the source on onomancer instead of spamming this command a bunch and clogging up discord: https://onomancer.sibr.dev/reflect
   - m;idolize [name]
@@ -213,7 +215,7 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
   - m;showidol 
     - Displays your idol's name and stars in a discord embed.
 #### Archetype Commands:
-- Archetypes are modifications that effect a player only on a specific team, they all have positives and negatives and are intended to help provide flavor to teams. A full list of archetypes can be found further down or with the m;archetypehelp command.
+- Archetypes are modifications that effect a player only on a specific team, they all have positives and negatives and are intended to help provide flavor to teams. A full list of archetypes can be found [here](https://github.com/Sakimori/matteo-the-prestige#archetypes) or with the m;archetypehelp command.
   - m;archetype [team name] [player name] [archetype name]
     - Assigns an archetype to a player on a team, put each part of the command on a seperate line in that order. You can either use the full name or the short name for this command, both will work.
   - m;archetypehelp ([archetype name])
@@ -234,13 +236,15 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
 [Return to the top](https://github.com/Sakimori/matteo-the-prestige#matteo-the-prestige)
 
 ## Archetypes
-- All current archetypes are listed here with short descriptions, all archetypes can be assigned to pitchers or hitters but they all currently primarily affect one or the other so they will be noted as such here:
-  - Jack of All Trades (short name: basic) (all): Master of none. No bonuses or penalties. This is the archetype each player is given by default and you can assign this to remove another archetype.
-  - Three True Outcomes (short name: pure power) (batter): Better at getting walks and home runs at the cost of striking out more.
-  - Contact Specialist (short name: contact) (batter): Better at getting hits at the cost of power.
-  - Sprinter (short name: speed) (batter): Better at baserunning and defense at the cost of home run power.
-  - They've Got the Stuff (short name: velocity) (pitcher): Better at getting outs at the cost of giving up more walks.
-  - Puppetmaster (short name: control) (pitcher): Better at getting weak contact at the cost of allowing more hits.
+- All current archetypes are listed here with short descriptions and their short names, all archetypes can be assigned to pitchers or hitters but they all currently primarily affect one or the other so they will be noted as such here:
+  - Jack of All Trades/basic (all): Master of none. No bonuses or penalties. This is the archetype each player is given by default and you can assign this to remove another archetype.
+  - Three True Outcomes/pure power (batter): Better at getting walks and home runs at the cost of striking out more.
+  - Contact Specialist/contact (batter): Better at getting hits at the cost of power.
+  - Sprinter/speed (batter): Better at baserunning and defense at the cost of home run power.
+  - They've Got the Stuff/velocity (pitcher): Better at getting outs at the cost of giving up more walks.
+  - Puppetmaster/control (pitcher): Better at getting weak contact at the cost of allowing more hits.
+
+[Return to the top](https://github.com/Sakimori/matteo-the-prestige#matteo-the-prestige)
 
 ## Weathers
 - All current sim16 weathers are listed here with a short description of their effects except for the most recent weathers whose effects remain a mystery.
