@@ -26,14 +26,17 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
 	- [Draft Commands](https://github.com/Sakimori/matteo-the-prestige#draft-commands)
 	- [League Commands](https://github.com/Sakimori/matteo-the-prestige#league-commands)	
   - [Player Commands](https://github.com/Sakimori/matteo-the-prestige#player-commands)
+    - [General Player Commands](https://github.com/Sakimori/matteo-the-prestige#general-player-commands)
+    - [Archetpe Commands](https://github.com/Sakimori/matteo-the-prestige#archetype-commands)
   - [Other Commands](https://github.com/Sakimori/matteo-the-prestige#other-commands)
+* [Archetypes](https://github.com/Sakimori/matteo-the-prestige#archetypes)
 * [Weathers](https://github.com/Sakimori/matteo-the-prestige#weathers)
 * [Patreon](https://github.com/Sakimori/matteo-the-prestige#patreon)
 * [Attribution](https://github.com/Sakimori/matteo-the-prestige#attribution)
   
 ## FAQ:
 - Q: What is sim16?  
-  A: This thread provides outlines the basics pretty well, give it a read: https://twitter.com/FHelltiger/status/1374119998780755969?s=20
+  A: This twitter thread provides outlines the basics pretty well, give it a read: https://twitter.com/FHelltiger/status/1374119998780755969?s=20
 
 - Q: How do I get started with sim16?  
   A: If you aren't already in a discord server that has the bot, add it to your server with the link at the start. Once you've done that or if you're already in a server with it, start by making a team using m;saveteam, you can see a description of how to use this here in the readme or by using m;help saveteam. Once you have a team, I recommend looking into the OBL starting my doing m;oblhelp. Other than that, I recommend joining the main discord above and having a look at the #lfg channel there if you're interested in participating in a league, otherwise just look around the readme and do what sounds fun to you!
@@ -142,14 +145,14 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
 - m;oblstandings
   - Displays the 15 teams with the most OBL points in this meta-season.  
 #### Draft Commands
-- m;startdraft -t #, -d # -r #, -p #, -c #, -w #
+- m;startdraft -d #, -m # -t #, -p #, -w #, -c #
   - Starts a draft with an arbitrary number of participants. By default teams will draft in order from a pool of 20 players until there are 5 left at which point the pool will refresh. By default each team will select 13 players, 12 hitters and 1 pitcher in that order, many of these things can be modified via the flags.
-  - The -t # flag changes the size of the teams, the number of batters will be this number minus the number provided for -p, by default 1.
   - The -d # flag sets the size of the draft pool, by default this is 20.
-  - The -r # flag sets the minimum size the pool can reach before resetting, by default this is 5, this cannot be set to the same as -d but if set to one lower the pool will refresh after every pick.
+  - The -m # flag sets the minimum size the pool can reach before resetting, by default this is 5, this cannot be set to the same as -d but if set to one lower the pool will refresh after every pick.
+  - The -t # flag changes the size of the teams, the number of batters will be this number minus the number provided for -p, by default 1.
   - The -p # flag sets the number of pitchers each team will have, by default this is 1 but you may want to change this if drafting with the intention to use a team in a league.
-  - The -c # flag sets the 'chaos ratio', must be a number between 0 and 1 with 0 being 0% chaos, or 100% real player names, and 1 being 100% chaos, or 100% onomancer names. By default this is set to .25.
   - The -w # flag sets the wait time before the draft skips someone's pick for inactivity, in seconds. By default this is 120, or 2 mintutes.
+  - The -c # flag sets the 'chaos ratio', must be a number between 0 and 1 with 0 being 0% chaos, or 100% real player names, and 1 being 100% chaos, or 100% onomancer names. By default this is set to .25.
   - Use this command with any chosen flags at the top of a list with entries separated by new lines:
 	- For each participant's entry you need three lines:
 	  - Their discord @
@@ -157,6 +160,8 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
 	  - Their team slogan
 	- Post this with all three of these things for all participants and the draft will begin.
   - The draft will begin once all participants have given a 👍 and will proceed in the order that participants were entered. Each participant will select 12 hitters and 1 pitcher from a pool of 20 random players which will refresh automatically when it becomes small.
+-m;draftflags
+  - Shows dectiptions of all of draft flags for reference since there are a lot of them.
 - m;draft [name]
   - Use this on your turn during a draft to pick your player.
   - You can also just use a 'd' instead of the full command. 
@@ -198,15 +203,25 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
 	  - For pitchers era (earned run average), whip (walks and hits per innings pitched), kper9 (strikeouts per 9 innings), bbper9 (walks per 9 innings), kperbb (strikeout to walk ratio), eramin (players with the worst earned run average). 
   - m;leaguesub [league name]
     - Posts all league feed events to this channel, in addition to the channel the league was started in. Run again to unsubscribe.
+
 [Return to the top](https://github.com/Sakimori/matteo-the-prestige#matteo-the-prestige)
 
-### Player Commands:	 
-- m;showplayer [name]
-  - Displays any name's stars, there's a limit of 70 characters, that should be *plenty*. Note: if you want to lookup a lot of different players you can do it at the source on onomancer instead of spamming this command a bunch and clogging up discord: https://onomancer.sibr.dev/reflect
-- m;idolize [name]
-  - Records any name as your idol, mostly for fun.
-- m;showidol 
-  - Displays your idol's name and stars in a discord embed. 
+### Player Commands:
+#### General Player Commands:	 
+  - m;showplayer [name]
+    - Displays any name's stars, there's a limit of 70 characters which is the max which can be used on a team. Note: if you want to lookup a lot of different players you can do it at the source on onomancer instead of spamming this command a bunch and clogging up discord: https://onomancer.sibr.dev/reflect
+  - m;idolize [name]
+    - Records any name as your idol, mostly for fun.
+  - m;showidol 
+    - Displays your idol's name and stars in a discord embed.
+#### Archetype Commands:
+- Archetypes are modifications that affect a player only on a specific team, they all have positives and negatives and are intended to help provide flavor to teams. A full list of archetypes can be found [here](https://github.com/Sakimori/matteo-the-prestige#archetypes) or with the m;archetypehelp command.
+  - m;archetype [team name] [player name] [archetype name]
+    - Assigns an archetype to a player on a team, put each part of the command on a seperate line in that order. You can either use the full name or the short name for this command, both will work.
+  - m;archetypehelp ([archetype name])
+    - Provides a list of archetypes if no archetype is specified or gives information about the specified archetype. 
+  - m;teamarchetypes [team name]
+    - Lists all players with an archetype on the given team and what their archetype is.
   
 [Return to the top](https://github.com/Sakimori/matteo-the-prestige#matteo-the-prestige)
   
@@ -218,6 +233,17 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
 - m;roman [number]
   - Converts any natural number less than 4,000,000 into roman numerals, this one is just for fun. 
   
+[Return to the top](https://github.com/Sakimori/matteo-the-prestige#matteo-the-prestige)
+
+## Archetypes
+- All current archetypes are listed here with short descriptions and their short names, all archetypes can be assigned to pitchers or hitters but they all currently primarily affect one or the other so they will be noted as such here:
+  - Jack of All Trades/basic (all): Master of none. No bonuses or penalties. This is the archetype each player is given by default and you can assign this to remove another archetype.
+  - Three True Outcomes/pure power (batter): Better at getting walks and home runs at the cost of striking out more.
+  - Contact Specialist/contact (batter): Better at getting hits at the cost of power.
+  - Sprinter/speed (batter): Better at baserunning and defense at the cost of home run power.
+  - They've Got the Stuff/velocity (pitcher): Better at getting outs at the cost of giving up more walks.
+  - Puppetmaster/control (pitcher): Better at getting weak contact at the cost of allowing more hits.
+
 [Return to the top](https://github.com/Sakimori/matteo-the-prestige#matteo-the-prestige)
 
 ## Weathers
@@ -238,7 +264,8 @@ Accepting pull requests, check the issues for to-dos, if you have an idea for an
   - Torrential Downpour ⛈: The game does not end until one team scores X runs where X is the original inning count of the game, 9 by default.
   - Summer Mist 🌁: When a player hits into an out, they have a chance to get lost in the mist and be temporarily removed from the lineup. If another player gets lost in the mist the first player returns and takes the newly lost player's spot in the lineup.
   - Leaf Eddies 🍂: The visiting team plays all of their outs in a row without inning breaks, then the home team does the same, if the game ends tied, each team plays sudden death 1-out 'golden run' innings until the game is decided.
-  - Smog 🚌: Current patch weather, its effects will be revealed the next time a weather is implemented.
+  - Smog 🚌: Picks a new random weather at the beginning of each inning from: Supernova, Midnight, Slight Tailwind, Twilight, Thinned Veil, Drizzle, Breezy, Starlight, Meteor Shower, Hurricane, Tornado, Summer Mist, and Dusk.
+  - Dusk 🌆: New patch weather, its effects will be revealed next time a new weather in implemented.
   
 [Return to the top](https://github.com/Sakimori/matteo-the-prestige#matteo-the-prestige)
 
