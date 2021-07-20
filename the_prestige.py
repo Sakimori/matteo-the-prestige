@@ -1,4 +1,5 @@
-import discord, json, math, os, roman, games, asyncio, random, main_controller, threading, time, urllib, leagues, datetime, gametext, real_players, archetypes
+import json, math, os, roman, games, asyncio, random, main_controller, threading, time, urllib, leagues, datetime, gametext, real_players, archetypes
+import discord_emu as discord
 import database as db
 import onomancer as ono
 from league_storage import league_exists, season_save, season_restart, get_mods, get_team_mods, set_mods
@@ -1715,70 +1716,70 @@ def config():
         with open(config_filename) as config_file:
             return json.load(config_file)
 
-@client.event
-async def on_ready():
-    global watching
-    db.initialcheck()
-    print(f"logged in as {client.user} with token {config()['token']} to {len(client.guilds)} servers")
-    if not watching:
-        watching = True
-        watch_task = asyncio.create_task(game_watcher())
-        await watch_task
+#@client.event
+#async def on_ready():
+#    global watching
+#    db.initialcheck()
+#    print(f"logged in as {client.user} with token {config()['token']} to {len(client.guilds)} servers")
+#    if not watching:
+#        watching = True
+#        watch_task = asyncio.create_task(game_watcher())
+#        await watch_task
 
 
-@client.event
-async def on_reaction_add(reaction, user):
-    if reaction.message in setupmessages.keys():
-        game = setupmessages[reaction.message]
-        try:
-            if str(reaction.emoji) == "🔼" and not user == client.user:
-                new_player = games.player(ono.get_stats(db.get_user_player(user)["name"]))
-                game.teams["away"].add_lineup(new_player)
-                await reaction.message.channel.send(f"{new_player} {new_player.star_string('batting_stars')} takes spot #{len(game.teams['away'].lineup)} on the away lineup.")
-            elif str(reaction.emoji) == "🔽" and not user == client.user:
-                new_player = games.player(ono.get_stats(db.get_user_player(user)["name"]))
-                game.teams["home"].add_lineup(new_player)
-                await reaction.message.channel.send(f"{new_player} {new_player.star_string('batting_stars')} takes spot #{len(game.teams['home'].lineup)} on the home lineup.")
-        except:
-            await reaction.message.channel.send(f"{user.display_name}, we can't find your idol. Maybe you don't have one yet?")
+#@client.event
+#async def on_reaction_add(reaction, user):
+#    if reaction.message in setupmessages.keys():
+#        game = setupmessages[reaction.message]
+#        try:
+#            if str(reaction.emoji) == "🔼" and not user == client.user:
+#                new_player = games.player(ono.get_stats(db.get_user_player(user)["name"]))
+#                game.teams["away"].add_lineup(new_player)
+#                await reaction.message.channel.send(f"{new_player} {new_player.star_string('batting_stars')} takes spot #{len(game.teams['away'].lineup)} on the away lineup.")
+#            elif str(reaction.emoji) == "🔽" and not user == client.user:
+#                new_player = games.player(ono.get_stats(db.get_user_player(user)["name"]))
+#                game.teams["home"].add_lineup(new_player)
+#                await reaction.message.channel.send(f"{new_player} {new_player.star_string('batting_stars')} takes spot #{len(game.teams['home'].lineup)} on the home lineup.")
+#        except:
+#            await reaction.message.channel.send(f"{user.display_name}, we can't find your idol. Maybe you don't have one yet?")
 
-@client.event
-async def on_message(msg):
+#@client.event
+#async def on_message(msg):
 
-    if msg.author == client.user or not msg.webhook_id is None:
-        return
+#    if msg.author == client.user or not msg.webhook_id is None:
+#        return
 
-    command_b = False
-    for prefix in config()["prefix"]:
-        if msg.content.startswith(prefix):
-            command_b = True
-            command = msg.content.split(prefix, 1)[1]
-    if not command_b:
-        return
+#    command_b = False
+#    for prefix in config()["prefix"]:
+#        if msg.content.startswith(prefix):
+#            command_b = True
+#            command = msg.content.split(prefix, 1)[1]
+#    if not command_b:
+#        return
 
-    if msg.channel.id == config()["soulscream channel id"]:
-        await msg.channel.send(ono.get_scream(msg.author.display_name))
-    else:
-        try:
-            comm = next(c for c in commands if command.split(" ",1)[0].split("\n",1)[0].lower() == c.name)
-            send_text = command[len(comm.name):]
-            first_line = send_text.split("\n")[0]
-            flags = []
-            if "-" in first_line:
-                check = first_line.split("-")[1:]
-                for flag in [_ for _ in check if _ != ""]:
-                    try:
-                        flags.append((flag.split(" ")[0][0].lower(), flag.split(" ",1)[1].strip()))
-                    except IndexError:
-                        flags.append((flag.split(" ")[0][0].lower(), None))
+#    if msg.channel.id == config()["soulscream channel id"]:
+#        await msg.channel.send(ono.get_scream(msg.author.display_name))
+#    else:
+#        try:
+#            comm = next(c for c in commands if command.split(" ",1)[0].split("\n",1)[0].lower() == c.name)
+#            send_text = command[len(comm.name):]
+#            first_line = send_text.split("\n")[0]
+#            flags = []
+#            if "-" in first_line:
+#                check = first_line.split("-")[1:]
+#                for flag in [_ for _ in check if _ != ""]:
+#                    try:
+#                        flags.append((flag.split(" ")[0][0].lower(), flag.split(" ",1)[1].strip()))
+#                    except IndexError:
+#                        flags.append((flag.split(" ")[0][0].lower(), None))
 
-            if comm.isauthorized(msg.author): #only execute command if authorized
-                await comm.execute(msg, send_text, flags)
+#            if comm.isauthorized(msg.author): #only execute command if authorized
+#                await comm.execute(msg, send_text, flags)
 
-        except StopIteration:
-            await msg.channel.send("Can't find that command, boss; try checking the list with `m;help`.")
-        except CommandError as ce:
-            await msg.channel.send(str(ce))
+#        except StopIteration:
+#            await msg.channel.send("Can't find that command, boss; try checking the list with `m;help`.")
+#        except CommandError as ce:
+#            await msg.channel.send(str(ce))
 
 
 async def setup_game(channel, owner, newgame):
@@ -2226,7 +2227,7 @@ def build_draft_embed(names, title="The Draft", footer="You must choose"):
 
 
 def build_team_embed(team):
-    embed = discord.Embed(color=discord.Color.purple(), title=team.name)
+#    embed = discord.Embed(color=discord.Color.purple(), title=team.name)
     lineup_string = ""
     for player in team.lineup:
         lineup_string += f"{player.name} {player.star_string('batting_stars')}\n"
@@ -2234,15 +2235,15 @@ def build_team_embed(team):
     rotation_string = ""
     for player in team.rotation:
         rotation_string += f"{player.name} {player.star_string('pitching_stars')}\n"
-    embed.add_field(name="Rotation:", value=rotation_string, inline = False)
-    embed.add_field(name="Lineup:", value=lineup_string, inline = False)
-    embed.add_field(name="█a██:", value=str(abs(hash(team.name)) % (10 ** 4)))
-    embed.set_footer(text=team.slogan)
-    return embed
+    #embed.add_field(name="Rotation:", value=rotation_string, inline = False)
+    #embed.add_field(name="Lineup:", value=lineup_string, inline = False)
+    #embed.add_field(name="█a██:", value=str(abs(hash(team.name)) % (10 ** 4)))
+    #embed.set_footer(text=team.slogan)
+    return lineup_string + "\n" + rotation_string
 
 def build_star_embed(player_json):
     starkeys = {"batting_stars" : "Batting", "pitching_stars" : "Pitching", "baserunning_stars" : "Baserunning", "defense_stars" : "Defense"}
-    embed = discord.Embed(color=discord.Color.purple(), title=player_json["name"])
+    #embed = discord.Embed(color=discord.Color.purple(), title=player_json["name"])
 
     if player_json["name"] == "Tim Locastro": #the tim easter egg
         for key in ["batting_stars", "pitching_stars", "baserunning_stars", "defense_stars"]:
@@ -2253,18 +2254,21 @@ def build_star_embed(player_json):
                 stars = half_star + 0.5
             player_json[key] = stars
 
+    text = player_json["name"] + "\n"
+
     for key in starkeys.keys():
         embedstring = ""
         starstring = str(player_json[key])
         starnum = int(starstring[0])
         addhalf = ".5" in starstring
-        embedstring += "⭐" * starnum
+        embedstring += "H" * starnum
         if addhalf:
-            embedstring += "✨"
+            embedstring += "n"
         elif starnum == 0:  # why check addhalf twice, amirite
-            embedstring += "⚪️"
-        embed.add_field(name=starkeys[key], value=embedstring, inline=False)
-    return embed
+            embedstring += "O"
+        text += starkeys[key] + "\n    " + embedstring + "\n"
+        #embed.add_field(name=starkeys[key], value=embedstring, inline=False)
+    return text
 
 def team_from_collection(newteam_json):
     # verify collection against our own restrictions
@@ -2785,4 +2789,4 @@ async def league_subscriber_update(league, start_channel, message):
         else:
             await channel.send(message)
 
-client.run(config()["token"])
+#client.run(config()["token"])

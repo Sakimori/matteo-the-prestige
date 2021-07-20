@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>2738449b-4b76-4ed0-aa18-3494aaa9e184</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>the_prestige.py</StartupFile>
+    <StartupFile>shell.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -33,6 +33,9 @@
     <Compile Include="debug storage.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="discord_emu.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="gametext.py" />
     <Compile Include="leagues.py">
       <SubType>Code</SubType>
@@ -53,6 +56,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="roman.py" />
+    <Compile Include="shell.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="the_draft.py" />
     <Compile Include="the_prestige.py" />
     <Compile Include="weather.py" />

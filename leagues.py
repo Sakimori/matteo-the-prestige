@@ -344,12 +344,13 @@ class league_structure(object):
         return int(list(self.schedule.keys())[-1]) * self.series_length
     
     def standings_embed(self):
-        this_embed = Embed(color=Color.purple(), title=f"{self.name} Season {self.season}")
+        this_embed = f"{self.name} Season {self.season}\n" #Embed(color=Color.purple(), title=f"{self.name} Season {self.season}")
         standings = {}
         for team_name, wins, losses, run_diff in league_db.get_standings(self.name):
             standings[team_name] = {"wins" : wins, "losses" : losses, "run_diff" : run_diff}
         for subleague in iter(self.league.keys()):
-            this_embed.add_field(name="Conference:", value=f"**{subleague}**", inline = False)
+            this_embed += f"Conference: **{subleague}**"
+            #this_embed.add_field(name="Conference:", value=f"**{subleague}**", inline = False)
             for division in iter(self.league[subleague].keys()):
                 teams = self.division_standings(self.league[subleague][division], standings)
 
@@ -366,9 +367,10 @@ class league_structure(object):
                     else:
                         teams_string += f"**{this_team[0].name}\n**{this_team[1]} - {this_team[2]} WR: - GB: {this_team[4]}\n\n"
 
-                this_embed.add_field(name=f"{division} Division:", value=teams_string, inline = False)
+                this_embed += f"\n{division} Division:" + "\n    " + teams_string
+                #this_embed.add_field(name=f"{division} Division:", value=teams_string, inline = False)
         
-        this_embed.set_footer(text=f"Standings as of day {self.day-1} / {self.season_length()}")
+        #this_embed.set_footer(text=f"Standings as of day {self.day-1} / {self.season_length()}")
         return this_embed
 
     def standings_embed_div(self, division, div_name):
