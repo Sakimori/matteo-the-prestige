@@ -1007,8 +1007,8 @@ class LeagueSetPlayerModifiersCommand(Command):
             await msg.channel.send("You got it, boss. Divine intervention, served by yours truly.")
         except IndexError:
             raise CommandError("You didn't give us enough info, chief. Check the help text.")
-        #except ValueError:
-            #raise CommandError("Those modifiers didn't make a lick of sense. Try again with sensible numbers this time.")
+        except ValueError:
+            raise CommandError("Those modifiers didn't make a lick of sense. Try again with sensible numbers this time.")
                 
 
 class LeagueSubscribeCommand(Command):
