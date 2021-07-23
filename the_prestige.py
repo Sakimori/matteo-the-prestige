@@ -983,6 +983,9 @@ class LeagueSetPlayerModifiersCommand(Command):
     template = "m;setplayermods [league name]\n[team name]\n[player name]\n4 numbers, seperated by a space, for batting pitching baserunning defense"
     description = "Set a pack of modifiers to a specific player in your league. Commissioners only."
 
+    def isauthorized(self, user):
+        return user.id in config()["owners"] + config()["ea"]
+
     async def execute(self, msg, command, flags):
         if league_exists(command.split("\n")[0].strip()):
             try:
@@ -1700,6 +1703,9 @@ def config():
         config_dic = {
                 "token" : "",
                 "owners" : [
+                    0000
+                    ],
+                "ea" : [
                     0000
                     ],
                 "prefix" : ["m;", "m!"],
