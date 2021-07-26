@@ -635,7 +635,7 @@ class WeatherChains():
     magic = [Twilight, ThinnedVeil, MeteorShower, Starlight, Dusk] #weathers involving breaking the fabric of spacetime
     sudden = [Tornado, Hurricane, Twilight, Starlight, Midnight, Downpour, Smog] #weathers that always happen and leave over 1-3 games
     disaster = [Hurricane, Tornado, Downpour, Blizzard] #storms
-    aftermath = [Midnight, Starlight, MeteorShower, SummerMist, LeafEddies, Dusk] #calm epilogues
+    aftermath = [Midnight, Starlight, MeteorShower, SummerMist, Dusk] #calm epilogues
 
     dictionary = {
             #Supernova : (magic + sudden + disaster, None), supernova happens leaguewide and shouldn't need a chain, but here just in case
