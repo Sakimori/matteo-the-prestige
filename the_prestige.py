@@ -1708,6 +1708,9 @@ def config():
                 "ea" : [
                     0000
                     ],
+                "blacklist" : [
+                    0000
+                    ],
                 "prefix" : ["m;", "m!"],
                 "simmadome_url" : "",
                 "soulscream channel id" : 0,
@@ -1751,7 +1754,7 @@ async def on_reaction_add(reaction, user):
 @client.event
 async def on_message(msg):
 
-    if msg.author == client.user or not msg.webhook_id is None:
+    if msg.author == client.user or not msg.webhook_id is None or msg.author.id in congfig()["blacklist"]:
         return
 
     command_b = False
