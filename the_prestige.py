@@ -1754,7 +1754,7 @@ async def on_reaction_add(reaction, user):
 @client.event
 async def on_message(msg):
 
-    if msg.author == client.user or not msg.webhook_id is None or msg.author.id in congfig()["blacklist"]:
+    if msg.author == client.user or not msg.webhook_id is None or msg.author.id in config()["blacklist"]:
         return
 
     command_b = False
