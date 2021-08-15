@@ -2562,7 +2562,7 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
                         games_list.pop(i)
                         break
             except:
-                print("something went wrong in league_day_watcher: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1]))
+                print("something went wrong in league_day_watcher: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1]) + "\n" + str(sys.exc_info()[2]))
             await asyncio.sleep(2)
         league.day += 1
         
@@ -2570,7 +2570,8 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
 
             now = datetime.datetime.now()
 
-            validminutes = [int((60 * div)/league.games_per_hour) for div in range(0,league.games_per_hour)]
+            validminutes = [0] + [int((60 * div)/league.games_per_hour) for div in range(1,league.games_per_hour)]
+
             delta = datetime.timedelta()
 
             for i in range(0, len(validminutes)):
@@ -2591,7 +2592,7 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
             next_start = (now + delta).replace(second=0, microsecond=0)
             wait_seconds = (next_start - now).seconds
 
-            if wait_seconds > 3601: #there's never a situation to wait longer than an hour so hoo ray bugfixes the easy way
+            if wait_seconds > 3600: #there's never a situation to wait longer than an hour so hoo ray bugfixes the easy way
                 wait_seconds = 60
                 
             leagues.save_league(league)
