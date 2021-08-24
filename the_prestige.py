@@ -1,4 +1,4 @@
-import discord, json, math, os, roman, games, asyncio, random, main_controller, threading, time, urllib, leagues, datetime, gametext, real_players, archetypes, sys
+import discord, json, math, os, roman, games, asyncio, random, main_controller, threading, time, urllib, leagues, datetime, gametext, real_players, archetypes, sys, traceback
 import database as db
 import onomancer as ono
 from league_storage import league_exists, season_save, season_restart, get_mods, get_team_mods, set_mods
@@ -2562,7 +2562,7 @@ async def league_day_watcher(channel, league, games_list, filter_url, last = Fal
                         games_list.pop(i)
                         break
             except:
-                print("something went wrong in league_day_watcher: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1]) + "\n" + str(sys.exc_info()[2]))
+                print("something went wrong in league_day_watcher: " + str(sys.exc_info()[0]) + str(sys.exc_info()[1]) + "\n" + traceback.print_tb(sys.exc_info()[2]))
             await asyncio.sleep(2)
         league.day += 1
         
