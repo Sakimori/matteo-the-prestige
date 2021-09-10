@@ -305,7 +305,6 @@ function validRequest(name:string, structure: LeagueStructureState, options:Leag
 		validNumber(options.top_postseason) &&
 		validNumber(options.wildcards, 0) &&
 
-		structure.subleagues.length % 2 === 0 &&
 		getDuplicateTeams(structure).size === 0 &&
 
 		structure.subleagues.every((subleague, si) => 
@@ -580,9 +579,9 @@ function LeagueOptions(props: {state: LeagueOptionsState, dispatch: React.Dispat
 			<div className="cl_option_column">
 				<NumberInput title="Number of series with each division opponent" value={props.state.intra_division_series} setValue={(value: string) => 
 					props.dispatch({type: 'set_intra_division_series', value: value})} showError={props.showError}/>
-				<NumberInput title="Number of inter-divisional series" value={props.state.inter_division_series} setValue={(value: string) => 
+				<NumberInput title="Number of inter-divisional series" value={props.state.inter_division_series} minValue={0} setValue={(value: string) => 
 					props.dispatch({type: 'set_inter_division_series', value: value})} showError={props.showError}/>
-				<NumberInput title="Number of inter-conference series" value={props.state.inter_league_series} setValue={(value: string) => 
+				<NumberInput title="Number of inter-conference series" value={props.state.inter_league_series} minValue={0} setValue={(value: string) => 
 					props.dispatch({type: 'set_inter_league_series', value: value})} showError={props.showError}/>
 			</div>
 		</div>
