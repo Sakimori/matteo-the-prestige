@@ -9,6 +9,7 @@ import weather
 
 data_dir = "data"
 config_filename = os.path.join(data_dir, "config.json")
+app = main_controller.app
 
 class Command:
     def isauthorized(self, user):
@@ -718,7 +719,7 @@ class DraftFlagsCommand(Command):
     async def execute(self, msg, command, flags):
         text = """Currently accepted flags:
 --draftsize or -d: Sets the size of each draft pool.
---minsize or -m: Sets the size at which the pool completely refreshes.
+--refresh or -r: Sets the size at which the pool completely refreshes.
 --teamsize or -t: How big each team should be, including pitchers.
 --pitchercount or -p: How many pitchers each team should have.
 --wait or -w: Sets the timeout, in seconds, to wait for draftees to pick a player.
@@ -792,9 +793,9 @@ class StartDraftCommand(Command):
                 if mention in handle_token:
                     handle = mention
                     break
-            else:
-                await msg.channel.send(f"I don't recognize {handle_token}.")
-                return
+                else:
+                    await msg.channel.send(f"I don't recognize {handle_token}.")
+                    return
             team_name = content[i + 1].strip()
             if games.get_team(team_name):
                 await msg.channel.send(f'Sorry {handle}, {team_name} already exists')
@@ -1690,6 +1691,10 @@ active_tournaments = []
 active_leagues = []
 active_standings = {}
 setupmessages = {}
+
+
+thread1 = threading.Thread(target=main_controller.update_loop)
+thread1.start()
 
 
 thread1 = threading.Thread(target=main_controller.update_loop)

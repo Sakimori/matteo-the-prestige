@@ -118,7 +118,7 @@ def create_league():
 
 ### SOCKETS
 
-thread2 = threading.Thread(target=socketio.run,args=(app,"0.0.0.0", "80"))
+thread2 = threading.Thread(target=socketio.run,args=(app,"127.0.0.1", "8080"))
 thread2.start()
 
 master_games_dic = {} #key timestamp : (game game, {} state)
@@ -133,7 +133,10 @@ def update_loop():
     global socket_thread
     while True:
         if socket_thread is not None:
-            socket_thread.join()
+            try:
+                socket_thread.join()
+            except:
+                pass
         game_states = []
         game_ids = iter(master_games_dic.copy().keys())
         for game_id in game_ids:
