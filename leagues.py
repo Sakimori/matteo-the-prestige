@@ -455,9 +455,15 @@ class league_structure(object):
 
         return tournaments
 
-    def stat_embed(self, stat_name):
-        this_embed = Embed(color=Color.purple(), title=f"{self.name} Season {self.season} {stat_name} Leaders")
-        stats = league_db.get_stats(self.name, stat_name.lower(), day = self.day)        
+    def stat_embed(self, stat_name, season_num):
+        if season_num is None:
+            season_string = str(self.season)
+            day = self.day
+        else:
+            season_string = str(season_num)
+            day = len(self.schedule)
+        this_embed = Embed(color=Color.purple(), title=f"{self.name} Season {season_string} {stat_name} Leaders")
+        stats = league_db.get_stats(self.name, stat_name.lower(), day = day, season = season_num)        
         if stats is None:
             return None
         else:

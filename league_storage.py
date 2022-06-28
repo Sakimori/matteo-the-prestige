@@ -79,10 +79,12 @@ def create_season_connection(league_name, season_num):
     #create connection, create db if doesn't exist
     conn = None
     try:
-        if not os.path.exists(os.path.join(data_dir, league_dir, league_name)):
-        
+        if not os.path.exists(os.path.join(data_dir, league_dir, league_name)):  
             os.makedirs(os.path.join(data_dir, league_dir, league_name))
-        conn = sql.connect(os.path.join(data_dir, league_dir, league_name, season_num, f"{league_name}.db"))
+        try:
+            conn = sql.connect(os.path.join(data_dir, league_dir, league_name, season_num, f"{league_name}.db"))
+        except:
+            raise ValueError("Season not played")
 
         # enable write-ahead log for performance and resilience
         conn.execute('pragma journal_mode=wal')
@@ -197,8 +199,11 @@ def add_stats(league_name, player_game_stats_list):
         conn.commit()
     conn.close()
 
-def get_stats(league_name, stat, is_batter=True, day = 10):
-    conn = create_connection(league_name)
+def get_stats(league_name, stat, is_batter=True, day = 10, season = None):
+    if season is None:
+        conn = create_connection(league_name)
+    else:
+        conn = create_season_connection(league_name, season)
     stats = None
     if conn is not None:
         conn.row_factory = sql.Row

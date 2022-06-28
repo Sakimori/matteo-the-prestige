@@ -1070,10 +1070,22 @@ class LeagueLeadersCommand(Command):
         if league_exists(command.split("\n")[0].strip()):
             league = leagues.load_league_file(command.split("\n")[0].strip())
             stat_name = command.split("\n")[1].strip()
+            season_num = None
+
+            for flag in flags:
+                if flag[0] == "s":
+                    try:
+                        season_num = int(flag[1])
+                        return
+                    except ValueError:
+                        raise CommandError("Give us a proper number, boss.")
+
             try:
-                stat_embed = league.stat_embed(stat_name)
+                stat_embed = league.stat_embed(stat_name, season_num)
             except IndexError:
                 raise CommandError("Nobody's played enough games to get meaningful stats in that category yet, chief. Try again after the next game or two.")
+            except ValueError:
+                raise CommandError("That season hasn't been played yet.")
 
             if stat_embed is None:
                 raise CommandError("We don't know what that stat is, chief.")
