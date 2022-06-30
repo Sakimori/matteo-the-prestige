@@ -21,7 +21,8 @@ class Draft:
         return draft
 
     def __init__(self, teamsize, draftsize, minsize, pitchers, ono_ratio):     
-        self.DRAFT_SIZE = int(draftsize * ono_ratio)
+        #self.DRAFT_SIZE = int(draftsize * ono_ratio) UNCOMMENT FOR REAL PLAYER NAMES
+        self.DRAFT_SIZE = draftsize
         self.REAL_SIZE = draftsize - self.DRAFT_SIZE
         self.REFRESH_DRAFT_SIZE = minsize  # fewer players remaining than this and the list refreshes
         self.DRAFT_ROUNDS = teamsize
@@ -30,7 +31,7 @@ class Draft:
         self._participants = []
         self._active_participant = BOOKMARK  # draft mutex
         nameslist = onomancer.get_names(limit=self.DRAFT_SIZE)
-        nameslist.update(real_players.get_real_players(self.REAL_SIZE))
+        #nameslist.update(real_players.get_real_players(self.REAL_SIZE)) UNCOMMENT FOR REAL PLAYER NAMES
         self._players = nameslist
         self._round = 0
 
