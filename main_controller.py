@@ -133,10 +133,7 @@ def update_loop():
     global socket_thread
     while True:
         if socket_thread is not None:
-            try:
-                socket_thread.join()
-            except:
-                pass
+            socket_thread.join()
         game_states = []
         game_ids = iter(master_games_dic.copy().keys())
         for game_id in game_ids:
