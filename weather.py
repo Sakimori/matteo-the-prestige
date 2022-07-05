@@ -594,7 +594,6 @@ class Runoff(Weather):
     duration_range = [2,4]
 
     def __init__(self, game):
-        self.out_extension = True
         self.overflow_out = False
 
     def post_activate(self, game, result):
