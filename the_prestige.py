@@ -1704,11 +1704,6 @@ active_leagues = []
 active_standings = {}
 setupmessages = {}
 
-
-thread1 = threading.Thread(target=main_controller.update_loop)
-thread1.start()
-
-
 thread1 = threading.Thread(target=main_controller.update_loop)
 thread1.start()
 
