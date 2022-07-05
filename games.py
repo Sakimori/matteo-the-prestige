@@ -351,7 +351,7 @@ class game(object):
             outcome["batter_archetype"].modify_out_type(outcome)
             outcome["pitcher_archetype"].modify_out_type(outcome)
 
-            if self.bases[1] is not None and roll["hitnum"] < -2 and self.outs != 2:
+            if self.bases[1] is not None and roll["hitnum"] < -2 and (self.outs != 2 or self.weather.out_extension):
                 outcome["outcome"] = appearance_outcomes.doubleplay
                 outcome["defender"] = ""
 
