@@ -5,6 +5,7 @@ class Weather:
     name = "Sunny"
     emoji = "🌞"
     duration_range = [3,5]
+    out_extension = False
 
     def __init__(self, game):
         pass    
@@ -587,6 +588,28 @@ class Dusk(Weather):
                                                             " They leave a shade at the plate for another plate appearance.",
                                                             " Their shade refuses to leave the plate, and shoulders the bat."])
 
+class Runoff(Weather):
+    name = "Runoff"
+    emoji = "🏔️"
+    duration_range = [2,4]
+
+    def __init__(self, game):
+        self.overflow_out = False
+
+    def post_activate(self, game, result):
+        if game.outs >= 4:
+            self.overflow_out = True
+
+    def on_flip_inning(self, game):
+        if self.overflow_out:
+            game.outs += 1
+
+    def modify_top_of_inning_message(self, game, state):
+        if self.overflow_out:
+            state["update_text"] += " The extra out from last inning carries over in the runoff!"
+            state["update_emoji"] = self.emoji
+            self.overflow_out = False
+
 
 def all_weathers():
     weathers_dic = {
@@ -607,7 +630,8 @@ def all_weathers():
             "Summer Mist" : SummerMist,
             "Leaf Eddies" : LeafEddies,
             "Smog" : Smog,
-            "Dusk" : Dusk
+            "Dusk" : Dusk,
+            "Runoff" :  Runoff
         }
     return weathers_dic
 
@@ -631,11 +655,11 @@ def safe_weathers():
     return weathers_dic
 
 class WeatherChains():
-    light = [SlightTailwind, Twilight, Breezy, Drizzle, SummerMist, LeafEddies] #basic starting points for weather, good comfortable spots to return to
+    light = [SlightTailwind, Twilight, Breezy, Drizzle, SummerMist, LeafEddies, Runoff] #basic starting points for weather, good comfortable spots to return to
     magic = [Twilight, ThinnedVeil, MeteorShower, Starlight, Dusk] #weathers involving breaking the fabric of spacetime
     sudden = [Tornado, Hurricane, Twilight, Starlight, Midnight, Downpour, Smog] #weathers that always happen and leave over 1-3 games
     disaster = [Hurricane, Tornado, Downpour, Blizzard] #storms
-    aftermath = [Midnight, Starlight, MeteorShower, SummerMist, Dusk] #calm epilogues
+    aftermath = [Midnight, Starlight, MeteorShower, SummerMist, Dusk, Runoff] #calm epilogues
 
     dictionary = {
             #Supernova : (magic + sudden + disaster, None), supernova happens leaguewide and shouldn't need a chain, but here just in case
@@ -655,7 +679,8 @@ class WeatherChains():
             LeafEddies : ([Breezy, Tornado, SummerMist, ThinnedVeil, Smog], None),
             Downpour : (aftermath, None),
             Smog : (disaster + [Drizzle], None),
-            Dusk : ([ThinnedVeil, Midnight, MeteorShower, Starlight], [4,2,2,3])
+            Dusk : ([ThinnedVeil, Midnight, MeteorShower, Starlight], [4,2,2,3]),
+            Runoff : (magic, None)
         }
 
     chains = [
