@@ -595,6 +595,7 @@ class Runoff(Weather):
 
     def __init__(self, game):
         self.overflow_out = False
+        self.out_extension = True
 
     def post_activate(self, game, result):
         if game.outs >= 4:
