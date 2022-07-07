@@ -806,12 +806,7 @@ class game(object):
                 self.over = True
                 try: #if something goes wrong with OBL don't erase game
                     if self.max_innings >= 9 or self.weather.name in ["Leaf Eddies", "Torrential Downpour"]:
-                        if self.teams["home"].score == 16:
-                            this_xvi_team = self.teams["home"]
-                        elif self.teams["away"].score == 16:
-                            this_xvi_team = self.teams["away"]
-                        else:
-                            this_xvi_team = None
+                        this_xvi_team = None
                         db.save_obl_results(self.teams["home"] if self.teams["home"].score > self.teams["away"].score else self.teams["away"], self.teams["home"] if self.teams["home"].score < self.teams["away"].score else self.teams["away"], xvi_team=this_xvi_team)
                 except:
                     pass
