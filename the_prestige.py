@@ -260,26 +260,17 @@ async def archetype(interaction, team: str, player: str, archetype: app_commands
 
 class ArchetypeHelpCommand(Command):
     name = "archetypehelp"
-    template = "m;archetypehelp\nm;archetypehelp [archetype name]"
-    description = "Prints a list of all archetypes, or describes a given archetype."
+    template = "archetypehelp [archetype name]"
+    description = "Describes a given archetype."
 
-    async def execute(self, msg, command, flags):
-        archetype_list = archetypes.all_archetypes()
-        try:
-            archetype_name = command.split(" ",1)[1].strip()
-        except IndexError:
-            #this means it's just the command, hoo-ray            
-            string_list = ""
-            for arch in archetype_list:
-                string_list += arch.display_name + "\n"
-            await msg.channel.send(string_list)
-            return
+@client.tree.command()
+@app_commands.choices(archetype=archetypes.archetype_choices())
+async def archetypehelp(interaction, archetype: app_commands.Choice[str]):
+    arch = archetypes.search_archetypes(archetype.value)
+    if arch is None:
+        raise CommandError("We don't know what that archetype is. If you're trying to break new ground, here isn't the time *or* the place.")
 
-        arch = archetypes.search_archetypes(archetype_name)
-        if arch is None:
-            raise CommandError("We don't know what that archetype is. If you're trying to break new ground, here isn't the time *or* the place.")
-
-        await msg.channel.send(f"""{arch.display_name}
+    await interaction.response.send_message(f"""{arch.display_name}
 Short name: {arch.name}
 
 {arch.description}""")
