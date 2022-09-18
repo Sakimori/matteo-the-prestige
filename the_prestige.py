@@ -33,6 +33,17 @@ class Command:
     async def reply(self, interaction, message, embed=None, ephemeral=False):
         await interaction.response.send_message(message, embed=embed, ephemeral=ephemeral)
 
+def process_flags(flag_list):
+    flags = []
+    if "-" in flag_list:
+        check = flag_list.split("-")[1:]
+        for flag in [_ for _ in check if _ != ""]:
+            try:
+                flags.append((flag.split(" ")[0][0].lower(), flag.split(" ",1)[1].strip()))
+            except IndexError:
+                flags.append((flag.split(" ")[0][0].lower(), None))
+    return flags
+
 class DraftError(Exception):
     pass
 
@@ -85,7 +96,7 @@ class ShowPlayerCommand(Command):
 @client.tree.command()
 @app_commands.rename(command="name")
 async def showplayer(interaction: discord.Interaction, command: str):
-    player_name = json.loads(ono.get_stats(command)
+    player_name = json.loads(ono.get_stats(command))
     await interaction.response.send_message(embed=build_star_embed(player_name))
 
 class StartGameCommand(Command):
@@ -97,73 +108,73 @@ class StartGameCommand(Command):
   - and finally, optionally, the number of innings, which must be greater than 2 and less than 201. if not included it will default to 9. 
   - this command has fuzzy search so you don't need to type the full name of the team as long as you give enough to identify the team you're looking for."""
 
-    async def execute(self, msg, command, flags):
-        league = None
-        day = None
-        weather_name = None
-        innings = None
-        voice = None
+@client.tree.command()
+async def startgame(interaction, away: str, home: str, innings: Optional[int]=9, flags: Optional[str] = ""):
+    league = None
+    day = None
+    weather_name = None
+    innings = None
+    voice = None
 
-        if config()["game_freeze"]:
-            raise CommandError("Patch incoming. We're not allowing new games right now.")
+    if config()["game_freeze"]:
+        raise CommandError("Patch incoming. We're not allowing new games right now.")
    
-        for flag in flags:
-            if flag[0] == "l":
-                league = flag[1]
-            elif flag[0] == "d":
-                try:
-                    day = int(flag[1])
-                except:
-                    raise CommandError("Make sure you put an integer after the -d flag.")
-            elif flag[0] == "w":
-                weather_name = flag[1]
-                if weather_name not in weather.all_weathers():
-                    raise CommandError("We can't find that weather, chief. Try again.")
-            elif flag[0] == "v" or flag[0] == "a":
-                if flag[1] in gametext.all_voices():
-                    voice = gametext.all_voices()[flag[1]]
-                else:
-                    raise CommandError("We can't find that broadcaster.")
+    flags = process_flags(flags)
+    for flag in flags:
+        if flag[0] == "l":
+            league = flag[1]
+        elif flag[0] == "d":
+            try:
+                day = int(flag[1])
+            except:
+                raise CommandError("Make sure you put an integer after the -d flag.")
+        elif flag[0] == "w":
+            weather_name = flag[1]
+            if weather_name not in weather.all_weathers():
+                raise CommandError("We can't find that weather, chief. Try again.")
+        elif flag[0] == "v" or flag[0] == "a":
+            if flag[1] in gametext.all_voices():
+                voice = gametext.all_voices()[flag[1]]
             else:
-                raise CommandError("One or more of those flags wasn't right. Try and fix that for us and we'll see about sorting you out.")
-       
-        try:
-            team_name1 = command.split("\n")[1].strip()
-            team1 = get_team_fuzzy_search(team_name1)
-
-            team_name2 = command.split("\n")[2].strip()
-            team2 = get_team_fuzzy_search(team_name2)          
-        except IndexError:
-            raise CommandError("We need at least three lines: startgame, away team, and home team are required. Optionally, the number of innings can go at the end, if you want a change of pace.")
-        try:
-            innings = int(command.split("\n")[3])
-        except IndexError:
-            pass
-        except ValueError:
-            raise CommandError("That number of innings isn't even an integer, chief. We can't do fractional innings, nor do we want to.")
-
-        if innings is not None and innings < 2 and msg.author.id not in config()["owners"]:
-            raise CommandError("Anything less than 2 innings isn't even an outing. Try again.")
-                                                    
-        elif innings is not None and innings > 200 and msg.author.id not in config()["owners"]:
-            raise CommandError("Y'all can behave, so we've upped the limit on game length to 200 innings.")
-
-        if team1 is not None and team2 is not None:
-            game = games.game(team1.finalize(), team2.finalize(), length=innings)
-            if day is not None:
-                game.teams['away'].set_pitcher(rotation_slot = day)
-                game.teams['home'].set_pitcher(rotation_slot = day)
-            if voice is not None:
-                game.voice = voice()
-            channel = msg.channel
-            
-            if weather_name is not None:
-                game.weather = weather.all_weathers()[weather_name](game)               
-
-            game_task = asyncio.create_task(watch_game(channel, game, user=msg.author, league=league))
-            await game_task
+                raise CommandError("We can't find that broadcaster.")
         else:
-            raise CommandError("We can't find one or both of those teams. Check your staging, chief.")
+            raise CommandError("One or more of those flags wasn't right. Try and fix that for us and we'll see about sorting you out.")
+       
+    try:
+        team_name1 = away
+        team1 = get_team_fuzzy_search(team_name1)
+
+        team_name2 = home
+        team2 = get_team_fuzzy_search(team_name2)          
+    except IndexError:
+        raise CommandError("We need at least three lines: startgame, away team, and home team are required. Optionally, the number of innings can go at the end, if you want a change of pace.")
+    except IndexError:
+        pass
+    except ValueError:
+        raise CommandError("That number of innings isn't even an integer, chief. We can't do fractional innings, nor do we want to.")
+
+    if innings is not None and innings < 2 and interaction.user.id not in config()["owners"]:
+        raise CommandError("Anything less than 2 innings isn't even an outing. Try again.")
+                                                    
+    elif innings is not None and innings > 200 and interaction.user.id not in config()["owners"]:
+        raise CommandError("Y'all can behave, so we've upped the limit on game length to 200 innings.")
+
+    if team1 is not None and team2 is not None:
+        game = games.game(team1.finalize(), team2.finalize(), length=innings)
+        if day is not None:
+            game.teams['away'].set_pitcher(rotation_slot = day)
+            game.teams['home'].set_pitcher(rotation_slot = day)
+        if voice is not None:
+            game.voice = voice()
+        channel = interaction.channel
+            
+        if weather_name is not None:
+            game.weather = weather.all_weathers()[weather_name](game)               
+
+        game_task = asyncio.create_task(watch_game(channel, game, user=interaction.user, league=league, interaction=interaction))
+        await game_task
+    else:
+        raise CommandError("We can't find one or both of those teams. Check your staging, chief.")
 
 class StartRandomGameCommand(Command):
     name = "randomgame"
@@ -1615,7 +1626,7 @@ commands = [
     CountActiveGamesCommand(),
     TeamsInfoCommand(),
     AssignOwnerCommand(),
-    ShowPlayerCommand(),
+    ShowPlayerCommand(), #done
     SetupGameCommand(),
     SaveTeamCommand(),
     AssignArchetypeCommand(),
@@ -1631,7 +1642,7 @@ commands = [
     ShowTeamCommand(),
     ShowAllTeamsCommand(),
     SearchTeamsCommand(),
-    StartGameCommand(),
+    StartGameCommand(), #done
     StartRandomGameCommand(),
     StartTournamentCommand(),
     OBLExplainCommand(),
@@ -1714,6 +1725,9 @@ async def on_ready():
         watch_task = asyncio.create_task(game_watcher())
         await watch_task
 
+@client.tree.error
+async def on_app_command_error(interaction, error):
+    await interaction.response.send_message(str(error.__cause__), ephemeral=True)
 
 @client.event
 async def on_reaction_add(reaction, user):
@@ -1887,7 +1901,7 @@ Creator, type `{newgame.name} done` to finalize lineups.""")
     game_task = asyncio.create_task(watch_game(channel, newgame))
     await game_task
 
-async def watch_game(channel, newgame, user = None, league = None):
+async def watch_game(channel, newgame, user = None, league = None, interaction = None):
     newgame, state_init = prepare_game(newgame)
 
     if league is not None:
@@ -1908,8 +1922,11 @@ async def watch_game(channel, newgame, user = None, league = None):
     ext = "?game="+id
     if league is not None:
         ext += "&league=" + urllib.parse.quote_plus(league)
-
-    await channel.send(f"{newgame.teams['away'].name} vs. {newgame.teams['home'].name}, starting at {config()['simmadome_url']+ext}")
+    
+    if interaction is None:
+        await channel.send(f"{newgame.teams['away'].name} vs. {newgame.teams['home'].name}, starting at {config()['simmadome_url']+ext}")
+    else:
+        await interaction.response.send_message(f"{newgame.teams['away'].name} vs. {newgame.teams['home'].name}, starting at {config()['simmadome_url']+ext}")
     gamesarray.append((newgame, channel, user, id))
 
     main_controller.master_games_dic[id] = (newgame, state_init, discrim_string)
