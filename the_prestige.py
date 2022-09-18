@@ -178,21 +178,22 @@ async def startgame(interaction, away: str, home: str, innings: Optional[int]=9,
 
 class StartRandomGameCommand(Command):
     name = "randomgame"
-    template = "m;randomgame"
+    template = "randomgame"
     description = "Starts a 9-inning game between 2 entirely random teams. Embrace chaos!"
 
-    async def execute(self, msg, command, flags):
-        if config()["game_freeze"]:
-            raise CommandError("Patch incoming. We're not allowing new games right now.")
+@client.tree.command()
+async def randomgame(interaction):
+    if config()["game_freeze"]:
+        raise CommandError("Patch incoming. We're not allowing new games right now.")
 
-        channel = msg.channel
-        await channel.send("Rolling the bones... This might take a while.")
-        teamslist = games.get_all_teams()
+    channel = interaction.channel
+    await interaction.response.send_message("Rolling the bones... This might take a while.")
+    teamslist = games.get_all_teams()
 
-        game = games.game(random.choice(teamslist).finalize(), random.choice(teamslist).finalize())
+    game = games.game(random.choice(teamslist).finalize(), random.choice(teamslist).finalize())
 
-        game_task = asyncio.create_task(watch_game(channel, game, user="the winds of chaos"))
-        await game_task
+    game_task = asyncio.create_task(watch_game(channel, game, user="the winds of chaos"))
+    await game_task
 
 class SetupGameCommand(Command):
     name = "setupgame"
