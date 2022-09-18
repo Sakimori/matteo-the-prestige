@@ -194,25 +194,6 @@ async def randomgame(interaction):
 
     game_task = asyncio.create_task(watch_game(channel, game, user="the winds of chaos"))
     await game_task
-
-class SetupGameCommand(Command):
-    name = "setupgame"
-    template = "m;setupgame"
-    description =  "Begins setting up a 5-inning pickup game. Pitchers, lineups, and team names are given during the setup process by anyone able to type in that channel. Idols are easily signed up via emoji during the process. The game will start automatically after setup."
-
-    async def execute(self, msg, command, flags):
-        if config()["game_freeze"]:
-            raise CommandError("Patch incoming. We're not allowing new games right now.")
-
-        for game in gamesarray:
-            if game.name == msg.author.name:
-                raise CommandError("You've already got a game in progress! Wait a tick, boss.")
-        try:
-            inningmax = int(command)
-        except:
-            inningmax = 5
-        game_task = asyncio.create_task(setup_game(msg.channel, msg.author, games.game(msg.author.name, games.team(), games.team(), length=inningmax)))
-        await game_task
         
 class SaveTeamCommand(Command):
     name = "saveteam"
@@ -229,7 +210,9 @@ class SaveTeamCommand(Command):
   - the next lines are your batters' names in the order you want them to appear in your lineup, lineups can contain any number of batters between 1 and 12.
   - there must be another blank line between your batters and your pitchers.
   - the final lines are the names of the pitchers in your rotation, rotations can contain any number of pitchers between 1 and 8.
-If you did it correctly, you'll get a team embed with a prompt to confirm. hit the 👍 and your team will be saved!"""
+If you did it correctly, you'll get a team embed with a prompt to confirm. hit the 👍 and your team will be saved!
+
+***NOTE: This only functions in the bot's DMs. Do not use on a server."""
 
     async def execute(self, msg, command, flags):
         if db.get_team(command.split('\n',1)[1].split("\n")[0]) == None:
@@ -1628,8 +1611,7 @@ commands = [
     TeamsInfoCommand(),
     AssignOwnerCommand(),
     ShowPlayerCommand(), #done
-    SetupGameCommand(),
-    SaveTeamCommand(),
+    SaveTeamCommand(), #done
     AssignArchetypeCommand(),
     ViewArchetypesCommand(),
     ArchetypeHelpCommand(),
@@ -1644,7 +1626,7 @@ commands = [
     ShowAllTeamsCommand(),
     SearchTeamsCommand(),
     StartGameCommand(), #done
-    StartRandomGameCommand(),
+    StartRandomGameCommand(), #done
     StartTournamentCommand(),
     OBLExplainCommand(),
     OBLTeamCommand(),
@@ -1745,38 +1727,6 @@ async def on_reaction_add(reaction, user):
                 await reaction.message.channel.send(f"{new_player} {new_player.star_string('batting_stars')} takes spot #{len(game.teams['home'].lineup)} on the home lineup.")
         except:
             await reaction.message.channel.send(f"{user.display_name}, we can't find your idol. Maybe you don't have one yet?") 
-
-#god this isn't pretty but
-#One command to rule them all
-#One command to bind them
-#everything is getting wrapped up into this one until i have more time or someone wants to come in and refactor every single command in the list
-
-@client.tree.command()
-@app_commands.describe(command_name="The name of the command")
-@app_commands.describe(command_body="The text to pass to the command")
-@app_commands.describe(flags="Any flags to include with the command.")
-@app_commands.rename(command_name="command")
-@app_commands.rename(command_body="body")
-async def sim16(interaction: discord.Interaction, command_name: str, command_body: str, flags: Optional[str] = None):
-    try:
-        send_text = command_body
-        first_line = flags
-        flags = []
-        if "-" in first_line:
-            check = first_line.split("-")[1:]
-            for flag in [_ for _ in check if _ != ""]:
-                try:
-                    flags.append((flag.split(" ")[0][0].lower(), flag.split(" ",1)[1].strip()))
-                except IndexError:
-                    flags.append((flag.split(" ")[0][0].lower(), None))
-
-        if comm.isauthorized(interaction.user): #only execute command if authorized
-            await comm.execute(interaction, command_body, flags)
-
-    except StopIteration:
-        await interaction.response.send_message("Can't find that command, boss; try checking the list with `help`.", ephemeral=True)
-    except CommandError as ce:
-        await interaction.response.send_message(str(ce), ephemeral=True)
 
 async def setup_game(channel, owner, newgame):
     newgame.owner = owner
