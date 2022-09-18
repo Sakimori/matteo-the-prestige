@@ -1728,6 +1728,44 @@ async def on_reaction_add(reaction, user):
         except:
             await reaction.message.channel.send(f"{user.display_name}, we can't find your idol. Maybe you don't have one yet?") 
 
+@client.event
+async def on_message(msg):
+
+    if msg.author == client.user or not msg.webhook_id is None or msg.author.id in config()["blacklist"]:
+        return
+
+    command_b = False
+    for prefix in config()["prefix"]:
+        if msg.content.startswith(prefix):
+            command_b = True
+            command = msg.content.split(prefix, 1)[1]
+    if not command_b:
+        return
+
+    if msg.channel.id == config()["soulscream channel id"]:
+        await msg.channel.send(ono.get_scream(msg.author.display_name))
+    else:
+        try:
+            comm = next(c for c in commands if command.split(" ",1)[0].split("\n",1)[0].lower() == c.name)
+            send_text = command[len(comm.name):]
+            first_line = send_text.split("\n")[0]
+            flags = []
+            if "-" in first_line:
+                check = first_line.split("-")[1:]
+                for flag in [_ for _ in check if _ != ""]:
+                    try:
+                        flags.append((flag.split(" ")[0][0].lower(), flag.split(" ",1)[1].strip()))
+                    except IndexError:
+                        flags.append((flag.split(" ")[0][0].lower(), None))
+
+            if comm.isauthorized(msg.author): #only execute command if authorized
+                await comm.execute(msg, send_text, flags)
+
+        except StopIteration:
+            await msg.channel.send("Can't find that command, boss; try checking the list with `m;help`.")
+        except CommandError as ce:
+            await msg.channel.send(str(ce))
+
 async def setup_game(channel, owner, newgame):
     newgame.owner = owner
     await channel.send(f"Game sucessfully created!\nStart any commands for this game with `{newgame.name}` so we know who's talking about what.")
