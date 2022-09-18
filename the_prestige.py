@@ -1697,7 +1697,11 @@ commands = [
 ]
 
 watching = False
-client = discord.Client()
+
+intents = discord.Intents.default()
+intents.message_content = True
+
+client = discord.Bot(intents=intents)
 gamesarray = []
 active_tournaments = []
 active_leagues = []
@@ -2806,5 +2810,9 @@ async def league_subscriber_update(league, start_channel, message):
             await channel.send(embed=message)
         else:
             await channel.send(message)
+
+@client.command(description="Sends the bot's latency.") # this decorator makes a slash command
+async def ping(ctx): # a slash command will be created with the name "ping"
+    await ctx.respond(f"Pong! Latency is {client.latency}")
 
 client.run(config()["token"])
