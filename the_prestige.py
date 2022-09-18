@@ -5,18 +5,33 @@ from league_storage import league_exists, season_save, season_restart, get_mods,
 from the_draft import Draft
 from flask import Flask
 from uuid import uuid4
+from typing import Optional
+from discord import app_commands
 import weather
 
 data_dir = "data"
 config_filename = os.path.join(data_dir, "config.json")
 app = main_controller.app
 
+class newClient(discord.Client):
+    def __init__(self, *, intents: discord.Intents):
+        super().__init__(intents=intents)
+        self.tree = app_commands.CommandTree(self)
+
+    async def setup_hook(self):
+        await self.tree.sync()
+
+client = newClient(intents = discord.Intents.default())
+
 class Command:
     def isauthorized(self, user):
         return True
 
-    async def execute(self, msg, command, flags):
+    async def execute(self, int, command, flags):
         return
+
+    async def reply(self, interaction, message, embed=None, ephemeral=False):
+        await interaction.response.send_message(message, embed=embed, ephemeral=ephemeral)
 
 class DraftError(Exception):
     pass
@@ -36,13 +51,7 @@ class IntroduceCommand(Command):
         return user.id in config()["owners"]
 
     async def execute(self, msg, command, flags):
-        text = """**Your name, favorite team, and pronouns**: Matteo Prestige, CHST, they/them ***only.*** There's more than one of us up here, after all.
-**What are you majoring in (wrong answers only)**: Economics.
-**Your favorite and least favorite beverage, without specifying which**: Vanilla milkshakes, chocolate milkshakes.
-**Favorite non-Mild Low team**: The Mills. We hope they're treating Ren alright.
-**If you were a current blaseball player, who would you be**: We refuse to answer this question.
-**Your hobbies/interests**: Minigolf, blaseball, felony insider trading.
-Our avatar was graciously provided to us, with permission, by @HetreaSky on Twitter.
+        text = """Our avatar was graciously provided to us, with permission, by @HetreaSky on Twitter.
 """
         await msg.channel.send(text)
 
@@ -68,54 +77,16 @@ class RomanCommand(Command):
         except ValueError:
             raise CommandError(f"\"{command}\" isn't an integer in Arabic numerals.")
 
-class IdolizeCommand(Command):
-    name = "idolize"
-    template = "m;idolize [name]"
-    description = "Records any name as your idol, mostly for fun. There's a limit of 70 characters. That should be *plenty*."
-
-    async def execute(self, msg, command, flags):
-        if (command.startswith("meme")):
-            meme = True
-            command = command.split(" ",1)[1]
-        else:
-            meme = False
-
-        player_name = discord.utils.escape_mentions(command.strip())
-        if len(player_name) >= 70:
-            raise CommandError("That name is too long. Please keep it below 70 characters, for my sake and yours.")
-        try:
-            player_json = ono.get_stats(player_name)
-            db.designate_player(msg.author, json.loads(player_json))
-            if not meme:
-                await msg.channel.send(f"{player_name} is now your idol.")
-            else:
-                await msg.channel.send(f"{player_name} is now {msg.author.display_name}'s idol.")
-                await msg.channel.send(f"Reply if {player_name} is your idol also.")
-        except:
-            raise CommandError("Something went wrong. Tell xvi.")
-
-class ShowIdolCommand(Command):
-    name = "showidol"
-    template = "m;showidol"
-    description = "Displays your idol's name and stars in a nice discord embed."
-
-    async def execute(self, msg, command, flags):
-        try:
-            player_json = db.get_user_player(msg.author)
-            embed=build_star_embed(player_json)
-            embed.set_footer(text=msg.author.display_name)
-            await msg.channel.send(embed=embed)
-        except:
-            raise CommandError("We can't find your idol. Looked everywhere, too.")
-
 class ShowPlayerCommand(Command):
     name = "showplayer"
-    template = "m;showplayer [name]"
+    template = "showplayer [name]"
     description = "Displays any name's stars in a nice discord embed, there's a limit of 70 characters. That should be *plenty*. Note: if you want to lookup a lot of different players you can do it on onomancer here instead of spamming this command a bunch and clogging up discord: <https://onomancer.sibr.dev/reflect>"
 
-    async def execute(self, msg, command, flags):
-        player_name = json.loads(ono.get_stats(command.split(" ",1)[1]))
-        await msg.channel.send(embed=build_star_embed(player_name))
+@client.tree.command()
+@app_commands.rename(command="name")
+async def showplayer(interaction: discord.Interaction, command: str):
+    player_name = json.loads(ono.get_stats(command)
+    await interaction.response.send_message(embed=build_star_embed(player_name))
 
 class StartGameCommand(Command):
     name = "startgame"
@@ -1644,8 +1615,6 @@ commands = [
     CountActiveGamesCommand(),
     TeamsInfoCommand(),
     AssignOwnerCommand(),
-    IdolizeCommand(),
-    ShowIdolCommand(),
     ShowPlayerCommand(),
     SetupGameCommand(),
     SaveTeamCommand(),
@@ -1697,7 +1666,6 @@ commands = [
 ]
 
 watching = False
-client = discord.Client()
 gamesarray = []
 active_tournaments = []
 active_leagues = []
@@ -1761,46 +1729,39 @@ async def on_reaction_add(reaction, user):
                 game.teams["home"].add_lineup(new_player)
                 await reaction.message.channel.send(f"{new_player} {new_player.star_string('batting_stars')} takes spot #{len(game.teams['home'].lineup)} on the home lineup.")
         except:
-            await reaction.message.channel.send(f"{user.display_name}, we can't find your idol. Maybe you don't have one yet?")
+            await reaction.message.channel.send(f"{user.display_name}, we can't find your idol. Maybe you don't have one yet?") 
 
-@client.event
-async def on_message(msg):
+#god this isn't pretty but
+#One command to rule them all
+#One command to bind them
+#everything is getting wrapped up into this one until i have more time or someone wants to come in and refactor every single command in the list
 
-    if msg.author == client.user or not msg.webhook_id is None or msg.author.id in config()["blacklist"]:
-        return
+@client.tree.command()
+@app_commands.describe(command_name="The name of the command")
+@app_commands.describe(command_body="The text to pass to the command")
+@app_commands.describe(flags="Any flags to include with the command.")
+@app_commands.rename(command_name="command")
+@app_commands.rename(command_body="body")
+async def sim16(interaction: discord.Interaction, command_name: str, command_body: str, flags: Optional[str] = None):
+    try:
+        send_text = command_body
+        first_line = flags
+        flags = []
+        if "-" in first_line:
+            check = first_line.split("-")[1:]
+            for flag in [_ for _ in check if _ != ""]:
+                try:
+                    flags.append((flag.split(" ")[0][0].lower(), flag.split(" ",1)[1].strip()))
+                except IndexError:
+                    flags.append((flag.split(" ")[0][0].lower(), None))
 
-    command_b = False
-    for prefix in config()["prefix"]:
-        if msg.content.startswith(prefix):
-            command_b = True
-            command = msg.content.split(prefix, 1)[1]
-    if not command_b:
-        return
+        if comm.isauthorized(interaction.user): #only execute command if authorized
+            await comm.execute(interaction, command_body, flags)
 
-    if msg.channel.id == config()["soulscream channel id"]:
-        await msg.channel.send(ono.get_scream(msg.author.display_name))
-    else:
-        try:
-            comm = next(c for c in commands if command.split(" ",1)[0].split("\n",1)[0].lower() == c.name)
-            send_text = command[len(comm.name):]
-            first_line = send_text.split("\n")[0]
-            flags = []
-            if "-" in first_line:
-                check = first_line.split("-")[1:]
-                for flag in [_ for _ in check if _ != ""]:
-                    try:
-                        flags.append((flag.split(" ")[0][0].lower(), flag.split(" ",1)[1].strip()))
-                    except IndexError:
-                        flags.append((flag.split(" ")[0][0].lower(), None))
-
-            if comm.isauthorized(msg.author): #only execute command if authorized
-                await comm.execute(msg, send_text, flags)
-
-        except StopIteration:
-            await msg.channel.send("Can't find that command, boss; try checking the list with `m;help`.")
-        except CommandError as ce:
-            await msg.channel.send(str(ce))
-
+    except StopIteration:
+        await interaction.response.send_message("Can't find that command, boss; try checking the list with `help`.", ephemeral=True)
+    except CommandError as ce:
+        await interaction.response.send_message(str(ce), ephemeral=True)
 
 async def setup_game(channel, owner, newgame):
     newgame.owner = owner
