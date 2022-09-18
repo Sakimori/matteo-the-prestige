@@ -277,12 +277,12 @@ Short name: {arch.name}
 
 class ViewArchetypesCommand(Command):
     name = "teamarchetypes"
-    template = "m;teamarchetypes [team name]"
+    template = "teamarchetypes [team name]"
     description = "Lists the current archetypes on the given team."
 
 @client.tree.command()
 @app_commands.rename(team_name="team")
-async def teamarchetypes(interaction, team_name):
+async def teamarchetypes(interaction, team_name: str):
     team = get_team_fuzzy_search(team_name)
     if team is None:
         raise CommandError("We can't find that team, boss.")
@@ -299,7 +299,7 @@ async def teamarchetypes(interaction, team_name):
 class ImportCommand(Command):
     name = "import"
     template = "m;import [onomancer collection URL]"
-    description = "Imports an onomancer collection as a new team. You can use the new onomancer simsim setting to ensure compatibility. Similarly to saveteam, you'll get a team embed with a prompt to confirm, hit the 👍 and your team will be saved!"
+    description = "Imports an onomancer collection as a new team. You can use the new onomancer simsim setting to ensure compatibility. Similarly to saveteam, you'll get a team embed with a prompt to confirm, hit the 👍 and your team will be saved! Only functions in bot DMs."
 
     async def execute(self, msg, command, flags):
         team_raw = ono.get_collection(command.strip())
@@ -318,13 +318,14 @@ class ShowTeamCommand(Command):
     template = "m;showteam [name]"
     description = "Shows the lineup, rotation, and slogan of any saved team in a discord embed with primary stat star ratings for all of the players. This command has fuzzy search so you don't need to type the full name of the team as long as you give enough to identify the team you're looking for."
     
-    async def execute(self, msg, command, flags):
-        team_name = command.strip()
-        team = get_team_fuzzy_search(team_name)
-        if team is not None:
-            await msg.channel.send(embed=build_team_embed(team))
-            return
-        raise CommandError("Can't find that team, boss. Typo?")
+@client.tree.command()
+@app_commands.rename(team_name="team")
+async def showteam(interaction, team_name: str):
+    team = get_team_fuzzy_search(team_name)
+    if team is not None:
+        await interaction.response.send_message(embed=build_team_embed(team))
+        return
+    raise CommandError("Can't find that team, boss. Typo?")
 
 class ShowAllTeamsCommand(Command):
     name = "showallteams"
@@ -1613,8 +1614,7 @@ commands = [
     RemovePlayerCommand(),
     ReplacePlayerCommand(),
     DeleteTeamCommand(),
-    ShowTeamCommand(),
-    ShowAllTeamsCommand(),
+    ShowTeamCommand(), #done
     SearchTeamsCommand(),
     StartGameCommand(), #done
     StartRandomGameCommand(), #done
