@@ -109,10 +109,11 @@ class StartGameCommand(Command):
   - this command has fuzzy search so you don't need to type the full name of the team as long as you give enough to identify the team you're looking for."""
 
 @client.tree.command()
-async def startgame(interaction, away: str, home: str, innings: Optional[int]=9, flags: Optional[str] = ""):
+@app_commands.rename(wthr="weather")
+@app_commands.choices(wthr=weather.weather_choices())
+async def startgame(interaction, away: str, home: str, innings: Optional[int]=9, wthr: Optional[app_commands.Choice[str]] = None, flags: Optional[str] = ""):
     league = None
     day = None
-    weather_name = None
     innings = None
     voice = None
 
@@ -128,10 +129,6 @@ async def startgame(interaction, away: str, home: str, innings: Optional[int]=9,
                 day = int(flag[1])
             except:
                 raise CommandError("Make sure you put an integer after the -d flag.")
-        elif flag[0] == "w":
-            weather_name = flag[1]
-            if weather_name not in weather.all_weathers():
-                raise CommandError("We can't find that weather, chief. Try again.")
         elif flag[0] == "v" or flag[0] == "a":
             if flag[1] in gametext.all_voices():
                 voice = gametext.all_voices()[flag[1]]
@@ -168,8 +165,8 @@ async def startgame(interaction, away: str, home: str, innings: Optional[int]=9,
             game.voice = voice()
         channel = interaction.channel
             
-        if weather_name is not None:
-            game.weather = weather.all_weathers()[weather_name](game)               
+        if wthr is not None:
+            game.weather = weather.all_weathers()[wthr.value](game)               
 
         game_task = asyncio.create_task(watch_game(channel, game, user=interaction.user, league=league, interaction=interaction))
         await game_task
