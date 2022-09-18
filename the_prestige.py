@@ -280,19 +280,21 @@ class ViewArchetypesCommand(Command):
     template = "m;teamarchetypes [team name]"
     description = "Lists the current archetypes on the given team."
 
-    async def execute(self, msg, command, flags):
-        team = get_team_fuzzy_search(command.strip())
-        if team is None:
-            raise CommandError("We can't find that team, boss.")
-        elif team.archetypes == {}:
-            raise CommandError("That team doesn't have any specializations set.")
+@client.tree.command()
+@app_commands.rename(team_name="team")
+async def teamarchetypes(interaction, team_name):
+    team = get_team_fuzzy_search(team_name)
+    if team is None:
+        raise CommandError("We can't find that team, boss.")
+    elif team.archetypes == {}:
+        raise CommandError("That team doesn't have any specializations set.")
 
-        embed_string = ""
-        for player_name, archetype in team.archetypes.items():
-            embed_string += f"**{player_name}**:\n{archetype.display_name}\n\n"
-        embed = discord.Embed(color=discord.Color.dark_green(), title=f"{team.name} Archetypes")
-        embed.add_field(name="-",value=embed_string)
-        await msg.channel.send(embed=embed)
+    embed_string = ""
+    for player_name, archetype in team.archetypes.items():
+        embed_string += f"**{player_name}**:\n{archetype.display_name}\n\n"
+    embed = discord.Embed(color=discord.Color.dark_green(), title=f"{team.name} Archetypes")
+    embed.add_field(name="-",value=embed_string)
+    await interaction.reaction.send_message(embed=embed)
 
 class ImportCommand(Command):
     name = "import"
@@ -1602,8 +1604,8 @@ commands = [
     ShowPlayerCommand(), #done
     SaveTeamCommand(), #done
     AssignArchetypeCommand(), #done
-    ViewArchetypesCommand(),
-    ArchetypeHelpCommand(),
+    ViewArchetypesCommand(), #done
+    ArchetypeHelpCommand(), #done
     ImportCommand(),
     SwapPlayerCommand(),
     MovePlayerCommand(),
