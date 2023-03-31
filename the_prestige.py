@@ -1548,135 +1548,142 @@ class OBLLeaderboardCommand(Command):
     name = "oblstandings"
     template = "m;oblstandings"
     description = "Displays the 15 teams with the most OBL points in this meta-season."
-         
-    async def execute(self, msg, command, flags):
-        leaders_list = db.obl_leaderboards()[:15]
-        leaders = []
-        rank = 1
-        for team, points in leaders_list:
-            leaders.append({"name" : team, "points" : points})
-            rank += 1
+        
 
-        embed = discord.Embed(color=discord.Color.red(), title="The One Big League")
-        for index in range(0, len(leaders)):
-            embed.add_field(name=f"{index+1}. {leaders[index]['name']}", value=f"{leaders[index]['points']} points" , inline = False)
-        await msg.channel.send(embed=embed)
+@client.tree.command()
+async def oblstandings(interaction):
+    leaders_list = db.obl_leaderboards()[:15]
+    leaders = []
+    rank = 1
+    for team, points in leaders_list:
+        leaders.append({"name" : team, "points" : points})
+        rank += 1
+
+    embed = discord.Embed(color=discord.Color.red(), title="The One Big League")
+    for index in range(0, len(leaders)):
+        embed.add_field(name=f"{index+1}. {leaders[index]['name']}", value=f"{leaders[index]['points']} points" , inline = False)
+    await interaction.response.send_message(embed=embed)
 
 class OBLTeamCommand(Command):
     name = "oblteam"
     template = "m;oblteam [team name]"
     description = "Displays a team's rank, current OBL points, and current opponent selection."
 
-    async def execute(self, msg, command, flags):
-        team = get_team_fuzzy_search(command.strip())
-        if team is None:
-            raise CommandError("Sorry boss, we can't find that team.")
+@client.tree.command()
+@app_commands.rename(team_name="team")
+async def oblteam(interaction, team_name): 
+    """Displays a team's rank, current OBL points, and current opponent selection."""
+    team = get_team_fuzzy_search(team_name)
+    if team is None:
+        raise CommandError("Sorry boss, we can't find that team.")
 
-        rival_team = None
-        points, beaten_teams_list, opponents_string, rank, rival_name = db.get_obl_stats(team, full=True)
-        opponents_list = db.newline_string_to_list(opponents_string)
-        for index in range(0, len(opponents_list)):
-            oppteam = get_team_fuzzy_search(opponents_list[index])
-            opplist = db.get_obl_stats(oppteam)[1]
-            if team.name in opplist:
-                opponents_list[index] = opponents_list[index] + " 🤼"
-            if rival_name == opponents_list[index]:
-                opponents_list[index] = opponents_list[index] + " 😈"
-        if rival_name is not None:
-            rival_team = games.get_team(rival_name)
-        opponents_string = db.list_to_newline_string(opponents_list)
+    rival_team = None
+    points, beaten_teams_list, opponents_string, rank, rival_name = db.get_obl_stats(team, full=True)
+    opponents_list = db.newline_string_to_list(opponents_string)
+    for index in range(0, len(opponents_list)):
+        oppteam = get_team_fuzzy_search(opponents_list[index])
+        opplist = db.get_obl_stats(oppteam)[1]
+        if team.name in opplist:
+            opponents_list[index] = opponents_list[index] + " 🤼"
+        if rival_name == opponents_list[index]:
+            opponents_list[index] = opponents_list[index] + " 😈"
+    if rival_name is not None:
+        rival_team = games.get_team(rival_name)
+    opponents_string = db.list_to_newline_string(opponents_list)
 
-        embed = discord.Embed(color=discord.Color.red(), title=f"{team.name} in the One Big League")
-        embed.add_field(name="OBL Points", value=points)
-        embed.add_field(name="Rank", value=rank)
-        embed.add_field(name="Bounty Board", value=opponents_string, inline=False)
-        if rival_team is not None:
-            r_points, r_beaten_teams_list, r_opponents_string, r_rank, r_rival_name = db.get_obl_stats(rival_team, full=True)
-            embed.add_field(name="Rival", value=f"**{rival_team.name}**: Rank {r_rank}\n{rival_team.slogan}\nPoints: {r_points}")
-            if r_rival_name == team.name:
-                embed.set_footer(text="🔥")
-        else:
-            embed.set_footer(text="Set a rival with m;oblrival!")
-        await msg.channel.send(embed=embed)
+    embed = discord.Embed(color=discord.Color.red(), title=f"{team.name} in the One Big League")
+    embed.add_field(name="OBL Points", value=points)
+    embed.add_field(name="Rank", value=rank)
+    embed.add_field(name="Bounty Board", value=opponents_string, inline=False)
+    if rival_team is not None:
+        r_points, r_beaten_teams_list, r_opponents_string, r_rank, r_rival_name = db.get_obl_stats(rival_team, full=True)
+        embed.add_field(name="Rival", value=f"**{rival_team.name}**: Rank {r_rank}\n{rival_team.slogan}\nPoints: {r_points}")
+        if r_rival_name == team.name:
+            embed.set_footer(text="🔥")
+    else:
+        embed.set_footer(text="Set a rival with m;oblrival!")
+    await interaction.response.send_message(embed=embed)
+
 
 class OBLSetRivalCommand(Command):
     name = "oblrival"
     template = "m;oblrival\n[your team name]\n[rival team name]"
     description = "Sets your team's OBL rival. Can be changed at any time. Requires ownership."
 
-    async def execute(self, msg, command, flags):
-        try:
-            team_i = get_team_fuzzy_search(command.split("\n")[1].strip())
-            team_r = get_team_fuzzy_search(command.split("\n")[2].strip())
-        except IndexError:
-            raise CommandError("You didn't give us enough lines. Command on the top, your team in the middle, and your rival at the bottom.")
-        team, owner_id = games.get_team_and_owner(team_i.name)
-        if team is None or team_r is None:
-            raise CommandError("Can't find one of those teams, boss. Typo?")
-        elif owner_id != msg.author.id and msg.author.id not in config()["owners"]:
-            raise CommandError("You're not authorized to mess with this team. Sorry, boss.")
-        try:
-            db.set_obl_rival(team, team_r)
-            await msg.channel.send("One pair of mortal enemies, coming right up. Unless you're more of the 'enemies to lovers' type. We can manage that too, don't worry.")
-        except:
-            raise CommandError("Hm. We don't think that team has tried to do anything in the One Big League yet, so you'll have to wait for consent. Get them to check their bounty board.")
+@client.tree.command()
+@app_commands.rename(owned_team_name="yourteam", rival_team_name="newrivalteam")
+async def oblsetrival(interaction, owned_team_name: str, rival_team_name: str):
+    """Sets your team's OBL rival. Can be changed at any time."""
+    team_i = get_team_fuzzy_search(owned_team_name)
+    team_r = get_team_fuzzy_search(rival_team_name)
+    team, owner_id = games.get_team_and_owner(team_i.name)
+    if team is None or team_r is None:
+        raise CommandError("Can't find one of those teams, boss. Typo?")
+    elif owner_id != interaction.user.id and interaction.user.id not in config()["owners"]:
+        raise CommandError("You're not authorized to mess with this team. Sorry, boss.")
+    try:
+        db.set_obl_rival(team, team_r)
+        await interaction.response.send_message("One pair of mortal enemies, coming right up. Unless you're more of the 'enemies to lovers' type. We can manage that too, don't worry.")
+    except:
+        raise CommandError("Hm. We don't think that team has tried to do anything in the One Big League yet, so you'll have to wait for consent. Get them to check their bounty board.")
+
 
 class OBLConqueredCommand(Command):
     name = "oblwins"
     template = "m;oblwins [team name]"
     description = "Displays all teams that a given team has won points off of."
 
-    async def execute(self, msg, command, flags):
-        team = get_team_fuzzy_search(command.strip())
-        if team is None:
-            raise CommandError("Sorry boss, we can't find that team.")
+@client.tree.command()
+@app_commands.rename(team_name="team")
+async def oblconquestlist(interaction, team_name:str):
+    team = get_team_fuzzy_search(team_name)
+    if team is None:
+        raise CommandError("Sorry boss, we can't find that team.")
 
-        points, teams, oppTeams, rank, rivalName = db.get_obl_stats(team, full=True)
-        pages = []
-        page_max = math.ceil(len(teams)/25)
+    points, teams, oppTeams, rank, rivalName = db.get_obl_stats(team, full=True)
+    pages = []
+    page_max = math.ceil(len(teams)/25)
 
-        title_text = f"Rank {rank}: {team.name}"
+    title_text = f"Rank {rank}: {team.name}"
 
-        for page in range(0,page_max):
-            embed = discord.Embed(color=discord.Color.red(), title=title_text)
-            embed.set_footer(text = f"{points} OBL Points")
-            for i in range(0,25):             
-                try:
-                    thisteam = games.get_team(teams[i+25*page])
-                    if thisteam.slogan.strip() != "":
-                        embed.add_field(name=thisteam.name, value=thisteam.slogan)
-                    else:
-                        embed.add_field(name=thisteam.name, value="404: Slogan not found")
-                except:
-                    break
-            pages.append(embed)
+    for page in range(0,page_max):
+        embed = discord.Embed(color=discord.Color.red(), title=title_text)
+        embed.set_footer(text = f"{points} OBL Points")
+        for i in range(0,25):             
+            try:
+                thisteam = games.get_team(teams[i+25*page])
+                if thisteam.slogan.strip() != "":
+                    embed.add_field(name=thisteam.name, value=thisteam.slogan)
+                else:
+                    embed.add_field(name=thisteam.name, value="404: Slogan not found")
+            except:
+                break
+        pages.append(embed)
 
-        teams_list = await msg.channel.send(embed=pages[0])
-        current_page = 0
+    teams_list = await interaction.channel.send(embed=pages[0])
+    current_page = 0
 
-        if page_max > 1:
-            await teams_list.add_reaction("◀")
-            await teams_list.add_reaction("▶")
+    if page_max > 1:
+        await teams_list.add_reaction("◀")
+        await teams_list.add_reaction("▶")
 
-            def react_check(react, user):
-                return user == msg.author and react.message == teams_list
+        def react_check(payload):
+            return payload.user_id == interaction.user.id and payload.message_id == teams_list.id
 
-            while True:
-                try:
-                    react, user = await client.wait_for('reaction_add', timeout=60.0, check=react_check)
-                    if react.emoji == "◀" and current_page > 0:
-                        current_page -= 1
-                        await react.remove(user)
-                    elif react.emoji == "▶" and current_page < (page_max-1):
-                        current_page += 1
-                        await react.remove(user)
-                    await teams_list.edit(embed=pages[current_page])
-                except asyncio.TimeoutError:
-                    return
+        while True:
+            try:
+                payload = await client.wait_for('raw_reaction_add', timeout=60.0, check=react_check)
+                if payload.emoji.name == "◀" and current_page > 0:
+                    current_page -= 1
+                elif payload.emoji.name == "▶" and current_page < (page_max-1):
+                    current_page += 1
+                await teams_list.edit(embed=pages[current_page])
+            except asyncio.TimeoutError:
+                return
 
 class OBLResetCommand(Command):
     name = "oblreset"
-    template = "m;oblreset"
+    template = "m;oblreset [bot mention]"
     description = "NUKES THE OBL BOARD. BE CAREFUL."
 
     def isauthorized(self, user):
@@ -1689,7 +1696,7 @@ class OBLResetCommand(Command):
 
 class TeamsInfoCommand(Command):
     name = "teamcount"
-    template = "m;teamcount"
+    template = "m;teamcount [bot mention]"
     description = "Prints a readout of how many teams exist in the sim."
 
     async def execute(self, msg, command, flags):
@@ -1699,7 +1706,7 @@ class TeamsInfoCommand(Command):
 commands = [
     IntroduceCommand(), #not needed
     CountActiveGamesCommand(), #owner only
-    TeamsInfoCommand(),
+    TeamsInfoCommand(), #workaround
     AssignOwnerCommand(), #owner only
     ShowPlayerCommand(), #done
     SaveTeamCommand(), #done
@@ -1718,12 +1725,12 @@ commands = [
     StartGameCommand(), #done
     StartRandomGameCommand(), #done
     StartTournamentCommand(), #workaround
-    OBLExplainCommand(),
-    OBLTeamCommand(),
-    OBLSetRivalCommand(),
-    OBLConqueredCommand(),
-    OBLLeaderboardCommand(),
-    OBLResetCommand(),
+    OBLExplainCommand(), #done
+    OBLTeamCommand(), #done
+    OBLSetRivalCommand(), #done
+    OBLConqueredCommand(), #done
+    OBLLeaderboardCommand(), #done
+    OBLResetCommand(), #not needed
     LeagueClaimCommand(), #done
     LeagueAddOwnersCommand(), #done
     LeagueSetPlayerModifiersCommand(), #was a test command, never fully tested
