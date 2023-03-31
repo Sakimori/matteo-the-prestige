@@ -432,8 +432,9 @@ class MovePlayerCommand(Command):
             raise CommandError("Four lines, remember? Command, then team, then name, and finally, new spot on the lineup or rotation.")
 
 @client.tree.command()
-@app_commands.rename(team_name="team", player_name="player", is_pitcher="pitcher", new_pos="newposition")
-async def moveplayer(interaction, team_name: str, player_name: str, is_pitcher: bool, new_pos: int):
+@app_commands.rename(team_name="team", player_name="player", is_pitcher="type", new_pos="newposition")
+@app_commands.choices(is_pitcher=[app_commands.Choice(name="pitcher", value=1), app_commands.Choice(name="batter", value=0)])
+async def moveplayer(interaction, team_name: str, player_name: str, is_pitcher: app_commands.Choice[int], new_pos: int):
     """Moves a player to a different position in your lineup or rotation."""
     team, owner_id = games.get_team_and_owner(team_name)
     if new_pos < 0:
@@ -446,7 +447,7 @@ async def moveplayer(interaction, team_name: str, player_name: str, is_pitcher: 
         if team.find_player(player_name)[2] is None or len(team.find_player(player_name)[2]) < new_pos:
             raise CommandError("You either gave us a number that was bigger than your current roster, or we couldn't find the player on the team. Try again.")
 
-        if not is_pitcher:
+        if is_pitcher.value == 0:
             roster = team.lineup
         else:
             roster = team.rotation
@@ -633,9 +634,10 @@ class AssignOwnerCommand(Command):
 
 class StartTournamentCommand(Command):
     name = "starttournament"
-    template = """m;starttournament
+    template = """m;starttournament [bot ping]
     [tournament name]
-    [list of teams, each on a new line]"""
+    [list of teams, each on a new line]
+    """
     description = "Starts a randomly seeded tournament with the provided teams, automatically adding byes as necessary. All series have a 5 minute break between games and by default there is a 10 minute break between rounds. The current tournament format is:\nBest of 5 until the finals, which are Best of 7."
 
     async def execute(self, msg, command, flags):
@@ -714,6 +716,11 @@ class StartTournamentCommand(Command):
         tourney.build_bracket(random_sort = rand_seed)
    
         await start_tournament_round(channel, tourney)
+
+@client.tree.command()
+async def starttournament(interaction):
+    """Get tournament instructions. Sent privately, don't worry!"""
+    await interaction.response.send_message(StartTournamentCommand.template + StartTournamentCommand.description , ephemeral=True)
 
 
 class DraftPlayerCommand(Command):
@@ -931,71 +938,68 @@ class StartLeagueCommand(Command):
     description = """Optional flags for the first line: `--queue X` or `-q X` to play X number of series before stopping; `--autopostseason` will automatically start postseason at the end of the season.
 Starts games from a league with a given name, provided that league has been saved on the website and has been claimed using claimleague. The games per hour sets how often the games will start (e.g. GPH 2 will start games at X:00 and X:30). By default it will play the entire season followed by the postseason and then stop but this can be customized using the flags.
 Not every team will play every series, due to how the scheduling algorithm is coded but it will all even out by the end."""
+        
 
-    async def execute(self, msg, command, flags):
+@client.tree.command()
+@app_commands.rename(league_name="leaguename", autoplay="queue", postseason_mode="postseasonmode")
+@app_commands.describe(gph="Games per hour to play.")
+@app_commands.choices(postseason_mode=[app_commands.Choice(name="pause", value=0), app_commands.Choice(name="auto", value=1), app_commands.Choice(name="skip", value=2)])
+async def startleague(interaction, league_name: str, gph: int, autoplay: Optional[int]=None, postseason_mode: Optional[app_commands.Choice[int]]=0):
+    """Starts up a league previously formed on the site."""
+    autopost = False
+    nopost = False
+
+    if config()["game_freeze"]:
+        raise CommandError("Patch incoming. We're not allowing new games right now.")
+
+    if autoplay is not None:
+        if autoplay <= 0:
+            raise CommandError("Sorry boss, the queue flag needs a natural number. Any whole number over 0 will do just fine.")
+    else:
         autoplay = -1
-        autopost = False
-        nopost = False
+    if postseason_mode == 0:
+        postseason_mode = app_commands.Choice(name="pause", value=0)
 
-        if config()["game_freeze"]:
-            raise CommandError("Patch incoming. We're not allowing new games right now.")
 
-        league_name = command.split("-")[0].split("\n")[0].strip()
+    if postseason_mode is None or postseason_mode.value == 0: #noautopostseason
+        await interaction.response.send_message("We'll pause the games before postseason starts, when we get there.")
+    elif postseason_mode.value == 1: #autopostseason
+        await interaction.response.send_message("We'll automatically start postseason for you, when we get there.")
+        autopost = True
+    elif postseason_mode.value == 2: #skippostseason
+        await interaction.response.send_message("We'll **skip postseason** for you! Make sure you wanted to do this.")
+        autopost = True
+        nopost = True
 
-        for flag in flags:
-            if flag[0] == "q":
-                try:
-                    autoplay = int(flag[1])
-                    if autoplay <= 0:
-                        raise ValueError
-                except ValueError:
-                    raise CommandError("Sorry boss, the queue flag needs a natural number. Any whole number over 0 will do just fine.")
-            elif flag[0] == "n": #noautopostseason
-                await msg.channel.send("Automatic postseason is now disabled by default! No need for this flag in the future. --autopostseason (or -a) will *enable* autopostseason, should you want it.")
-            elif flag[0] == "a": #autopostseason
-                await msg.channel.send("We'll automatically start postseason for you, when we get there.")
-                autopost = True
-            elif flag[0] == "s": #skippostseason
-                await msg.channel.send("We'll **skip postseason** for you! Make sure you wanted to do this.")
-                autopost = True
-                nopost = True
+    if gph < 1 or gph > 12:
+        raise CommandError("Chief, we need a games per hour number between 1 and 12. We think that's reasonable.")   
+
+
+    if league_exists(league_name):
+        league = leagues.load_league_file(league_name)
+        if autoplay == -1 and not autopost:
+            autoplay = int(list(league.schedule.keys())[-1]) - league.day_to_series_num(league.day) + 1           
+        if nopost:
+            league.postseason = False
+
+        if league.historic:
+            raise CommandError("That league is done and dusted, chief. Sorry.")
+        for active_league in active_leagues:
+            if active_league.name == league.name:
+                raise CommandError("That league is already running, boss. Patience is a virtue, you know.")
+        if (league.owner is not None and interaction.user.id in league.owner) or interaction.user.id in config()["owners"] or league.owner is None:
+            league.autoplay = autoplay
+            league.games_per_hour = gph
+            if str(league.day_to_series_num(league.day)) not in league.schedule.keys():
+                await league_postseason(interaction.channel, league)
+            elif league.day % league.series_length == 1:
+                await start_league_day(interaction.channel, league)
             else:
-                raise CommandError("One or more of those flags wasn't right. Try and fix that for us and we'll see about sorting you out.")
-
-        try:
-            gph = int(command.split("\n")[1].strip())
-            if gph < 1 or gph > 12:
-                raise ValueError
-        except ValueError:
-            raise CommandError("Chief, we need a games per hour number between 1 and 12. We think that's reasonable.")
-        except IndexError:
-            raise CommandError("We need a games per hour number in the second line.")
-
-        if league_exists(league_name):
-            league = leagues.load_league_file(league_name)
-            if autoplay == -1 and not autopost:
-                autoplay = int(list(league.schedule.keys())[-1]) - league.day_to_series_num(league.day) + 1           
-            if nopost:
-                league.postseason = False
-
-            if league.historic:
-                raise CommandError("That league is done and dusted, chief. Sorry.")
-            for active_league in active_leagues:
-                if active_league.name == league.name:
-                    raise CommandError("That league is already running, boss. Patience is a virtue, you know.")
-            if (league.owner is not None and msg.author.id in league.owner) or msg.author.id in config()["owners"] or league.owner is None:
-                league.autoplay = autoplay
-                league.games_per_hour = gph
-                if str(league.day_to_series_num(league.day)) not in league.schedule.keys():
-                    await league_postseason(msg.channel, league)
-                elif league.day % league.series_length == 1:
-                    await start_league_day(msg.channel, league)
-                else:
-                    await start_league_day(msg.channel, league, partial = True)
-            else:
-                raise CommandError("You don't have permission to manage that league.")
+                await start_league_day(interaction.channel, league, partial = True)
         else:
-            raise CommandError("Couldn't find that league, boss. Did you save it on the website?")
+            raise CommandError("You don't have permission to manage that league.")
+    else:
+        raise CommandError("Couldn't find that league, boss. Did you save it on the website?")
 
 class LeagueSetPlayerModifiersCommand(Command):
     name = "setplayermods"
@@ -1034,109 +1038,116 @@ class LeagueSubscribeCommand(Command):
     name = "leaguesub"
     template = "m;leaguesub [league name]"
     description = "Posts all league feed events to this channel, in addition to the channel the league was started in. Run again to unsubscribe."
+        
 
-    async def execute(self, msg, command, flags):
-        league_name = command.strip()
-        if league_exists(league_name):
-            league = leagues.load_league_file(league_name)
-            if msg.channel.id in league.subbed_channels:
-                league.subbed_channels.pop(league.subbed_channels.index(msg.channel.id))
-                await msg.channel.send("You're off the mailing list, boss. We promise.")
-            else:
-                league.subbed_channels.append(msg.channel.id)
-                await msg.channel.send(f"Thanks for signing up to the {league_name} newsletter.")
-            leagues.save_league(league)
+@client.tree.command()
+@app_commands.rename(league_name="leaguename")
+async def leaguesubscribe(interaction, league_name: str):
+    """Posts league feed events to this channel. Use again to unsub."""
+    if league_exists(league_name):
+        league = leagues.load_league_file(league_name)
+        if interaction.channel.id in league.subbed_channels:
+            league.subbed_channels.pop(league.subbed_channels.index(interaction.channel.id))
+            await interaction.response.send_message("You're off the mailing list, boss. We promise.")
         else:
-            raise CommandError("That league doesn't exist, boss.")
+            league.subbed_channels.append(interaction.channel.id)
+            await interaction.response.send_message(f"Thanks for signing up to the {league_name} newsletter.")
+        leagues.save_league(league)
+    else:
+        raise CommandError("That league doesn't exist, boss.")
 
 class LeagueDisplayCommand(Command):
     name = "leaguestandings"
     template = "m;leaguestandings\n[league name]"
     description = "Displays the current standings for the given league. Use `--season X` or `-s X` to get standings from season X of that league."
+        
 
-    async def execute(self, msg, command, flags):
-        try:
-            if league_exists(command.split("\n")[1].strip()):
+@client.tree.command()
+@app_commands.rename(league_name="leaguename")
+async def leaguestandings(interaction, league_name: str, season: Optional[int]=None):
+    """Display a league's current (or historical) standings."""
+    try:
+        if league_exists(league_name):
+            league = leagues.load_league_file(league_name)
+            if season is not None:
                 try:
-                    league = leagues.load_league_file(command.split("\n")[1].strip())
-                except IndexError:
-                    raise CommandError("League name goes on the second line now, boss.")
+                    season_num = season
+                    await interaction.response.send_message(embed=league.past_standings(season_num))
+                    return
+                except ValueError:
+                    raise CommandError("Give us a proper number, boss.")
+                except TypeError:
+                    raise CommandError("That season hasn't been played yet, chief.")
 
-                for flag in flags:
-                    if flag[0] == "s":
-                        try:
-                            season_num = int(flag[1])
-                            await msg.channel.send(embed=league.past_standings(season_num))
-                            return
-                        except ValueError:
-                            raise CommandError("Give us a proper number, boss.")
-                        except TypeError:
-                            raise CommandError("That season hasn't been played yet, chief.")
-
-                await msg.channel.send(embed=league.standings_embed())
-            else:
-                raise CommandError("Can't find that league, boss.")
-        except IndexError:
-            raise CommandError("League name goes on the second line now, boss.")
+            await interaction.response.send_message(embed=league.standings_embed())
+        else:
+            raise CommandError("Can't find that league, boss.")
+    except IndexError:
+        raise CommandError("League name goes on the second line now, boss.")
 
 class LeagueLeadersCommand(Command):
     name = "leagueleaders"
     template = "m;leagueleaders [league name]\n[stat name/abbreviation]"
     description = "Displays a league's leaders in the given stat. A list of the allowed stats can be found on the github readme."
+        
 
-    async def execute(self, msg, command, flags):
-        if league_exists(command.split("\n")[0].strip()):
-            league = leagues.load_league_file(command.split("\n")[0].strip())
-            stat_name = command.split("\n")[1].strip()
-            season_num = None
+@client.tree.command()
+@app_commands.rename(league_name="leaguename")
+async def leagueleaders(interaction, league_name: str, stat: str, season: Optional[int]=None):
+    """Displays a league's leaders in the given stat. A list of the allowed stats can be found on the github readme."""
+    if league_exists(league_name):
+        league = leagues.load_league_file(league_name)
+        stat_name = stat
+        season_num = None
 
-            for flag in flags:
-                if flag[0] == "s":
-                    try:
-                        season_num = int(flag[1])
-                        return
-                    except ValueError:
-                        raise CommandError("Give us a proper number, boss.")
-
+        if season is not None:
             try:
-                stat_embed = league.stat_embed(stat_name, season_num)
-            except IndexError:
-                raise CommandError("Nobody's played enough games to get meaningful stats in that category yet, chief. Try again after the next game or two.")
-            except ValueError:
-                raise CommandError("That season hasn't been played yet.")
-
-            if stat_embed is None:
-                raise CommandError("We don't know what that stat is, chief.")
-            try:
-                await msg.channel.send(embed=stat_embed)
+                season_num = season
                 return
-            except:
-                raise CommandError("Nobody's played enough games to get meaningful stats in that category yet, chief. Try again after the next game or two.")
+            except ValueError:
+                raise CommandError("Give us a proper number, boss.")
 
-        raise CommandError("Can't find that league, boss.")
+        try:
+            stat_embed = league.stat_embed(stat_name, season_num)
+        except IndexError:
+            raise CommandError("Nobody's played enough games to get meaningful stats in that category yet, chief. Try again after the next game or two.")
+        except ValueError:
+            raise CommandError("That season hasn't been played yet.")
+
+        if stat_embed is None:
+            raise CommandError("We don't know what that stat is, chief.")
+        try:
+            await interaction.response.send_message(embed=stat_embed)
+            return
+        except:
+            raise CommandError("Nobody's played enough games to get meaningful stats in that category yet, chief. Try again after the next game or two.")
+
+    raise CommandError("Can't find that league, boss.")
 
 class LeagueDivisionDisplayCommand(Command):
     name = "divisionstandings"
     template = "m;divisionstandings [league name]\n[division name]"
     description = "Displays the current standings for the given division in the given league."
+        
 
-    async def execute(self, msg, command, flags):
-        if league_exists(command.split("\n")[0].strip()):
-            league = leagues.load_league_file(command.split("\n")[0].strip())
-            division_name = command.split("\n")[1].strip()
-            division = None
-            for subleague in iter(league.league.keys()):
-                for div in iter(league.league[subleague].keys()):
-                    if div == division_name:
-                        division = league.league[subleague][div]
-            if division is None:
-                raise CommandError("Chief, that division doesn't exist in that league.")
-            try:
-                await msg.channel.send(embed=league.standings_embed_div(division, division_name))
-            except:
-                raise CommandError("Something went wrong, boss. Check your staging.")
-        else:
-            raise CommandError("Can't find that league, boss.")
+@client.tree.command()
+@app_commands.rename(league_name="leaguename", division_name="division")
+async def divisionstandings(interaction, league_name: str, division_name: str):
+    if league_exists(league_name):
+        league = leagues.load_league_file(league_name)
+        division = None
+        for subleague in iter(league.league.keys()):
+            for div in iter(league.league[subleague].keys()):
+                if div == division_name:
+                    division = league.league[subleague][div]
+        if division is None:
+            raise CommandError("Chief, that division doesn't exist in that league.")
+        try:
+            await interaction.response.send_message(embed=league.standings_embed_div(division, division_name))
+        except:
+            raise CommandError("Something went wrong, boss. Check your staging.")
+    else:
+        raise CommandError("Can't find that league, boss.")
 
 class LeagueWildcardCommand(Command):
     name = "leaguewildcard"
@@ -1678,7 +1689,7 @@ commands = [
     SearchTeamsCommand(), #not needed
     StartGameCommand(), #done
     StartRandomGameCommand(), #done
-    StartTournamentCommand(),
+    StartTournamentCommand(), #workaround
     OBLExplainCommand(),
     OBLTeamCommand(),
     OBLSetRivalCommand(),
@@ -1687,13 +1698,13 @@ commands = [
     OBLResetCommand(),
     LeagueClaimCommand(),
     LeagueAddOwnersCommand(),
-    LeagueSetPlayerModifiersCommand(),
-    StartLeagueCommand(),
-    LeagueSubscribeCommand(),
+    LeagueSetPlayerModifiersCommand(), #was a test command, never fully tested
+    StartLeagueCommand(), #done
+    LeagueSubscribeCommand(), #done
     LeaguePauseCommand(),
-    LeagueDisplayCommand(),
-    LeagueLeadersCommand(),
-    LeagueDivisionDisplayCommand(),
+    LeagueDisplayCommand(), #done
+    LeagueLeadersCommand(), #done
+    LeagueDivisionDisplayCommand(), #done
     LeagueWildcardCommand(),
     LeagueScheduleCommand(),
     LeagueTeamScheduleCommand(),
