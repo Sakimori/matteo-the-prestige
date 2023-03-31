@@ -1571,7 +1571,7 @@ class OBLTeamCommand(Command):
 
 @client.tree.command()
 @app_commands.rename(team_name="team")
-async def oblteam(interaction, team_name): 
+async def oblteam(interaction, team_name: str): 
     """Displays a team's rank, current OBL points, and current opponent selection."""
     team = get_team_fuzzy_search(team_name)
     if team is None:
