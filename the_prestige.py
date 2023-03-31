@@ -434,6 +434,7 @@ class MovePlayerCommand(Command):
 @client.tree.command()
 @app_commands.rename(team_name="team", player_name="player", is_pitcher="pitcher", new_pos="newposition")
 async def moveplayer(interaction, team_name: str, player_name: str, is_pitcher: bool, new_pos: int):
+    """Moves a player to a different position in your lineup or rotation."""
     team, owner_id = games.get_team_and_owner(team_name)
     if new_pos < 0:
         raise CommandError("Hey, quit being cheeky. We're just trying to help. New position has to be a natural number, boss.")
@@ -451,9 +452,9 @@ async def moveplayer(interaction, team_name: str, player_name: str, is_pitcher: 
             roster = team.rotation
 
         if (roster is not None and team.slide_player_spec(player_name, new_pos, roster)) or (roster is None and team.slide_player(player_name, new_pos)):
-            await msg.channel.send(embed=build_team_embed(team))
+            await interaction.channel.send(embed=build_team_embed(team))
             games.update_team(team)
-            await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
+            await interaction.response.send_message("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
         else:
             raise CommandError("You either gave us a number that was bigger than your current roster, or we couldn't find the player on the team. Try again.")
 
@@ -469,28 +470,35 @@ class AddPlayerCommand(Command):
         try:
             team_name = command.split("\n")[1].strip()
             player_name = command.split("\n")[2].strip()
-            if len(player_name) > 70:
-                raise CommandError("70 characters per player, boss. Quit being sneaky.")
-            team, owner_id = games.get_team_and_owner(team_name)
-            if owner_id != msg.author.id and msg.author.id not in config()["owners"]:
-                raise CommandError("You're not authorized to mess with this team. Sorry, boss.")
-
-            new_player = games.player(ono.get_stats(player_name))
-
-            if "batter" in command.split("\n")[0].lower():
-                if not team.add_lineup(new_player)[0]:
-                    raise CommandError("Too many batters 🎶")
-            elif "pitcher" in command.split("\n")[0].lower():
-                if not team.add_pitcher(new_player):
-                    raise CommandError("8 pitchers is quite enough, we think.")
-            else:
-                raise CommandError("You have to tell us if you want a pitcher or a batter, boss. Just say so in the first line, with the command.")
-
-            await msg.channel.send(embed=build_team_embed(team))
-            games.update_team(team)
-            await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
+            
         except IndexError:
             raise CommandError("Three lines, remember? Command, then team, then name.")
+
+@client.tree.command()
+@app_commands.choices(is_pitcher=[app_commands.Choice(name="pitcher", value=1), app_commands.Choice(name="batter", value=0)])
+@app_commands.rename(team_name="team", player_name="player", is_pitcher="type")
+async def addplayer(interaction, team_name: str, player_name: str, is_pitcher: app_commands.Choice[int]):
+    """Adds a new player to your team."""
+    if len(player_name) > 70:
+        raise CommandError("70 characters per player, boss. Quit being sneaky.")
+    team, owner_id = games.get_team_and_owner(team_name)
+    if team is None:
+        raise CommandError("We can't find that team, boss. Typo?")
+    if owner_id != interaction.user.id and interaction.user.id not in config()["owners"]:
+        raise CommandError("You're not authorized to mess with this team. Sorry, boss.")
+
+    new_player = games.player(ono.get_stats(player_name))
+
+    if is_pitcher.value == 0:
+        if not team.add_lineup(new_player)[0]:
+            raise CommandError("Too many batters 🎶")
+    else:
+        if not team.add_pitcher(new_player):
+            raise CommandError("8 pitchers is quite enough, we think.")
+
+    await interaction.channel.send(embed=build_team_embed(team))
+    games.update_team(team)
+    await interaction.response.send_message("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
 
 class RemovePlayerCommand(Command):
     name = "removeplayer"
@@ -503,19 +511,28 @@ class RemovePlayerCommand(Command):
         try:
             team_name = command.split("\n")[1].strip()
             player_name = command.split("\n")[2].strip()
-            team, owner_id = games.get_team_and_owner(team_name)
-            if owner_id != msg.author.id and msg.author.id not in config()["owners"]:
-                raise CommandError("You're not authorized to mess with this team. Sorry, boss.")
-
-            if not team.delete_player(player_name):
-                raise CommandError("We've got bad news: that player isn't on your team. The good news is that... that player isn't on your team?")
-
-            else:
-                await msg.channel.send(embed=build_team_embed(team))
-                games.update_team(team)
-                await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
+            
+            
         except IndexError:
             raise CommandError("Three lines, remember? Command, then team, then name.")
+
+@client.tree.command()
+@app_commands.rename(team_name="team", player_name="player")
+async def removeplayer(interaction, team_name: str, player_name: str):
+    """Removes a player from your team."""
+    team, owner_id = games.get_team_and_owner(team_name)
+    if owner_id != interaction.user.id and interaction.user.id not in config()["owners"]:
+        raise CommandError("You're not authorized to mess with this team. Sorry, boss.")
+    elif team is None:
+        raise CommandError("Can't find that team, boss. Typo?")
+
+    if not team.delete_player(player_name):
+        raise CommandError("We've got bad news: that player isn't on your team. The good news is that... that player isn't on your team?")
+
+    else:
+        await interaction.channel.send(embed=build_team_embed(team))
+        games.update_team(team)
+        await interaction.response.send_message("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
 
 class ReplacePlayerCommand(Command):
     name = "replaceplayer"
@@ -584,12 +601,18 @@ class DeleteTeamCommand(Command):
 
     async def execute(self, msg, command, flags):
         team_name = command.strip()
-        team, owner_id = games.get_team_and_owner(team_name)
-        if owner_id != msg.author.id and msg.author.id not in config()["owners"]: #returns if person is not owner and not bot mod
-            raise CommandError("That team ain't yours, chief. If you think that's not right, bug xvi about deleting it for you.")
-        elif team is not None:
-            delete_task = asyncio.create_task(team_delete_confirm(msg.channel, team, msg.author))
-            await delete_task
+        
+
+@client.tree.command()
+@app_commands.rename(team_name="team")
+async def deleteteam(interaction, team_name: str):
+    """Deletes a team. Requires confirmation."""
+    team, owner_id = games.get_team_and_owner(team_name)
+    if owner_id != interaction.user.id and interaction.user.id not in config()["owners"]: #returns if person is not owner and not bot mod
+        raise CommandError("That team ain't yours, chief. If you think that's not right, bug xvi about deleting it for you.")
+    elif team is not None:
+        delete_task = asyncio.create_task(team_delete_confirm(interaction.channel, team, interaction.user))
+        await delete_task
 
 class AssignOwnerCommand(Command):
     name = "assignowner"
@@ -1645,12 +1668,12 @@ commands = [
     ViewArchetypesCommand(), #done
     ArchetypeHelpCommand(), #done
     ImportCommand(),
-    SwapPlayerCommand(),
-    MovePlayerCommand(),
-    AddPlayerCommand(),
-    RemovePlayerCommand(),
-    ReplacePlayerCommand(),
-    DeleteTeamCommand(),
+    SwapPlayerCommand(), #done
+    MovePlayerCommand(), #done
+    AddPlayerCommand(), #done
+    RemovePlayerCommand(), #done
+    ReplacePlayerCommand(), #gonna delay
+    DeleteTeamCommand(), #done
     ShowTeamCommand(), #done
     SearchTeamsCommand(), #not needed
     StartGameCommand(), #done
@@ -1681,7 +1704,7 @@ commands = [
     LeagueForceStopCommand(),
     CreditCommand(), #done
     RomanCommand(), #not needed
-    HelpCommand(),
+    HelpCommand(), 
     StartDraftCommand(),
     DraftFlagsCommand(),
     DraftPlayerCommand()
@@ -2209,12 +2232,12 @@ async def team_delete_confirm(channel, team, owner):
     await checkmsg.add_reaction("👍")
     await checkmsg.add_reaction("👎")
 
-    def react_check(react, user):
-        return user == owner and react.message == checkmsg
+    def react_check(payload):
+        return payload.user_id == message.author.id and payload.message_id == checkmsg.id
 
     try:
-        react, user = await client.wait_for('reaction_add', timeout=20.0, check=react_check)
-        if react.emoji == "👍":
+        payload = await client.wait_for('raw_reaction_add', timeout=20.0, check=react_check)
+        if react.emoji.name == "👍":
             await channel.send("Step back, this could get messy.")
             if db.delete_team(team):
                 await asyncio.sleep(2)
@@ -2223,7 +2246,7 @@ async def team_delete_confirm(channel, team, owner):
                 await asyncio.sleep(2)
                 await channel.send("Huh. Didn't quite work. Tell xvi next time you see xer.")
             return
-        elif react.emoji == "👎":
+        elif react.emoji.name == "👎":
             await channel.send("Message received. Pumping brakes, turning this car around.")
             return
     except asyncio.TimeoutError:
@@ -2342,17 +2365,17 @@ async def save_team_confirm(message, newteam):
     await checkmsg.add_reaction("👍")
     await checkmsg.add_reaction("👎")
 
-    def react_check(react, user):
-        return user == message.author and react.message == checkmsg
+    def react_check(payload):
+        return payload.user_id == message.author.id and payload.message_id == checkmsg.id
 
     try:
-        react, user = await client.wait_for('reaction_add', timeout=20.0, check=react_check)
-        if react.emoji == "👍":
+        payload = await client.wait_for('raw_reaction_add', timeout=20.0, check=react_check)
+        if payload.emoji.name == "👍":
             await message.channel.send("You got it, chief. Saving now.")
             games.save_team(newteam, message.author.id)
             await message.channel.send("Saved! Thank you for flying Air Matteo. We hope you had a pleasant data entry.")
             return
-        elif react.emoji == "👎":
+        elif payload.emoji.name == "👎":
             await message.channel.send("Message received. Pumping brakes, turning this car around. Try again, chief.")
             return
     except asyncio.TimeoutError:
