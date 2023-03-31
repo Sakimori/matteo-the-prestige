@@ -116,7 +116,6 @@ async def startgame(interaction, away: str, home: str, innings: Optional[int]=9,
     """Start a game with the given teams and, optionally, weather choice and custom inning number."""
     league = None
     day = None
-    innings = None
     voice = None
 
     if config()["game_freeze"]:
