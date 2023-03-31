@@ -1133,6 +1133,7 @@ class LeagueDivisionDisplayCommand(Command):
 @client.tree.command()
 @app_commands.rename(league_name="leaguename", division_name="division")
 async def divisionstandings(interaction, league_name: str, division_name: str):
+    """Displays the current standings for the given division in the given league."""
     if league_exists(league_name):
         league = leagues.load_league_file(league_name)
         division = None
@@ -1153,102 +1154,128 @@ class LeagueWildcardCommand(Command):
     name = "leaguewildcard"
     template = "m;leaguewildcard [league name]"
     description = "Displays the current wildcard race for the given league, if the league has wildcard slots."
-
-    async def execute(self, msg, command, flags):
-        if league_exists(command.strip()):
-            league = leagues.load_league_file(command.strip())
-            if league.constraints["wild_cards"] > 0:
-                await msg.channel.send(embed=league.wildcard_embed())
-            else:
-                raise CommandError("That league doesn't have wildcards, boss.")
+        
+@client.tree.command()
+@app_commands.rename(league_name="leaguename")
+async def wildcard(interaction, league_name: str):
+    """Displays the current wildcard race for the given league, if the league has wildcard slots."""
+    if league_exists(league_name):
+        league = leagues.load_league_file(league_name)
+        if league.constraints["wild_cards"] > 0:
+            await interaction.response.send_message(embed=league.wildcard_embed())
         else:
-            raise CommandError("Can't find that league, boss.")
+            raise CommandError("That league doesn't have wildcards, boss.")
+    else:
+        raise CommandError("Can't find that league, boss.")
 
 class LeaguePauseCommand(Command):
     name = "pauseleague"
     template = "m;pauseleague [league name]"
     description = "Tells a currently running league to stop running after the current series."
+    
 
-    async def execute(self, msg, command, flags):
-        league_name = command.strip()
-        for active_league in active_leagues:
-            if active_league.name == league_name:
-                if (active_league.owner is not None and msg.author.id in active_league.owner) or msg.author.id in config()["owners"]:
-                    active_league.autoplay = 0
-                    await msg.channel.send(f"Loud and clear, chief. {league_name} will stop after this series is over.")
-                    return
-                else:
-                    raise CommandError("You don't have permission to manage that league.")
-        raise CommandError("That league either doesn't exist or isn't running.")
+@client.tree.command()
+@app_commands.rename(league_name="leaguename")
+async def leaguepause(interaction, league_name: str):
+    """Tells a currently running league to stop running after the current series."""
+    for active_league in active_leagues:
+        if active_league.name == league_name:
+            if (active_league.owner is not None and interaction.user.id in active_league.owner) or interaction.user.id in config()["owners"]:
+                active_league.autoplay = 0
+                await interaction.response.send_message(f"Loud and clear, chief. {league_name} will stop after this series is over.")
+                return
+            else:
+                raise CommandError("You don't have permission to manage that league.")
+    raise CommandError("That league either doesn't exist or isn't running.")
 
 class LeagueClaimCommand(Command):
     name = "claimleague"
     template = "m;claimleague [league name]"
     description = "Claims an unclaimed league. Do this as soon as possible after creating the league, or it will remain unclaimed."
+    
 
-    async def execute(self, msg, command, flags):
-        league_name = command.strip()
-        if league_exists(league_name):
-            league = leagues.load_league_file(league_name)
-            if league.owner is None:
-                league.owner = [msg.author.id]
-                leagues.save_league(league)
-                await msg.channel.send(f"The {league.name} commissioner is doing a great job. That's you, by the way.")
-                return
-            else:
-                raise CommandError("That league has already been claimed!")
+@client.tree.command()
+@app_commands.rename(league_name="leaguename")
+async def claimleague(interaction, league_name: str):
+    """Claims an unclaimed league. Do this as soon as possible after creating the league, or it will remain unclaimed."""
+    if league_exists(league_name):
+        league = leagues.load_league_file(league_name)
+        if league.owner is None:
+            league.owner = [interaction.user.id]
+            leagues.save_league(league)
+            await interaction.response.send_message(f"The {league.name} commissioner is doing a great job. That's you, by the way.")
+            return
         else:
-            raise CommandError("Can't find that league, boss.")
+            raise CommandError("That league has already been claimed!")
+    else:
+        raise CommandError("Can't find that league, boss.")
 
 class LeagueAddOwnersCommand(Command):
     name = "addleagueowner"
     template = "m;addleagueowner [league name]\n[user mentions]"
     description = "Adds additional owners to a league."
+    
 
-    async def execute(self, msg, command, flags):
-        league_name = command.split("\n")[0].strip()
-        if league_exists(league_name):
-            league = leagues.load_league_file(league_name)
-            if (league.owner is not None and msg.author.id in league.owner) or (league.owner is not None and msg.author.id in config()["owners"]):
-                for user in msg.mentions:
-                    if user.id not in league.owner:
-                        league.owner.append(user.id)
-                leagues.save_league(league)
-                await msg.channel.send(f"The new {league.name} front office is now up and running.")
-                return
-            else:
-                raise CommandError(f"That league isn't yours, boss.")
+@client.tree.command()
+@app_commands.rename(league_name="leaguename", newowner="newownermention")
+async def addleagueowner(interaction, league_name: str, newowner: str):
+    """Adds an owner to a league."""
+    if league_exists(league_name):
+        league = leagues.load_league_file(league_name)
+        if (league.owner is not None and interaction.user.id in league.owner) or (league.owner is not None and interaction.user.id in config()["owners"]):
+            if int(newowner[2:-1]) not in league.owner:
+                league.owner.append(int(newowner[2:-1]))
+            leagues.save_league(league)
+            await interaction.response.send(f"The new {league.name} front office is now up and running.")
+            return
         else:
-            raise CommandError("Can't find that league, boss.")
+            raise CommandError(f"That league isn't yours, boss.")
+    else:
+        raise CommandError("Can't find that league, boss.")
             
 class LeagueScheduleCommand(Command):
     name = "leagueschedule"
     template = "m;leagueschedule [league name]"
     description = "Sends an embed with the given league's schedule for the next 4 series."
 
-    async def execute(self, msg, command, flags):
-        league_name = command.split("\n")[0].strip()
-        if league_exists(league_name):
-            league = leagues.load_league_file(league_name)
-            current_series = league.day_to_series_num(league.day)
-            if str(current_series+1) in league.schedule.keys():
-                sched_embed = discord.Embed(title=f"{league.name}'s Schedule:", color=discord.Color.magenta())
-                days = [0,1,2,3]
-                for day in days:
-                    embed_title = f"Days {((current_series+day-1)*league.series_length) + 1} - {(current_series+day)*(league.series_length)}"
-                    parts = 1
-                    if str(current_series+day) in league.schedule.keys():
-                        schedule_text = ""
-                        teams = league.team_names_in_league()
-                        for game in league.schedule[str(current_series+day)]:
-                            emojis = ""
-                            for day_offset in range((current_series+day - 1)*league.series_length, (current_series+day)*(league.series_length)):
-                                try:
-                                    emojis += weather.all_weathers()[league.weather_forecast[game[1]][day_offset]].emoji + " "
-                                except:
-                                    False
-                            schedule_text += f"**{game[0]}** @ **{game[1]}** {emojis}\n"
+@client.tree.command()
+@app_commands.rename(league_name="leaguename")
+async def leagueschedule(interaction, league_name:str):
+    """Show a league's 4-series schedule."""
+    if league_exists(league_name):
+        league = leagues.load_league_file(league_name)
+        current_series = league.day_to_series_num(league.day)
+        if str(current_series+1) in league.schedule.keys():
+            sched_embed = discord.Embed(title=f"{league.name}'s Schedule:", color=discord.Color.magenta())
+            days = [0,1,2,3]
+            for day in days:
+                embed_title = f"Days {((current_series+day-1)*league.series_length) + 1} - {(current_series+day)*(league.series_length)}"
+                parts = 1
+                if str(current_series+day) in league.schedule.keys():
+                    schedule_text = ""
+                    teams = league.team_names_in_league()
+                    for game in league.schedule[str(current_series+day)]:
+                        emojis = ""
+                        for day_offset in range((current_series+day - 1)*league.series_length, (current_series+day)*(league.series_length)):
+                            try:
+                                emojis += weather.all_weathers()[league.weather_forecast[game[1]][day_offset]].emoji + " "
+                            except:
+                                False
+                        schedule_text += f"**{game[0]}** @ **{game[1]}** {emojis}\n"
 
+                        if len(schedule_text) >= 900:
+                            embed_title += f" Part {parts}"
+                            sched_embed.add_field(name=embed_title, value=schedule_text, inline = False)
+                            parts += 1
+                            embed_title = f"Days {((current_series+day-1)*league.series_length) + 1} - {(current_series+day)*(league.series_length)} Part {parts}"
+                            schedule_text = ""
+
+                        teams.pop(teams.index(game[0]))
+                        teams.pop(teams.index(game[1]))
+                    if len(teams) > 0:
+                        schedule_text += "Resting:\n"
+                        for team in teams:
+                            schedule_text += f"**{team}**\n"
                             if len(schedule_text) >= 900:
                                 embed_title += f" Part {parts}"
                                 sched_embed.add_field(name=embed_title, value=schedule_text, inline = False)
@@ -1256,97 +1283,87 @@ class LeagueScheduleCommand(Command):
                                 embed_title = f"Days {((current_series+day-1)*league.series_length) + 1} - {(current_series+day)*(league.series_length)} Part {parts}"
                                 schedule_text = ""
 
-                            teams.pop(teams.index(game[0]))
-                            teams.pop(teams.index(game[1]))
-                        if len(teams) > 0:
-                            schedule_text += "Resting:\n"
-                            for team in teams:
-                                schedule_text += f"**{team}**\n"
-                                if len(schedule_text) >= 900:
-                                    embed_title += f" Part {parts}"
-                                    sched_embed.add_field(name=embed_title, value=schedule_text, inline = False)
-                                    parts += 1
-                                    embed_title = f"Days {((current_series+day-1)*league.series_length) + 1} - {(current_series+day)*(league.series_length)} Part {parts}"
-                                    schedule_text = ""
-
-                        sched_embed.add_field(name=embed_title, value=schedule_text, inline = False)
-                await msg.channel.send(embed=sched_embed)
-            else:
-                raise CommandError("That league's already finished with this season, boss.")
+                    sched_embed.add_field(name=embed_title, value=schedule_text, inline = False)
+            await interaction.response.send_message(embed=sched_embed)
         else:
-            raise CommandError("We can't find that league. Typo?")
+            raise CommandError("That league's already finished with this season, boss.")
+    else:
+        raise CommandError("We can't find that league. Typo?")
 
 class LeagueTeamScheduleCommand(Command):
     name = "teamschedule"
     template = "m;teamschedule [league name]\n[team name]"
     description = "Sends an embed with the given team's schedule in the given league for the next 7 series."
+    
 
-    async def execute(self, msg, command, flags):
-        league_name = command.split("\n")[0].strip()
-        team_name = command.split("\n")[1].strip()
-        team = get_team_fuzzy_search(team_name)
-        if league_exists(league_name):
-            league = leagues.load_league_file(league_name)
-            current_series = league.day_to_series_num(league.day)
+@client.tree.command()
+@app_commands.rename(league_name="leaguename", team_name="teamname")
+async def teamschedule(interaction, league_name: str, team_name: str):
+    """Shows a team's 7-series schedule in a specific league."""
+    team = get_team_fuzzy_search(team_name)
+    if league_exists(league_name):
+        league = leagues.load_league_file(league_name)
+        current_series = league.day_to_series_num(league.day)
 
-            if team.name not in league.team_names_in_league():
-                raise CommandError("Can't find that team in that league, chief.")
+        if team.name not in league.team_names_in_league():
+            raise CommandError("Can't find that team in that league, chief.")
 
-            if str(current_series+1) in league.schedule.keys():
-                sched_embed = discord.Embed(title=f"{team.name}'s Schedule for the {league.name}:", color=discord.Color.purple())
-                days = [0,1,2,3,4,5,6]
-                for day in days:
-                    if str(current_series+day) in league.schedule.keys():
-                        schedule_text = ""
-
-                        
-                        for game in league.schedule[str(current_series+day)]:
-                            if team.name in game:
-                                emojis = ""
-                                for day_offset in range((current_series+day - 1)*league.series_length, (current_series+day)*(league.series_length)):
-                                    emojis += weather.all_weathers()[league.weather_forecast[game[1]][day_offset]].emoji + " "
-                                schedule_text += f"**{game[0]}** @ **{game[1]}** {emojis}"
-                        if schedule_text == "":
-                            schedule_text += "Resting"
-                        sched_embed.add_field(name=f"Days {((current_series+day-1)*league.series_length) + 1} - {(current_series+day)*(league.series_length)}", value=schedule_text, inline = False)
-                await msg.channel.send(embed=sched_embed)
-            else:
-                raise CommandError("That league's already finished with this season, boss.")
+        if str(current_series+1) in league.schedule.keys():
+            sched_embed = discord.Embed(title=f"{team.name}'s Schedule for the {league.name}:", color=discord.Color.purple())
+            days = [0,1,2,3,4,5,6]
+            for day in days:
+                if str(current_series+day) in league.schedule.keys():
+                    schedule_text = ""
+                    
+                    for game in league.schedule[str(current_series+day)]:
+                        if team.name in game:
+                            emojis = ""
+                            for day_offset in range((current_series+day - 1)*league.series_length, (current_series+day)*(league.series_length)):
+                                emojis += weather.all_weathers()[league.weather_forecast[game[1]][day_offset]].emoji + " "
+                            schedule_text += f"**{game[0]}** @ **{game[1]}** {emojis}"
+                    if schedule_text == "":
+                        schedule_text += "Resting"
+                    sched_embed.add_field(name=f"Days {((current_series+day-1)*league.series_length) + 1} - {(current_series+day)*(league.series_length)}", value=schedule_text, inline = False)
+            await interaction.response.send_message(embed=sched_embed)
         else:
-            raise CommandError("We can't find that league. Typo?")
+            raise CommandError("That league's already finished with this season, boss.")
+    else:
+        raise CommandError("We can't find that league. Typo?")
             
 class LeagueRegenerateScheduleCommand(Command):
     name = "leagueseasonreset"
     template = "m;leagueseasonreset [league name]"
     description = "Completely scraps the given league's current season, resetting everything to day 1 of the current season. Requires ownership."
 
-    async def execute(self, msg, command, flags):
-        league_name = command.split("\n")[0].strip()
-        if league_exists(league_name):
-            league = leagues.load_league_file(league_name)
-            if (league.owner is not None and msg.author.id in league.owner) or (league.owner is not None and msg.author.id in config()["owners"]):
-                await msg.channel.send("You got it, boss. Give us two seconds and a bucket of white-out.")
-                season_restart(league)
-                league.season -= 1
-                league.season_reset()               
-                await asyncio.sleep(1)
-                await msg.channel.send("Done and dusted. Go ahead and start the league again whenever you want.")
-                return
-            else:
-                raise CommandError("That league isn't yours, boss.")
+@client.tree.command()
+@app_commands.rename(league_name="leaguename")
+async def leaguereset(interaction, league_name: str):
+    """Completely scraps the given league's current season, resetting everything to day 1 of the current season. Requires ownership."""
+    if league_exists(league_name):
+        league = leagues.load_league_file(league_name)
+        if (league.owner is not None and interaction.user.id in league.owner) or (league.owner is not None and interaction.user.id in config()["owners"]):
+            await interaction.response.send_message("You got it, boss. Give us two seconds and a bucket of white-out.")
+            season_restart(league)
+            league.season -= 1
+            league.season_reset()               
+            await asyncio.sleep(1)
+            await interaction.channel.send("Done and dusted. Go ahead and start the league again whenever you want.")
+            return
         else:
-            raise CommandError("We can't find that league. Yay?")
+            raise CommandError("That league isn't yours, boss.")
+    else:
+        raise CommandError("We can't find that league. Yay?")
 
 class LeagueForceStopCommand(Command):
     name = "leagueforcestop"
-    template = "m;leagueforcestop [league name]"
+    template = "m;leagueforcestop [league name] [bot mention]"
     description = "Halts a league and removes it from the list of currently running leagues. To be used in the case of crashed loops."
 
     def isauthorized(self, user):
         return user.id in config()["owners"]
 
     async def execute(self, msg, command, flags):
-        league_name = command.split("\n")[0].strip()
+        league_name = command.split("\n")[0].split(" ")[0].strip()
         for index in range(0,len(active_leagues)):
             if active_leagues[index].name == league_name:
                 active_leagues.pop(index)
@@ -1358,47 +1375,50 @@ class LeagueReplaceTeamCommand(Command):
     name = "leaguereplaceteam"
     template = "m;leaguereplaceteam [league name]\n[team to remove]\n[team to add]"
     description = "Adds a team to a league, removing the old one in the process. Can only be executed by a league owner, and only before the start of a new season."
-         
-    async def execute(self, msg, command, flags):
-        league_name = command.split("\n")[0].strip()
-        if league_exists(league_name):
-            league = leagues.load_league_file(league_name)
-            if league.day != 1:
-                await msg.channel.send("That league hasn't finished its current season yet, chief. Either reset it, or be patient.")
-                return
-            if (league.owner is not None and msg.author.id in league.owner) or (league.owner is not None and msg.author.id in config()["owners"]):
-                try:
-                    team_del = get_team_fuzzy_search(command.split("\n")[1].strip())
-                    team_add = get_team_fuzzy_search(command.split("\n")[2].strip())
-                except IndexError:
-                    raise CommandError("Three lines, boss. Make sure you give us the team to remove, then the team to add.")
-                if team_add.name == team_del.name:
-                    raise CommandError("Quit being cheeky. The teams have to be different.")
+    
 
-                if team_del is None or team_add is None:
-                    raise CommandError("We couldn't find one or both of those teams, boss. Try again.")
+@client.tree.command()
+@app_commands.rename(league_name="leaguename")
+async def leaguereplaceteam(interaction, league_name: str, removeteam: str, addteam: str):
+    """Removes a team from a league, replacing it with another."""
+    if league_exists(league_name):
+        league = leagues.load_league_file(league_name)
+        if league.day != 1:
+            await interaction.response.send("That league hasn't finished its current season yet, chief. Either reset it, or be patient.")
+            return
+        if (league.owner is not None and interaction.user.id in league.owner) or (league.owner is not None and interaction.user.id in config()["owners"]):
+            try:
+                team_del = get_team_fuzzy_search(removeteam)
+                team_add = get_team_fuzzy_search(addteam)
+            except IndexError:
+                raise CommandError("Three lines, boss. Make sure you give us the team to remove, then the team to add.")
+            if team_add.name == team_del.name:
+                raise CommandError("Quit being cheeky. The teams have to be different.")
 
-                subleague, division = league.find_team(team_del)               
+            if team_del is None or team_add is None:
+                raise CommandError("We couldn't find one or both of those teams, boss. Try again.")
 
-                if subleague is None or division is None:
-                    raise CommandError("That first team isn't in that league, chief. So, that's good, right?")
+            subleague, division = league.find_team(team_del)               
 
-                if league.find_team(team_add)[0] is not None:
-                    raise CommandError("That second team is already in that league, chief. No doubles.")
+            if subleague is None or division is None:
+                raise CommandError("That first team isn't in that league, chief. So, that's good, right?")
 
-                for index in range(0, len(league.league[subleague][division])):
-                    if league.league[subleague][division][index].name == team_del.name:
-                        league.league[subleague][division].pop(index)
-                        league.league[subleague][division].append(team_add)
-                league.schedule = {}
-                league.generate_schedule()
-                leagues.save_league_as_new(league)
-                await msg.channel.send(embed=league.standings_embed())
-                await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
-            else:
-                raise CommandError("That league isn't yours, chief.")
+            if league.find_team(team_add)[0] is not None:
+                raise CommandError("That second team is already in that league, chief. No doubles.")
+
+            for index in range(0, len(league.league[subleague][division])):
+                if league.league[subleague][division][index].name == team_del.name:
+                    league.league[subleague][division].pop(index)
+                    league.league[subleague][division].append(team_add)
+            league.schedule = {}
+            league.generate_schedule()
+            leagues.save_league_as_new(league)
+            await interaction.response.send_message(embed=league.standings_embed())
+            await interaction.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
         else:
-            raise CommandError("We can't find that league.")
+            raise CommandError("That league isn't yours, chief.")
+    else:
+        raise CommandError("We can't find that league.")
 
 class LeagueSwapTeamCommand(Command):
     name = "leagueswapteams"
@@ -1407,48 +1427,53 @@ class LeagueSwapTeamCommand(Command):
 
     async def execute(self, msg, command, flags):
         league_name = command.split("\n")[0].strip()
-        if league_exists(league_name):
-            league = leagues.load_league_file(league_name)
-            if league.day != 1:
-                await msg.channel.send("That league hasn't finished its current season yet, chief. Either reset it, or be patient.")
-                return
-            if (league.owner is not None and msg.author.id in league.owner) or (league.owner is not None and msg.author.id in config()["owners"]):
-                try:
-                    team_a = get_team_fuzzy_search(command.split("\n")[1].strip())
-                    team_b = get_team_fuzzy_search(command.split("\n")[2].strip())
-                except IndexError:
-                    raise CommandError("Three lines, boss. Make sure you give us the team to remove, then the team to add.")
-                if team_a.name == team_b.name:
-                    raise CommandError("Quit being cheeky. The teams have to be different.")
+    
 
-                if team_a is None or team_b is None:
-                    raise CommandError("We couldn't find one or both of those teams, boss. Try again.")
+@client.tree.command()
+@app_commands.rename(league_name="leaguename")
+async def leagueswapteam(interaction, league_name: str, teama: str, teamb: str):
+    """Swaps two teams' divisional assignments."""
+    if league_exists(league_name):
+        league = leagues.load_league_file(league_name)
+        if league.day != 1:
+            await interaction.response.send_message("That league hasn't finished its current season yet, chief. Either reset it, or be patient.")
+            return
+        if (league.owner is not None and interaction.user.id in league.owner) or (league.owner is not None and interaction.user.id in config()["owners"]):
+            try:
+                team_a = get_team_fuzzy_search(teama)
+                team_b = get_team_fuzzy_search(teamb)
+            except IndexError:
+                raise CommandError("Three lines, boss. Make sure you give us the team to remove, then the team to add.")
+            if team_a.name == team_b.name:
+                raise CommandError("Quit being cheeky. The teams have to be different.")
 
-                a_subleague, a_division = league.find_team(team_a)               
-                b_subleague, b_division = league.find_team(team_b)
+            if team_a is None or team_b is None:
+                raise CommandError("We couldn't find one or both of those teams, boss. Try again.")
 
-                if a_subleague is None or b_subleague is None:
-                    raise CommandError("One of those teams isn't in the league. Try leaguereplaceteam instead.")
+            a_subleague, a_division = league.find_team(team_a)               
+            b_subleague, b_division = league.find_team(team_b)
 
-                for index in range(0, len(league.league[a_subleague][a_division])):
-                    if league.league[a_subleague][a_division][index].name == team_a.name:
-                        a_index = index
-                for index in range(0, len(league.league[b_subleague][b_division])):
-                    if league.league[b_subleague][b_division][index].name == team_b.name:
-                        b_index = index
+            if a_subleague is None or b_subleague is None:
+                raise CommandError("One of those teams isn't in the league. Try leaguereplaceteam instead.")
 
-                league.league[a_subleague][a_division][a_index] = team_b
-                league.league[b_subleague][b_division][b_index] = team_a
-                league.schedule = {}
-                league.generate_schedule()
-                leagues.save_league_as_new(league)
-                await msg.channel.send(embed=league.standings_embed())
-                await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
-            else:
-                raise CommandError("That league isn't yours, chief.")
+            for index in range(0, len(league.league[a_subleague][a_division])):
+                if league.league[a_subleague][a_division][index].name == team_a.name:
+                    a_index = index
+            for index in range(0, len(league.league[b_subleague][b_division])):
+                if league.league[b_subleague][b_division][index].name == team_b.name:
+                    b_index = index
+
+            league.league[a_subleague][a_division][a_index] = team_b
+            league.league[b_subleague][b_division][b_index] = team_a
+            league.schedule = {}
+            league.generate_schedule()
+            leagues.save_league_as_new(league)
+            await interaction.response.send_message(embed=league.standings_embed())
+            await interaction.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
         else:
-            raise CommandError("We can't find that league.")
-
+            raise CommandError("That league isn't yours, chief.")
+    else:
+        raise CommandError("We can't find that league.")
 
 class LeagueRenameCommand(Command):
     name = "leaguerename"
@@ -1509,11 +1534,14 @@ class OBLExplainCommand(Command):
     name = "oblhelp"
     template = "m;oblhelp"
     description = "Explains the One Big League!"
+        
 
-    async def execute(self, msg, command, flags):
-        await msg.channel.send("""The One Big League, or OBL, is an asynchronous league that includes every team in the simsim's database. To participate, just use the m;oblteam command with your team of choice. **No signup is required!** This will give you a list of five opponents; playing against one of them and winning nets you a point, and will refresh the list with five new opponents. **Losing results in no penalty!** Each meta-season will last for a few weeks, after which the leaderboards are reset to start the race again!
+@client.tree.command()
+async def oblhelp(interaction):
+    """Explains the One Big League!"""
+    await interaction.response.send_message("""The One Big League, or OBL, is an asynchronous league that includes every team in sim16's database. To participate, just use the oblteam command with your team of choice. **No signup is required!** This will give you a list of five opponents; playing against one of them and winning nets you a point, and will refresh the list with five new opponents. **Losing results in no penalty!** Each meta-season will last for ~~a few weeks~~ *shrugs*, after which the leaderboards are reset to start the race again!
 
-Look out for the people wrestling emoji, which indicates the potential for a :people_wrestling:Wrassle Match:people_wrestling:, where both teams are on each others' lists and both have the opportunity to score a point. Team rankings and points can also be viewed in the m;oblteam command, and the overall OBL leaderboard can be checked with the m;oblstandings command. Best of luck!!
+Look out for the people wrestling emoji, which indicates the potential for a 🤼Wrassle Match🤼, where both teams are on each others' lists and both have the opportunity to score a point. Team rankings and points can also be viewed in the oblteam command, and the overall OBL leaderboard can be checked with the oblstandings command. Best of luck!!
 """)
 
 class OBLLeaderboardCommand(Command):
@@ -1696,23 +1724,23 @@ commands = [
     OBLConqueredCommand(),
     OBLLeaderboardCommand(),
     OBLResetCommand(),
-    LeagueClaimCommand(),
-    LeagueAddOwnersCommand(),
+    LeagueClaimCommand(), #done
+    LeagueAddOwnersCommand(), #done
     LeagueSetPlayerModifiersCommand(), #was a test command, never fully tested
     StartLeagueCommand(), #done
     LeagueSubscribeCommand(), #done
-    LeaguePauseCommand(),
+    LeaguePauseCommand(), #done
     LeagueDisplayCommand(), #done
     LeagueLeadersCommand(), #done
     LeagueDivisionDisplayCommand(), #done
-    LeagueWildcardCommand(),
-    LeagueScheduleCommand(),
-    LeagueTeamScheduleCommand(),
-    LeagueRegenerateScheduleCommand(),
-    LeagueSwapTeamCommand(),
-    LeagueReplaceTeamCommand(),
-    LeagueRenameCommand(),
-    LeagueForceStopCommand(),
+    LeagueWildcardCommand(), #done
+    LeagueScheduleCommand(), #done
+    LeagueTeamScheduleCommand(), #done
+    LeagueRegenerateScheduleCommand(), #done
+    LeagueSwapTeamCommand(), #done
+    LeagueReplaceTeamCommand(), #done
+    LeagueRenameCommand(), #postponing
+    LeagueForceStopCommand(), #not needed
     CreditCommand(), #done
     RomanCommand(), #not needed
     HelpCommand(), 
