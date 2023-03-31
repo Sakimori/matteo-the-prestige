@@ -954,7 +954,7 @@ def get_team_and_owner(name):
         update_team(team_json)
         return (team_json, owner_id)
     except:
-        return None
+        return (None, None)
 
 def save_team(this_team, user_id):
     try:

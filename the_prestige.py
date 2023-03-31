@@ -96,6 +96,7 @@ class ShowPlayerCommand(Command):
 @client.tree.command()
 @app_commands.rename(command="name")
 async def showplayer(interaction: discord.Interaction, command: str):
+    """Show a single player's stats."""
     player_name = json.loads(ono.get_stats(command))
     await interaction.response.send_message(embed=build_star_embed(player_name))
 
@@ -112,6 +113,7 @@ class StartGameCommand(Command):
 @app_commands.rename(wthr="weather")
 @app_commands.choices(wthr=weather.weather_choices())
 async def startgame(interaction, away: str, home: str, innings: Optional[int]=9, wthr: Optional[app_commands.Choice[str]] = None, flags: Optional[str] = ""):
+    """Start a game with the given teams and, optionally, weather choice and custom inning number."""
     league = None
     day = None
     innings = None
@@ -180,6 +182,7 @@ class StartRandomGameCommand(Command):
 
 @client.tree.command()
 async def randomgame(interaction):
+    """Start a game between two random teams."""
     if config()["game_freeze"]:
         raise CommandError("Patch incoming. We're not allowing new games right now.")
 
@@ -194,11 +197,13 @@ async def randomgame(interaction):
         
 class SaveTeamCommand(Command):
     name = "saveteam"
-    template = """m;saveteam
+    template = """m;saveteam [bot ping]
    [name] 
    [slogan] 
    [lineup]
-   [rotation]"""
+   [rotation]
+   
+   """
 
     description = """Saves a team to the database allowing it to be used for games. Send this command at the top of a list, with entries separated by new lines (shift+enter in discord, or copy+paste from notepad).
   - the first line of the list is your team's name.
@@ -207,9 +212,7 @@ class SaveTeamCommand(Command):
   - the next lines are your batters' names in the order you want them to appear in your lineup, lineups can contain any number of batters between 1 and 12.
   - there must be another blank line between your batters and your pitchers.
   - the final lines are the names of the pitchers in your rotation, rotations can contain any number of pitchers between 1 and 8.
-If you did it correctly, you'll get a team embed with a prompt to confirm. hit the 👍 and your team will be saved!
-
-***NOTE: This only functions in the bot's DMs. Do not use on a server."""
+If you did it correctly, you'll get a team embed with a prompt to confirm. hit the 👍 and your team will be saved!"""
 
     async def execute(self, msg, command, flags):
         if db.get_team(command.split('\n',1)[1].split("\n")[0]) == None:
@@ -221,6 +224,11 @@ If you did it correctly, you'll get a team embed with a prompt to confirm. hit t
             name = command.split('\n',1)[1].split('\n')[0]
             raise CommandError(f"{name} already exists. Try a new name, maybe?")
 
+@client.tree.command()
+async def newteam(interaction):
+    """Get new team instructions. Sent privately, don't worry!"""
+    await interaction.response.send_message(SaveTeamCommand.template + SaveTeamCommand.description , ephemeral=True)
+
 class AssignArchetypeCommand(Command):
     name = "archetype"
     template = "m;archetype [team name]\n[player name]\n[archetype name]"
@@ -228,7 +236,8 @@ class AssignArchetypeCommand(Command):
 
 @client.tree.command()
 @app_commands.choices(archetype=archetypes.archetype_choices())
-async def archetype(interaction, team: str, player: str, archetype: app_commands.Choice[str]):
+async def setarchetype(interaction, team: str, player: str, archetype: app_commands.Choice[str]):
+    """Assigns an archetype to a player on an owned team. Reversible."""
     try:
         team = get_team_fuzzy_search(team)
         player_name = player
@@ -266,6 +275,7 @@ class ArchetypeHelpCommand(Command):
 @client.tree.command()
 @app_commands.choices(archetype=archetypes.archetype_choices())
 async def archetypehelp(interaction, archetype: app_commands.Choice[str]):
+    """Describes a specific archetype."""
     arch = archetypes.search_archetypes(archetype.value)
     if arch is None:
         raise CommandError("We don't know what that archetype is. If you're trying to break new ground, here isn't the time *or* the place.")
@@ -283,6 +293,7 @@ class ViewArchetypesCommand(Command):
 @client.tree.command()
 @app_commands.rename(team_name="team")
 async def teamarchetypes(interaction, team_name: str):
+    """Lists the current archetypes on a team."""
     team = get_team_fuzzy_search(team_name)
     if team is None:
         raise CommandError("We can't find that team, boss.")
@@ -321,6 +332,7 @@ class ShowTeamCommand(Command):
 @client.tree.command()
 @app_commands.rename(team_name="team")
 async def showteam(interaction, team_name: str):
+    """Display a team's roster and relevant ratings."""
     team = get_team_fuzzy_search(team_name)
     if team is not None:
         await interaction.response.send_message(embed=build_team_embed(team))
@@ -356,6 +368,11 @@ class CreditCommand(Command):
     async def execute(self, msg, command, flags):
         await msg.channel.send("Our avatar was graciously provided to us, with permission, by @HetreaSky on Twitter.")
 
+@client.tree.command()
+async def credit(interaction):
+    """Show artist credit for the bot's avatar."""
+    await interaction.response.send_message("Our avatar was graciously provided to us, with permission, by @HetreaSky on Twitter.")
+
 class SwapPlayerCommand(Command):
     name = "swapsection"
     template = """m;swapsection
@@ -370,7 +387,7 @@ class SwapPlayerCommand(Command):
             team, owner_id = games.get_team_and_owner(team_name)
             if team is None:
                 raise CommandError("Can't find that team, boss. Typo?")
-            elif owner_id != msg.author.id and msg.author.id not in config()["owners"]:
+            elif owner_id != interaction.user.id and interaction.user.id not in config()["owners"]:
                 raise CommandError("You're not authorized to mess with this team. Sorry, boss.")
             elif not team.swap_player(player_name):
                 raise CommandError("Either we can't find that player, you've got no space on the other side, or they're your last member of that side of the roster. Can't field an empty lineup, and we *do* have rules, chief.")
@@ -380,6 +397,22 @@ class SwapPlayerCommand(Command):
                 await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
         except IndexError:
             raise CommandError("Three lines, remember? Command, then team, then name.")
+
+@client.tree.command()
+@app_commands.rename(team_name="team", player_name="player")
+async def swapplayer(interaction, team_name: str, player_name: str):
+    """Swaps a player on an owned team between lineup and rotation."""
+    team, owner_id = games.get_team_and_owner(team_name)
+    if team is None:
+        raise CommandError("Can't find that team, boss. Typo?")
+    elif owner_id != interaction.user.id and interaction.user.id not in config()["owners"]:
+        raise CommandError("You're not authorized to mess with this team. Sorry, boss.")
+    elif not team.swap_player(player_name):
+        raise CommandError("Either we can't find that player, you've got no space on the other side, or they're your last member of that side of the roster. Can't field an empty lineup, and we *do* have rules, chief.")
+    else:
+        await interaction.channel.send(embed=build_team_embed(team))
+        games.update_team(team)
+        await interaction.response.send_message("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
 
 class MovePlayerCommand(Command):
     name = "moveplayer"
@@ -393,33 +426,37 @@ class MovePlayerCommand(Command):
         try:
             team_name = command.split("\n")[1].strip()
             player_name = command.split("\n")[2].strip()
-            team, owner_id = games.get_team_and_owner(team_name)
-            try:
-                new_pos = int(command.split("\n")[3].strip())
-            except ValueError:
-                raise CommandError("Hey, quit being cheeky. We're just trying to help. Third line has to be a natural number, boss.")
-            if owner_id != msg.author.id and msg.author.id not in config()["owners"]:
-                raise CommandError("You're not authorized to mess with this team. Sorry, boss.")
-            else:
-                if team.find_player(player_name)[2] is None or len(team.find_player(player_name)[2]) < new_pos:
-                    raise CommandError("You either gave us a number that was bigger than your current roster, or we couldn't find the player on the team. Try again.")
-
-                if "batter" in command.split("\n")[0].lower():
-                    roster = team.lineup
-                elif "pitcher" in command.split("\n")[0].lower():
-                    roster = team.rotation
-                else:
-                    roster = None
-
-                if (roster is not None and team.slide_player_spec(player_name, new_pos, roster)) or (roster is None and team.slide_player(player_name, new_pos)):
-                    await msg.channel.send(embed=build_team_embed(team))
-                    games.update_team(team)
-                    await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
-                else:
-                    raise CommandError("You either gave us a number that was bigger than your current roster, or we couldn't find the player on the team. Try again.")
+            
 
         except IndexError:
             raise CommandError("Four lines, remember? Command, then team, then name, and finally, new spot on the lineup or rotation.")
+
+@client.tree.command()
+@app_commands.rename(team_name="team", player_name="player", is_pitcher="pitcher", new_pos="newposition")
+async def moveplayer(interaction, team_name: str, player_name: str, is_pitcher: bool, new_pos: int):
+    team, owner_id = games.get_team_and_owner(team_name)
+    if new_pos < 0:
+        raise CommandError("Hey, quit being cheeky. We're just trying to help. New position has to be a natural number, boss.")
+    elif owner_id != interaction.user.id and interaction.user.id not in config()["owners"]:
+        raise CommandError("You're not authorized to mess with this team. Sorry, boss.")
+    elif team is None:
+        raise CommandError("We can't find that team, boss. Typo?")
+    else:
+        if team.find_player(player_name)[2] is None or len(team.find_player(player_name)[2]) < new_pos:
+            raise CommandError("You either gave us a number that was bigger than your current roster, or we couldn't find the player on the team. Try again.")
+
+        if not is_pitcher:
+            roster = team.lineup
+        else:
+            roster = team.rotation
+
+        if (roster is not None and team.slide_player_spec(player_name, new_pos, roster)) or (roster is None and team.slide_player(player_name, new_pos)):
+            await msg.channel.send(embed=build_team_embed(team))
+            games.update_team(team)
+            await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
+        else:
+            raise CommandError("You either gave us a number that was bigger than your current roster, or we couldn't find the player on the team. Try again.")
+
 
 class AddPlayerCommand(Command):
     name = "addplayer"
@@ -1598,10 +1635,10 @@ class TeamsInfoCommand(Command):
         await msg.channel.send(f"We've got {len(games.get_all_teams())} teams! Thanks for asking.")
 
 commands = [
-    IntroduceCommand(),
-    CountActiveGamesCommand(),
+    IntroduceCommand(), #not needed
+    CountActiveGamesCommand(), #owner only
     TeamsInfoCommand(),
-    AssignOwnerCommand(),
+    AssignOwnerCommand(), #owner only
     ShowPlayerCommand(), #done
     SaveTeamCommand(), #done
     AssignArchetypeCommand(), #done
@@ -1615,7 +1652,7 @@ commands = [
     ReplacePlayerCommand(),
     DeleteTeamCommand(),
     ShowTeamCommand(), #done
-    SearchTeamsCommand(),
+    SearchTeamsCommand(), #not needed
     StartGameCommand(), #done
     StartRandomGameCommand(), #done
     StartTournamentCommand(),
@@ -1642,8 +1679,8 @@ commands = [
     LeagueReplaceTeamCommand(),
     LeagueRenameCommand(),
     LeagueForceStopCommand(),
-    CreditCommand(),
-    RomanCommand(),
+    CreditCommand(), #done
+    RomanCommand(), #not needed
     HelpCommand(),
     StartDraftCommand(),
     DraftFlagsCommand(),
