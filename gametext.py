@@ -390,13 +390,10 @@ class TrespassOracle(game_strings_base):
 
 
 def all_voices():
-    return {"default": game_strings_base,
-        "The Goddesses": TheGoddesses,
-        "The New Guy": TheNewGuy,
-        "Trespass Oracle": TrespassOracle}
+    return {"default": game_strings_base}
 
 def weighted_voices(): #these are the ones accessible to random games
-    return [game_strings_base, TheGoddesses, TheNewGuy], [6, 2, 2]
+    return [game_strings_base], [6]
 
 
 def base_string(base):

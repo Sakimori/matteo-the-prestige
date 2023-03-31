@@ -1,5 +1,6 @@
 import random
 from gametext import appearance_outcomes
+from discord.app_commands import Choice
 
 class Archetype:
     name = "basic"
@@ -125,6 +126,12 @@ def all_archetypes():
         Stuff,
         Control
         ]
+
+def archetype_choices():
+    lst = []
+    for arch in all_archetypes():
+        lst.append(Choice(name=arch.display_name, value=arch.name))
+    return lst
 
 def search_archetypes(text):
     for archetype in all_archetypes():

@@ -1,5 +1,6 @@
 import random, math, roman
 from gametext import appearance_outcomes, game_strings_base, base_string
+from discord.app_commands import Choice
 
 class Weather:
     name = "Sunny"
@@ -635,6 +636,12 @@ def all_weathers():
             "Runoff" :  Runoff
         }
     return weathers_dic
+
+def weather_choices():
+    lst = []
+    for key, value in list(all_weathers().items()):
+        lst.append(Choice(name=key, value=key))
+    return lst
 
 def safe_weathers():
     """weathers safe to swap in mid-game"""
