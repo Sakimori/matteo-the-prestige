@@ -235,7 +235,7 @@ class game(object):
         self.over = False
         self.random_weather_flag = False
         self.teams = {"away" : team1, "home" : team2}
-        self.archetypes = {team1.name : team1.archetypes, team2.name : team2.archetypes}
+        
         self.offense_archetypes = {}
         self.defense_archetypes = {}
         self.inning = 1
@@ -254,10 +254,14 @@ class game(object):
         self.voice = None
         self.current_batter = None
 
-        for this_team in [team1, team2]:
-            for this_player in this_team.lineup + this_team.rotation:
-                if this_player.name in this_team.archetypes.keys():
-                    this_team.archetypes[this_player.name].modify_player_stats(this_player)
+        try:
+            self.archetypes = {team1.name : team1.archetypes, team2.name : team2.archetypes}
+            for this_team in [team1, team2]:
+                for this_player in this_team.lineup + this_team.rotation:
+                    if this_player.name in this_team.archetypes.keys():
+                        this_team.archetypes[this_player.name].modify_player_stats(this_player)
+        except:
+            pass
 
     def occupied_bases(self):
         occ_dic = {}
@@ -950,7 +954,7 @@ def get_team_and_owner(name):
         update_team(team_json)
         return (team_json, owner_id)
     except:
-        return None
+        return (None, None)
 
 def save_team(this_team, user_id):
     try:

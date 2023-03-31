@@ -11,7 +11,7 @@
     <OutputPath>.</OutputPath>
     <Name>the-prestige</Name>
     <RootNamespace>the-prestige</RootNamespace>
-    <InterpreterId>MSBuild|matteo_env|$(MSBuildProjectFullPath)</InterpreterId>
+    <InterpreterId>MSBuild|new_matteo_env|$(MSBuildProjectFullPath)</InterpreterId>
     <IsWindowsApplication>False</IsWindowsApplication>
     <SuppressConfigureTestFrameworkPrompt>true</SuppressConfigureTestFrameworkPrompt>
   </PropertyGroup>
@@ -62,6 +62,15 @@
       <Id>matteo_env</Id>
       <Version>3.8</Version>
       <Description>matteo_env (Python 3.8 (32-bit))</Description>
+      <InterpreterPath>Scripts\python.exe</InterpreterPath>
+      <WindowsInterpreterPath>Scripts\pythonw.exe</WindowsInterpreterPath>
+      <PathEnvironmentVariable>PYTHONPATH</PathEnvironmentVariable>
+      <Architecture>X86</Architecture>
+    </Interpreter>
+    <Interpreter Include="new_matteo_env\">
+      <Id>new_matteo_env</Id>
+      <Version>3.8</Version>
+      <Description>new_matteo_env (Python38-32)</Description>
       <InterpreterPath>Scripts\python.exe</InterpreterPath>
       <WindowsInterpreterPath>Scripts\pythonw.exe</WindowsInterpreterPath>
       <PathEnvironmentVariable>PYTHONPATH</PathEnvironmentVariable>
@@ -43335,6 +43344,9 @@
     <Folder Include="simmadome\src\img\" />
     <Folder Include="static\" />
     <Folder Include="templates\" />
+  </ItemGroup>
+  <ItemGroup>
+    <InterpreterReference Include="Global|VisualStudio|Python38-32" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

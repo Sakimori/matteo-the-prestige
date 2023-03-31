@@ -5,18 +5,44 @@ from league_storage import league_exists, season_save, season_restart, get_mods,
 from the_draft import Draft
 from flask import Flask
 from uuid import uuid4
+from typing import Optional
+from discord import app_commands
 import weather
 
 data_dir = "data"
 config_filename = os.path.join(data_dir, "config.json")
 app = main_controller.app
 
+class newClient(discord.Client):
+    def __init__(self, *, intents: discord.Intents):
+        super().__init__(intents=intents)
+        self.tree = app_commands.CommandTree(self)
+
+    async def setup_hook(self):
+        await self.tree.sync()
+
+client = newClient(intents = discord.Intents.default())
+
 class Command:
     def isauthorized(self, user):
         return True
 
-    async def execute(self, msg, command, flags):
+    async def execute(self, int, command, flags):
         return
+
+    async def reply(self, interaction, message, embed=None, ephemeral=False):
+        await interaction.response.send_message(message, embed=embed, ephemeral=ephemeral)
+
+def process_flags(flag_list):
+    flags = []
+    if "-" in flag_list:
+        check = flag_list.split("-")[1:]
+        for flag in [_ for _ in check if _ != ""]:
+            try:
+                flags.append((flag.split(" ")[0][0].lower(), flag.split(" ",1)[1].strip()))
+            except IndexError:
+                flags.append((flag.split(" ")[0][0].lower(), None))
+    return flags
 
 class DraftError(Exception):
     pass
@@ -36,13 +62,7 @@ class IntroduceCommand(Command):
         return user.id in config()["owners"]
 
     async def execute(self, msg, command, flags):
-        text = """**Your name, favorite team, and pronouns**: Matteo Prestige, CHST, they/them ***only.*** There's more than one of us up here, after all.
-**What are you majoring in (wrong answers only)**: Economics.
-**Your favorite and least favorite beverage, without specifying which**: Vanilla milkshakes, chocolate milkshakes.
-**Favorite non-Mild Low team**: The Mills. We hope they're treating Ren alright.
-**If you were a current blaseball player, who would you be**: We refuse to answer this question.
-**Your hobbies/interests**: Minigolf, blaseball, felony insider trading.
-Our avatar was graciously provided to us, with permission, by @HetreaSky on Twitter.
+        text = """Our avatar was graciously provided to us, with permission, by @HetreaSky on Twitter.
 """
         await msg.channel.send(text)
 
@@ -68,54 +88,17 @@ class RomanCommand(Command):
         except ValueError:
             raise CommandError(f"\"{command}\" isn't an integer in Arabic numerals.")
 
-class IdolizeCommand(Command):
-    name = "idolize"
-    template = "m;idolize [name]"
-    description = "Records any name as your idol, mostly for fun. There's a limit of 70 characters. That should be *plenty*."
-
-    async def execute(self, msg, command, flags):
-        if (command.startswith("meme")):
-            meme = True
-            command = command.split(" ",1)[1]
-        else:
-            meme = False
-
-        player_name = discord.utils.escape_mentions(command.strip())
-        if len(player_name) >= 70:
-            raise CommandError("That name is too long. Please keep it below 70 characters, for my sake and yours.")
-        try:
-            player_json = ono.get_stats(player_name)
-            db.designate_player(msg.author, json.loads(player_json))
-            if not meme:
-                await msg.channel.send(f"{player_name} is now your idol.")
-            else:
-                await msg.channel.send(f"{player_name} is now {msg.author.display_name}'s idol.")
-                await msg.channel.send(f"Reply if {player_name} is your idol also.")
-        except:
-            raise CommandError("Something went wrong. Tell xvi.")
-
-class ShowIdolCommand(Command):
-    name = "showidol"
-    template = "m;showidol"
-    description = "Displays your idol's name and stars in a nice discord embed."
-
-    async def execute(self, msg, command, flags):
-        try:
-            player_json = db.get_user_player(msg.author)
-            embed=build_star_embed(player_json)
-            embed.set_footer(text=msg.author.display_name)
-            await msg.channel.send(embed=embed)
-        except:
-            raise CommandError("We can't find your idol. Looked everywhere, too.")
-
 class ShowPlayerCommand(Command):
     name = "showplayer"
-    template = "m;showplayer [name]"
+    template = "showplayer [name]"
     description = "Displays any name's stars in a nice discord embed, there's a limit of 70 characters. That should be *plenty*. Note: if you want to lookup a lot of different players you can do it on onomancer here instead of spamming this command a bunch and clogging up discord: <https://onomancer.sibr.dev/reflect>"
 
-    async def execute(self, msg, command, flags):
-        player_name = json.loads(ono.get_stats(command.split(" ",1)[1]))
-        await msg.channel.send(embed=build_star_embed(player_name))
+@client.tree.command()
+@app_commands.rename(command="name")
+async def showplayer(interaction: discord.Interaction, command: str):
+    """Show a single player's stats."""
+    player_name = json.loads(ono.get_stats(command))
+    await interaction.response.send_message(embed=build_star_embed(player_name))
 
 class StartGameCommand(Command):
     name = "startgame"
@@ -126,118 +109,101 @@ class StartGameCommand(Command):
   - and finally, optionally, the number of innings, which must be greater than 2 and less than 201. if not included it will default to 9. 
   - this command has fuzzy search so you don't need to type the full name of the team as long as you give enough to identify the team you're looking for."""
 
-    async def execute(self, msg, command, flags):
-        league = None
-        day = None
-        weather_name = None
-        innings = None
-        voice = None
+@client.tree.command()
+@app_commands.rename(wthr="weather")
+@app_commands.choices(wthr=weather.weather_choices())
+async def startgame(interaction, away: str, home: str, innings: Optional[int]=9, wthr: Optional[app_commands.Choice[str]] = None, flags: Optional[str] = ""):
+    """Start a game with the given teams and, optionally, weather choice and custom inning number."""
+    league = None
+    day = None
+    innings = None
+    voice = None
 
-        if config()["game_freeze"]:
-            raise CommandError("Patch incoming. We're not allowing new games right now.")
+    if config()["game_freeze"]:
+        raise CommandError("Patch incoming. We're not allowing new games right now.")
    
-        for flag in flags:
-            if flag[0] == "l":
-                league = flag[1]
-            elif flag[0] == "d":
-                try:
-                    day = int(flag[1])
-                except:
-                    raise CommandError("Make sure you put an integer after the -d flag.")
-            elif flag[0] == "w":
-                weather_name = flag[1]
-                if weather_name not in weather.all_weathers():
-                    raise CommandError("We can't find that weather, chief. Try again.")
-            elif flag[0] == "v" or flag[0] == "a":
-                if flag[1] in gametext.all_voices():
-                    voice = gametext.all_voices()[flag[1]]
-                else:
-                    raise CommandError("We can't find that broadcaster.")
+    flags = process_flags(flags)
+    for flag in flags:
+        if flag[0] == "l":
+            league = flag[1]
+        elif flag[0] == "d":
+            try:
+                day = int(flag[1])
+            except:
+                raise CommandError("Make sure you put an integer after the -d flag.")
+        elif flag[0] == "v" or flag[0] == "a":
+            if flag[1] in gametext.all_voices():
+                voice = gametext.all_voices()[flag[1]]
             else:
-                raise CommandError("One or more of those flags wasn't right. Try and fix that for us and we'll see about sorting you out.")
-       
-        try:
-            team_name1 = command.split("\n")[1].strip()
-            team1 = get_team_fuzzy_search(team_name1)
-
-            team_name2 = command.split("\n")[2].strip()
-            team2 = get_team_fuzzy_search(team_name2)          
-        except IndexError:
-            raise CommandError("We need at least three lines: startgame, away team, and home team are required. Optionally, the number of innings can go at the end, if you want a change of pace.")
-        try:
-            innings = int(command.split("\n")[3])
-        except IndexError:
-            pass
-        except ValueError:
-            raise CommandError("That number of innings isn't even an integer, chief. We can't do fractional innings, nor do we want to.")
-
-        if innings is not None and innings < 2 and msg.author.id not in config()["owners"]:
-            raise CommandError("Anything less than 2 innings isn't even an outing. Try again.")
-                                                    
-        elif innings is not None and innings > 200 and msg.author.id not in config()["owners"]:
-            raise CommandError("Y'all can behave, so we've upped the limit on game length to 200 innings.")
-
-        if team1 is not None and team2 is not None:
-            game = games.game(team1.finalize(), team2.finalize(), length=innings)
-            if day is not None:
-                game.teams['away'].set_pitcher(rotation_slot = day)
-                game.teams['home'].set_pitcher(rotation_slot = day)
-            if voice is not None:
-                game.voice = voice()
-            channel = msg.channel
-            
-            if weather_name is not None:
-                game.weather = weather.all_weathers()[weather_name](game)               
-
-            game_task = asyncio.create_task(watch_game(channel, game, user=msg.author, league=league))
-            await game_task
+                raise CommandError("We can't find that broadcaster.")
         else:
-            raise CommandError("We can't find one or both of those teams. Check your staging, chief.")
+            raise CommandError("One or more of those flags wasn't right. Try and fix that for us and we'll see about sorting you out.")
+       
+    try:
+        team_name1 = away
+        team1 = get_team_fuzzy_search(team_name1)
+
+        team_name2 = home
+        team2 = get_team_fuzzy_search(team_name2)          
+    except IndexError:
+        raise CommandError("We need at least three lines: startgame, away team, and home team are required. Optionally, the number of innings can go at the end, if you want a change of pace.")
+    except IndexError:
+        pass
+    except ValueError:
+        raise CommandError("That number of innings isn't even an integer, chief. We can't do fractional innings, nor do we want to.")
+
+    if innings is not None and innings < 2 and interaction.user.id not in config()["owners"]:
+        raise CommandError("Anything less than 2 innings isn't even an outing. Try again.")
+                                                    
+    elif innings is not None and innings > 200 and interaction.user.id not in config()["owners"]:
+        raise CommandError("Y'all can behave, so we've upped the limit on game length to 200 innings.")
+
+    if team1 is not None and team2 is not None:
+        game = games.game(team1.finalize(), team2.finalize(), length=innings)
+        if day is not None:
+            game.teams['away'].set_pitcher(rotation_slot = day)
+            game.teams['home'].set_pitcher(rotation_slot = day)
+        if voice is not None:
+            game.voice = voice()
+        channel = interaction.channel
+            
+        if wthr is not None:
+            game.weather = weather.all_weathers()[wthr.value](game)               
+
+        game_task = asyncio.create_task(watch_game(channel, game, user=interaction.user, league=league, interaction=interaction))
+        await game_task
+    else:
+        raise CommandError("We can't find one or both of those teams. Check your staging, chief.")
 
 class StartRandomGameCommand(Command):
     name = "randomgame"
-    template = "m;randomgame"
+    template = "randomgame"
     description = "Starts a 9-inning game between 2 entirely random teams. Embrace chaos!"
 
-    async def execute(self, msg, command, flags):
-        if config()["game_freeze"]:
-            raise CommandError("Patch incoming. We're not allowing new games right now.")
+@client.tree.command()
+async def randomgame(interaction):
+    """Start a game between two random teams."""
+    if config()["game_freeze"]:
+        raise CommandError("Patch incoming. We're not allowing new games right now.")
 
-        channel = msg.channel
-        await channel.send("Rolling the bones... This might take a while.")
-        teamslist = games.get_all_teams()
+    channel = interaction.channel
+    await interaction.response.send_message("Rolling the bones... This might take a while.")
+    teamslist = games.get_all_teams()
 
-        game = games.game(random.choice(teamslist).finalize(), random.choice(teamslist).finalize())
+    game = games.game(random.choice(teamslist).finalize(), random.choice(teamslist).finalize())
 
-        game_task = asyncio.create_task(watch_game(channel, game, user="the winds of chaos"))
-        await game_task
-
-class SetupGameCommand(Command):
-    name = "setupgame"
-    template = "m;setupgame"
-    description =  "Begins setting up a 5-inning pickup game. Pitchers, lineups, and team names are given during the setup process by anyone able to type in that channel. Idols are easily signed up via emoji during the process. The game will start automatically after setup."
-
-    async def execute(self, msg, command, flags):
-        if config()["game_freeze"]:
-            raise CommandError("Patch incoming. We're not allowing new games right now.")
-
-        for game in gamesarray:
-            if game.name == msg.author.name:
-                raise CommandError("You've already got a game in progress! Wait a tick, boss.")
-        try:
-            inningmax = int(command)
-        except:
-            inningmax = 5
-        game_task = asyncio.create_task(setup_game(msg.channel, msg.author, games.game(msg.author.name, games.team(), games.team(), length=inningmax)))
-        await game_task
+    game_task = asyncio.create_task(watch_game(channel, game, user="the winds of chaos"))
+    await game_task
         
 class SaveTeamCommand(Command):
     name = "saveteam"
-    template = """m;saveteam
+    template = """m;saveteam [bot ping]
    [name] 
    [slogan] 
    [lineup]
-   [rotation]"""
+   [rotation]
+   
+   """
 
     description = """Saves a team to the database allowing it to be used for games. Send this command at the top of a list, with entries separated by new lines (shift+enter in discord, or copy+paste from notepad).
   - the first line of the list is your team's name.
@@ -258,91 +224,93 @@ If you did it correctly, you'll get a team embed with a prompt to confirm. hit t
             name = command.split('\n',1)[1].split('\n')[0]
             raise CommandError(f"{name} already exists. Try a new name, maybe?")
 
+@client.tree.command()
+async def newteam(interaction):
+    """Get new team instructions. Sent privately, don't worry!"""
+    await interaction.response.send_message(SaveTeamCommand.template + SaveTeamCommand.description , ephemeral=True)
+
 class AssignArchetypeCommand(Command):
     name = "archetype"
     template = "m;archetype [team name]\n[player name]\n[archetype name]"
     description = """Assigns an archetype to a player on your team. This can be changed at any time! For a description of a specific archetype, or a list of all archetypes, use m;archetypehelp."""
 
-    async def execute(self, msg, command, flags):
-        lines = command.split("\n")
-        try:
-            team = get_team_fuzzy_search(lines[0].strip())
-            player_name = lines[1].strip()
-            archetype_name = lines[2].strip()
-        except IndexError:
-            raise CommandError("You didn't give us enough info, boss. Check the help text.")
-        if team is None:
-            raise CommandError("We can't find that team.")
+@client.tree.command()
+@app_commands.choices(archetype=archetypes.archetype_choices())
+async def setarchetype(interaction, team: str, player: str, archetype: app_commands.Choice[str]):
+    """Assigns an archetype to a player on an owned team. Reversible."""
+    try:
+        team = get_team_fuzzy_search(team)
+        player_name = player
+        archetype_name = archetype.value
+    except IndexError:
+        raise CommandError("You didn't give us enough info, boss. Check the help text.")
+    if team is None:
+        raise CommandError("We can't find that team.")
         
-        team, ownerid = games.get_team_and_owner(team.name)
-        if ownerid != msg.author.id and msg.author.id not in config()["owners"]:
-            raise CommandError("That team ain't yours, and we're not about to help you cheat.")
+    team, ownerid = games.get_team_and_owner(team.name)
+    if ownerid != interaction.user.id and interaction.user.id not in config()["owners"]:
+        raise CommandError("That team ain't yours, and we're not about to help you cheat.")
 
-        player = team.find_player(player_name)[0]
-        if player is None:
-            raise CommandError("That player isn't on your team, boss.")
+    player = team.find_player(player_name)[0]
+    if player is None:
+        raise CommandError("That player isn't on your team, boss.")
         
-        archetype = archetypes.search_archetypes(archetype_name)
-        if archetype is None:
-            raise CommandError("We can't find that archetype, chief. Try m;archetypehelp.")
+    archetype = archetypes.search_archetypes(archetype_name)
+    if archetype is None:
+        raise CommandError("We can't find that archetype, chief. Try m;archetypehelp.")
 
-        try:
-            team.archetypes[player.name] = archetype
-        except AttributeError:
-            team.archetypes = {player.name : archetype}
-        games.update_team(team)
+    try:
+        team.archetypes[player.name] = archetype
+    except AttributeError:
+        team.archetypes = {player.name : archetype}
+    games.update_team(team)
 
-        await msg.channel.send("Player specialization is a beautiful thing, ain't it? Here's hoping they like it.")
+    await interaction.response.send_message("Player specialization is a beautiful thing, ain't it? Here's hoping they like it.")
 
 class ArchetypeHelpCommand(Command):
     name = "archetypehelp"
-    template = "m;archetypehelp\nm;archetypehelp [archetype name]"
-    description = "Prints a list of all archetypes, or describes a given archetype."
+    template = "archetypehelp [archetype name]"
+    description = "Describes a given archetype."
 
-    async def execute(self, msg, command, flags):
-        archetype_list = archetypes.all_archetypes()
-        try:
-            archetype_name = command.split(" ",1)[1].strip()
-        except IndexError:
-            #this means it's just the command, hoo-ray            
-            string_list = ""
-            for arch in archetype_list:
-                string_list += arch.display_name + "\n"
-            await msg.channel.send(string_list)
-            return
+@client.tree.command()
+@app_commands.choices(archetype=archetypes.archetype_choices())
+async def archetypehelp(interaction, archetype: app_commands.Choice[str]):
+    """Describes a specific archetype."""
+    arch = archetypes.search_archetypes(archetype.value)
+    if arch is None:
+        raise CommandError("We don't know what that archetype is. If you're trying to break new ground, here isn't the time *or* the place.")
 
-        arch = archetypes.search_archetypes(archetype_name)
-        if arch is None:
-            raise CommandError("We don't know what that archetype is. If you're trying to break new ground, here isn't the time *or* the place.")
-
-        await msg.channel.send(f"""{arch.display_name}
+    await interaction.response.send_message(f"""{arch.display_name}
 Short name: {arch.name}
 
 {arch.description}""")
 
 class ViewArchetypesCommand(Command):
     name = "teamarchetypes"
-    template = "m;teamarchetypes [team name]"
+    template = "teamarchetypes [team name]"
     description = "Lists the current archetypes on the given team."
 
-    async def execute(self, msg, command, flags):
-        team = get_team_fuzzy_search(command.strip())
-        if team is None:
-            raise CommandError("We can't find that team, boss.")
-        elif team.archetypes == {}:
-            raise CommandError("That team doesn't have any specializations set.")
+@client.tree.command()
+@app_commands.rename(team_name="team")
+async def teamarchetypes(interaction, team_name: str):
+    """Lists the current archetypes on a team."""
+    team = get_team_fuzzy_search(team_name)
+    if team is None:
+        raise CommandError("We can't find that team, boss.")
+    elif team.archetypes == {}:
+        raise CommandError("That team doesn't have any specializations set.")
 
-        embed_string = ""
-        for player_name, archetype in team.archetypes.items():
-            embed_string += f"**{player_name}**:\n{archetype.display_name}\n\n"
-        embed = discord.Embed(color=discord.Color.dark_green(), title=f"{team.name} Archetypes")
-        embed.add_field(name="-",value=embed_string)
-        await msg.channel.send(embed=embed)
+    embed_string = ""
+    for player_name, archetype in team.archetypes.items():
+        embed_string += f"**{player_name}**:\n{archetype.display_name}\n\n"
+    embed = discord.Embed(color=discord.Color.dark_green(), title=f"{team.name} Archetypes")
+    embed.add_field(name="-",value=embed_string)
+    await interaction.reaction.send_message(embed=embed)
 
 class ImportCommand(Command):
     name = "import"
     template = "m;import [onomancer collection URL]"
-    description = "Imports an onomancer collection as a new team. You can use the new onomancer simsim setting to ensure compatibility. Similarly to saveteam, you'll get a team embed with a prompt to confirm, hit the 👍 and your team will be saved!"
+    description = "Imports an onomancer collection as a new team. You can use the new onomancer simsim setting to ensure compatibility. Similarly to saveteam, you'll get a team embed with a prompt to confirm, hit the 👍 and your team will be saved! Only functions in bot DMs."
 
     async def execute(self, msg, command, flags):
         team_raw = ono.get_collection(command.strip())
@@ -361,13 +329,15 @@ class ShowTeamCommand(Command):
     template = "m;showteam [name]"
     description = "Shows the lineup, rotation, and slogan of any saved team in a discord embed with primary stat star ratings for all of the players. This command has fuzzy search so you don't need to type the full name of the team as long as you give enough to identify the team you're looking for."
     
-    async def execute(self, msg, command, flags):
-        team_name = command.strip()
-        team = get_team_fuzzy_search(team_name)
-        if team is not None:
-            await msg.channel.send(embed=build_team_embed(team))
-            return
-        raise CommandError("Can't find that team, boss. Typo?")
+@client.tree.command()
+@app_commands.rename(team_name="team")
+async def showteam(interaction, team_name: str):
+    """Display a team's roster and relevant ratings."""
+    team = get_team_fuzzy_search(team_name)
+    if team is not None:
+        await interaction.response.send_message(embed=build_team_embed(team))
+        return
+    raise CommandError("Can't find that team, boss. Typo?")
 
 class ShowAllTeamsCommand(Command):
     name = "showallteams"
@@ -398,6 +368,11 @@ class CreditCommand(Command):
     async def execute(self, msg, command, flags):
         await msg.channel.send("Our avatar was graciously provided to us, with permission, by @HetreaSky on Twitter.")
 
+@client.tree.command()
+async def credit(interaction):
+    """Show artist credit for the bot's avatar."""
+    await interaction.response.send_message("Our avatar was graciously provided to us, with permission, by @HetreaSky on Twitter.")
+
 class SwapPlayerCommand(Command):
     name = "swapsection"
     template = """m;swapsection
@@ -412,7 +387,7 @@ class SwapPlayerCommand(Command):
             team, owner_id = games.get_team_and_owner(team_name)
             if team is None:
                 raise CommandError("Can't find that team, boss. Typo?")
-            elif owner_id != msg.author.id and msg.author.id not in config()["owners"]:
+            elif owner_id != interaction.user.id and interaction.user.id not in config()["owners"]:
                 raise CommandError("You're not authorized to mess with this team. Sorry, boss.")
             elif not team.swap_player(player_name):
                 raise CommandError("Either we can't find that player, you've got no space on the other side, or they're your last member of that side of the roster. Can't field an empty lineup, and we *do* have rules, chief.")
@@ -422,6 +397,22 @@ class SwapPlayerCommand(Command):
                 await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
         except IndexError:
             raise CommandError("Three lines, remember? Command, then team, then name.")
+
+@client.tree.command()
+@app_commands.rename(team_name="team", player_name="player")
+async def swapplayer(interaction, team_name: str, player_name: str):
+    """Swaps a player on an owned team between lineup and rotation."""
+    team, owner_id = games.get_team_and_owner(team_name)
+    if team is None:
+        raise CommandError("Can't find that team, boss. Typo?")
+    elif owner_id != interaction.user.id and interaction.user.id not in config()["owners"]:
+        raise CommandError("You're not authorized to mess with this team. Sorry, boss.")
+    elif not team.swap_player(player_name):
+        raise CommandError("Either we can't find that player, you've got no space on the other side, or they're your last member of that side of the roster. Can't field an empty lineup, and we *do* have rules, chief.")
+    else:
+        await interaction.channel.send(embed=build_team_embed(team))
+        games.update_team(team)
+        await interaction.response.send_message("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
 
 class MovePlayerCommand(Command):
     name = "moveplayer"
@@ -435,33 +426,39 @@ class MovePlayerCommand(Command):
         try:
             team_name = command.split("\n")[1].strip()
             player_name = command.split("\n")[2].strip()
-            team, owner_id = games.get_team_and_owner(team_name)
-            try:
-                new_pos = int(command.split("\n")[3].strip())
-            except ValueError:
-                raise CommandError("Hey, quit being cheeky. We're just trying to help. Third line has to be a natural number, boss.")
-            if owner_id != msg.author.id and msg.author.id not in config()["owners"]:
-                raise CommandError("You're not authorized to mess with this team. Sorry, boss.")
-            else:
-                if team.find_player(player_name)[2] is None or len(team.find_player(player_name)[2]) < new_pos:
-                    raise CommandError("You either gave us a number that was bigger than your current roster, or we couldn't find the player on the team. Try again.")
-
-                if "batter" in command.split("\n")[0].lower():
-                    roster = team.lineup
-                elif "pitcher" in command.split("\n")[0].lower():
-                    roster = team.rotation
-                else:
-                    roster = None
-
-                if (roster is not None and team.slide_player_spec(player_name, new_pos, roster)) or (roster is None and team.slide_player(player_name, new_pos)):
-                    await msg.channel.send(embed=build_team_embed(team))
-                    games.update_team(team)
-                    await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
-                else:
-                    raise CommandError("You either gave us a number that was bigger than your current roster, or we couldn't find the player on the team. Try again.")
+            
 
         except IndexError:
             raise CommandError("Four lines, remember? Command, then team, then name, and finally, new spot on the lineup or rotation.")
+
+@client.tree.command()
+@app_commands.rename(team_name="team", player_name="player", is_pitcher="type", new_pos="newposition")
+@app_commands.choices(is_pitcher=[app_commands.Choice(name="pitcher", value=1), app_commands.Choice(name="batter", value=0)])
+async def moveplayer(interaction, team_name: str, player_name: str, is_pitcher: app_commands.Choice[int], new_pos: int):
+    """Moves a player to a different position in your lineup or rotation."""
+    team, owner_id = games.get_team_and_owner(team_name)
+    if new_pos < 0:
+        raise CommandError("Hey, quit being cheeky. We're just trying to help. New position has to be a natural number, boss.")
+    elif owner_id != interaction.user.id and interaction.user.id not in config()["owners"]:
+        raise CommandError("You're not authorized to mess with this team. Sorry, boss.")
+    elif team is None:
+        raise CommandError("We can't find that team, boss. Typo?")
+    else:
+        if team.find_player(player_name)[2] is None or len(team.find_player(player_name)[2]) < new_pos:
+            raise CommandError("You either gave us a number that was bigger than your current roster, or we couldn't find the player on the team. Try again.")
+
+        if is_pitcher.value == 0:
+            roster = team.lineup
+        else:
+            roster = team.rotation
+
+        if (roster is not None and team.slide_player_spec(player_name, new_pos, roster)) or (roster is None and team.slide_player(player_name, new_pos)):
+            await interaction.channel.send(embed=build_team_embed(team))
+            games.update_team(team)
+            await interaction.response.send_message("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
+        else:
+            raise CommandError("You either gave us a number that was bigger than your current roster, or we couldn't find the player on the team. Try again.")
+
 
 class AddPlayerCommand(Command):
     name = "addplayer"
@@ -474,28 +471,35 @@ class AddPlayerCommand(Command):
         try:
             team_name = command.split("\n")[1].strip()
             player_name = command.split("\n")[2].strip()
-            if len(player_name) > 70:
-                raise CommandError("70 characters per player, boss. Quit being sneaky.")
-            team, owner_id = games.get_team_and_owner(team_name)
-            if owner_id != msg.author.id and msg.author.id not in config()["owners"]:
-                raise CommandError("You're not authorized to mess with this team. Sorry, boss.")
-
-            new_player = games.player(ono.get_stats(player_name))
-
-            if "batter" in command.split("\n")[0].lower():
-                if not team.add_lineup(new_player)[0]:
-                    raise CommandError("Too many batters 🎶")
-            elif "pitcher" in command.split("\n")[0].lower():
-                if not team.add_pitcher(new_player):
-                    raise CommandError("8 pitchers is quite enough, we think.")
-            else:
-                raise CommandError("You have to tell us if you want a pitcher or a batter, boss. Just say so in the first line, with the command.")
-
-            await msg.channel.send(embed=build_team_embed(team))
-            games.update_team(team)
-            await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
+            
         except IndexError:
             raise CommandError("Three lines, remember? Command, then team, then name.")
+
+@client.tree.command()
+@app_commands.choices(is_pitcher=[app_commands.Choice(name="pitcher", value=1), app_commands.Choice(name="batter", value=0)])
+@app_commands.rename(team_name="team", player_name="player", is_pitcher="type")
+async def addplayer(interaction, team_name: str, player_name: str, is_pitcher: app_commands.Choice[int]):
+    """Adds a new player to your team."""
+    if len(player_name) > 70:
+        raise CommandError("70 characters per player, boss. Quit being sneaky.")
+    team, owner_id = games.get_team_and_owner(team_name)
+    if team is None:
+        raise CommandError("We can't find that team, boss. Typo?")
+    if owner_id != interaction.user.id and interaction.user.id not in config()["owners"]:
+        raise CommandError("You're not authorized to mess with this team. Sorry, boss.")
+
+    new_player = games.player(ono.get_stats(player_name))
+
+    if is_pitcher.value == 0:
+        if not team.add_lineup(new_player)[0]:
+            raise CommandError("Too many batters 🎶")
+    else:
+        if not team.add_pitcher(new_player):
+            raise CommandError("8 pitchers is quite enough, we think.")
+
+    await interaction.channel.send(embed=build_team_embed(team))
+    games.update_team(team)
+    await interaction.response.send_message("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
 
 class RemovePlayerCommand(Command):
     name = "removeplayer"
@@ -508,19 +512,28 @@ class RemovePlayerCommand(Command):
         try:
             team_name = command.split("\n")[1].strip()
             player_name = command.split("\n")[2].strip()
-            team, owner_id = games.get_team_and_owner(team_name)
-            if owner_id != msg.author.id and msg.author.id not in config()["owners"]:
-                raise CommandError("You're not authorized to mess with this team. Sorry, boss.")
-
-            if not team.delete_player(player_name):
-                raise CommandError("We've got bad news: that player isn't on your team. The good news is that... that player isn't on your team?")
-
-            else:
-                await msg.channel.send(embed=build_team_embed(team))
-                games.update_team(team)
-                await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
+            
+            
         except IndexError:
             raise CommandError("Three lines, remember? Command, then team, then name.")
+
+@client.tree.command()
+@app_commands.rename(team_name="team", player_name="player")
+async def removeplayer(interaction, team_name: str, player_name: str):
+    """Removes a player from your team."""
+    team, owner_id = games.get_team_and_owner(team_name)
+    if owner_id != interaction.user.id and interaction.user.id not in config()["owners"]:
+        raise CommandError("You're not authorized to mess with this team. Sorry, boss.")
+    elif team is None:
+        raise CommandError("Can't find that team, boss. Typo?")
+
+    if not team.delete_player(player_name):
+        raise CommandError("We've got bad news: that player isn't on your team. The good news is that... that player isn't on your team?")
+
+    else:
+        await interaction.channel.send(embed=build_team_embed(team))
+        games.update_team(team)
+        await interaction.response.send_message("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
 
 class ReplacePlayerCommand(Command):
     name = "replaceplayer"
@@ -589,12 +602,18 @@ class DeleteTeamCommand(Command):
 
     async def execute(self, msg, command, flags):
         team_name = command.strip()
-        team, owner_id = games.get_team_and_owner(team_name)
-        if owner_id != msg.author.id and msg.author.id not in config()["owners"]: #returns if person is not owner and not bot mod
-            raise CommandError("That team ain't yours, chief. If you think that's not right, bug xvi about deleting it for you.")
-        elif team is not None:
-            delete_task = asyncio.create_task(team_delete_confirm(msg.channel, team, msg.author))
-            await delete_task
+        
+
+@client.tree.command()
+@app_commands.rename(team_name="team")
+async def deleteteam(interaction, team_name: str):
+    """Deletes a team. Requires confirmation."""
+    team, owner_id = games.get_team_and_owner(team_name)
+    if owner_id != interaction.user.id and interaction.user.id not in config()["owners"]: #returns if person is not owner and not bot mod
+        raise CommandError("That team ain't yours, chief. If you think that's not right, bug xvi about deleting it for you.")
+    elif team is not None:
+        delete_task = asyncio.create_task(team_delete_confirm(interaction.channel, team, interaction.user))
+        await delete_task
 
 class AssignOwnerCommand(Command):
     name = "assignowner"
@@ -615,9 +634,10 @@ class AssignOwnerCommand(Command):
 
 class StartTournamentCommand(Command):
     name = "starttournament"
-    template = """m;starttournament
+    template = """m;starttournament [bot ping]
     [tournament name]
-    [list of teams, each on a new line]"""
+    [list of teams, each on a new line]
+    """
     description = "Starts a randomly seeded tournament with the provided teams, automatically adding byes as necessary. All series have a 5 minute break between games and by default there is a 10 minute break between rounds. The current tournament format is:\nBest of 5 until the finals, which are Best of 7."
 
     async def execute(self, msg, command, flags):
@@ -696,6 +716,11 @@ class StartTournamentCommand(Command):
         tourney.build_bracket(random_sort = rand_seed)
    
         await start_tournament_round(channel, tourney)
+
+@client.tree.command()
+async def starttournament(interaction):
+    """Get tournament instructions. Sent privately, don't worry!"""
+    await interaction.response.send_message(StartTournamentCommand.template + StartTournamentCommand.description , ephemeral=True)
 
 
 class DraftPlayerCommand(Command):
@@ -913,71 +938,68 @@ class StartLeagueCommand(Command):
     description = """Optional flags for the first line: `--queue X` or `-q X` to play X number of series before stopping; `--autopostseason` will automatically start postseason at the end of the season.
 Starts games from a league with a given name, provided that league has been saved on the website and has been claimed using claimleague. The games per hour sets how often the games will start (e.g. GPH 2 will start games at X:00 and X:30). By default it will play the entire season followed by the postseason and then stop but this can be customized using the flags.
 Not every team will play every series, due to how the scheduling algorithm is coded but it will all even out by the end."""
+        
 
-    async def execute(self, msg, command, flags):
+@client.tree.command()
+@app_commands.rename(league_name="leaguename", autoplay="queue", postseason_mode="postseasonmode")
+@app_commands.describe(gph="Games per hour to play.")
+@app_commands.choices(postseason_mode=[app_commands.Choice(name="pause", value=0), app_commands.Choice(name="auto", value=1), app_commands.Choice(name="skip", value=2)])
+async def startleague(interaction, league_name: str, gph: int, autoplay: Optional[int]=None, postseason_mode: Optional[app_commands.Choice[int]]=0):
+    """Starts up a league previously formed on the site."""
+    autopost = False
+    nopost = False
+
+    if config()["game_freeze"]:
+        raise CommandError("Patch incoming. We're not allowing new games right now.")
+
+    if autoplay is not None:
+        if autoplay <= 0:
+            raise CommandError("Sorry boss, the queue flag needs a natural number. Any whole number over 0 will do just fine.")
+    else:
         autoplay = -1
-        autopost = False
-        nopost = False
+    if postseason_mode == 0:
+        postseason_mode = app_commands.Choice(name="pause", value=0)
 
-        if config()["game_freeze"]:
-            raise CommandError("Patch incoming. We're not allowing new games right now.")
 
-        league_name = command.split("-")[0].split("\n")[0].strip()
+    if postseason_mode is None or postseason_mode.value == 0: #noautopostseason
+        await interaction.response.send_message("We'll pause the games before postseason starts, when we get there.")
+    elif postseason_mode.value == 1: #autopostseason
+        await interaction.response.send_message("We'll automatically start postseason for you, when we get there.")
+        autopost = True
+    elif postseason_mode.value == 2: #skippostseason
+        await interaction.response.send_message("We'll **skip postseason** for you! Make sure you wanted to do this.")
+        autopost = True
+        nopost = True
 
-        for flag in flags:
-            if flag[0] == "q":
-                try:
-                    autoplay = int(flag[1])
-                    if autoplay <= 0:
-                        raise ValueError
-                except ValueError:
-                    raise CommandError("Sorry boss, the queue flag needs a natural number. Any whole number over 0 will do just fine.")
-            elif flag[0] == "n": #noautopostseason
-                await msg.channel.send("Automatic postseason is now disabled by default! No need for this flag in the future. --autopostseason (or -a) will *enable* autopostseason, should you want it.")
-            elif flag[0] == "a": #autopostseason
-                await msg.channel.send("We'll automatically start postseason for you, when we get there.")
-                autopost = True
-            elif flag[0] == "s": #skippostseason
-                await msg.channel.send("We'll **skip postseason** for you! Make sure you wanted to do this.")
-                autopost = True
-                nopost = True
+    if gph < 1 or gph > 12:
+        raise CommandError("Chief, we need a games per hour number between 1 and 12. We think that's reasonable.")   
+
+
+    if league_exists(league_name):
+        league = leagues.load_league_file(league_name)
+        if autoplay == -1 and not autopost:
+            autoplay = int(list(league.schedule.keys())[-1]) - league.day_to_series_num(league.day) + 1           
+        if nopost:
+            league.postseason = False
+
+        if league.historic:
+            raise CommandError("That league is done and dusted, chief. Sorry.")
+        for active_league in active_leagues:
+            if active_league.name == league.name:
+                raise CommandError("That league is already running, boss. Patience is a virtue, you know.")
+        if (league.owner is not None and interaction.user.id in league.owner) or interaction.user.id in config()["owners"] or league.owner is None:
+            league.autoplay = autoplay
+            league.games_per_hour = gph
+            if str(league.day_to_series_num(league.day)) not in league.schedule.keys():
+                await league_postseason(interaction.channel, league)
+            elif league.day % league.series_length == 1:
+                await start_league_day(interaction.channel, league)
             else:
-                raise CommandError("One or more of those flags wasn't right. Try and fix that for us and we'll see about sorting you out.")
-
-        try:
-            gph = int(command.split("\n")[1].strip())
-            if gph < 1 or gph > 12:
-                raise ValueError
-        except ValueError:
-            raise CommandError("Chief, we need a games per hour number between 1 and 12. We think that's reasonable.")
-        except IndexError:
-            raise CommandError("We need a games per hour number in the second line.")
-
-        if league_exists(league_name):
-            league = leagues.load_league_file(league_name)
-            if autoplay == -1 and not autopost:
-                autoplay = int(list(league.schedule.keys())[-1]) - league.day_to_series_num(league.day) + 1           
-            if nopost:
-                league.postseason = False
-
-            if league.historic:
-                raise CommandError("That league is done and dusted, chief. Sorry.")
-            for active_league in active_leagues:
-                if active_league.name == league.name:
-                    raise CommandError("That league is already running, boss. Patience is a virtue, you know.")
-            if (league.owner is not None and msg.author.id in league.owner) or msg.author.id in config()["owners"] or league.owner is None:
-                league.autoplay = autoplay
-                league.games_per_hour = gph
-                if str(league.day_to_series_num(league.day)) not in league.schedule.keys():
-                    await league_postseason(msg.channel, league)
-                elif league.day % league.series_length == 1:
-                    await start_league_day(msg.channel, league)
-                else:
-                    await start_league_day(msg.channel, league, partial = True)
-            else:
-                raise CommandError("You don't have permission to manage that league.")
+                await start_league_day(interaction.channel, league, partial = True)
         else:
-            raise CommandError("Couldn't find that league, boss. Did you save it on the website?")
+            raise CommandError("You don't have permission to manage that league.")
+    else:
+        raise CommandError("Couldn't find that league, boss. Did you save it on the website?")
 
 class LeagueSetPlayerModifiersCommand(Command):
     name = "setplayermods"
@@ -1016,210 +1038,244 @@ class LeagueSubscribeCommand(Command):
     name = "leaguesub"
     template = "m;leaguesub [league name]"
     description = "Posts all league feed events to this channel, in addition to the channel the league was started in. Run again to unsubscribe."
+        
 
-    async def execute(self, msg, command, flags):
-        league_name = command.strip()
-        if league_exists(league_name):
-            league = leagues.load_league_file(league_name)
-            if msg.channel.id in league.subbed_channels:
-                league.subbed_channels.pop(league.subbed_channels.index(msg.channel.id))
-                await msg.channel.send("You're off the mailing list, boss. We promise.")
-            else:
-                league.subbed_channels.append(msg.channel.id)
-                await msg.channel.send(f"Thanks for signing up to the {league_name} newsletter.")
-            leagues.save_league(league)
+@client.tree.command()
+@app_commands.rename(league_name="leaguename")
+async def leaguesubscribe(interaction, league_name: str):
+    """Posts league feed events to this channel. Use again to unsub."""
+    if league_exists(league_name):
+        league = leagues.load_league_file(league_name)
+        if interaction.channel.id in league.subbed_channels:
+            league.subbed_channels.pop(league.subbed_channels.index(interaction.channel.id))
+            await interaction.response.send_message("You're off the mailing list, boss. We promise.")
         else:
-            raise CommandError("That league doesn't exist, boss.")
+            league.subbed_channels.append(interaction.channel.id)
+            await interaction.response.send_message(f"Thanks for signing up to the {league_name} newsletter.")
+        leagues.save_league(league)
+    else:
+        raise CommandError("That league doesn't exist, boss.")
 
 class LeagueDisplayCommand(Command):
     name = "leaguestandings"
     template = "m;leaguestandings\n[league name]"
     description = "Displays the current standings for the given league. Use `--season X` or `-s X` to get standings from season X of that league."
+        
 
-    async def execute(self, msg, command, flags):
-        try:
-            if league_exists(command.split("\n")[1].strip()):
+@client.tree.command()
+@app_commands.rename(league_name="leaguename")
+async def leaguestandings(interaction, league_name: str, season: Optional[int]=None):
+    """Display a league's current (or historical) standings."""
+    try:
+        if league_exists(league_name):
+            league = leagues.load_league_file(league_name)
+            if season is not None:
                 try:
-                    league = leagues.load_league_file(command.split("\n")[1].strip())
-                except IndexError:
-                    raise CommandError("League name goes on the second line now, boss.")
+                    season_num = season
+                    await interaction.response.send_message(embed=league.past_standings(season_num))
+                    return
+                except ValueError:
+                    raise CommandError("Give us a proper number, boss.")
+                except TypeError:
+                    raise CommandError("That season hasn't been played yet, chief.")
 
-                for flag in flags:
-                    if flag[0] == "s":
-                        try:
-                            season_num = int(flag[1])
-                            await msg.channel.send(embed=league.past_standings(season_num))
-                            return
-                        except ValueError:
-                            raise CommandError("Give us a proper number, boss.")
-                        except TypeError:
-                            raise CommandError("That season hasn't been played yet, chief.")
-
-                await msg.channel.send(embed=league.standings_embed())
-            else:
-                raise CommandError("Can't find that league, boss.")
-        except IndexError:
-            raise CommandError("League name goes on the second line now, boss.")
+            await interaction.response.send_message(embed=league.standings_embed())
+        else:
+            raise CommandError("Can't find that league, boss.")
+    except IndexError:
+        raise CommandError("League name goes on the second line now, boss.")
 
 class LeagueLeadersCommand(Command):
     name = "leagueleaders"
     template = "m;leagueleaders [league name]\n[stat name/abbreviation]"
     description = "Displays a league's leaders in the given stat. A list of the allowed stats can be found on the github readme."
+        
 
-    async def execute(self, msg, command, flags):
-        if league_exists(command.split("\n")[0].strip()):
-            league = leagues.load_league_file(command.split("\n")[0].strip())
-            stat_name = command.split("\n")[1].strip()
-            season_num = None
+@client.tree.command()
+@app_commands.rename(league_name="leaguename")
+async def leagueleaders(interaction, league_name: str, stat: str, season: Optional[int]=None):
+    """Displays a league's leaders in the given stat. A list of the allowed stats can be found on the github readme."""
+    if league_exists(league_name):
+        league = leagues.load_league_file(league_name)
+        stat_name = stat
+        season_num = None
 
-            for flag in flags:
-                if flag[0] == "s":
-                    try:
-                        season_num = int(flag[1])
-                        return
-                    except ValueError:
-                        raise CommandError("Give us a proper number, boss.")
-
+        if season is not None:
             try:
-                stat_embed = league.stat_embed(stat_name, season_num)
-            except IndexError:
-                raise CommandError("Nobody's played enough games to get meaningful stats in that category yet, chief. Try again after the next game or two.")
-            except ValueError:
-                raise CommandError("That season hasn't been played yet.")
-
-            if stat_embed is None:
-                raise CommandError("We don't know what that stat is, chief.")
-            try:
-                await msg.channel.send(embed=stat_embed)
+                season_num = season
                 return
-            except:
-                raise CommandError("Nobody's played enough games to get meaningful stats in that category yet, chief. Try again after the next game or two.")
+            except ValueError:
+                raise CommandError("Give us a proper number, boss.")
 
-        raise CommandError("Can't find that league, boss.")
+        try:
+            stat_embed = league.stat_embed(stat_name, season_num)
+        except IndexError:
+            raise CommandError("Nobody's played enough games to get meaningful stats in that category yet, chief. Try again after the next game or two.")
+        except ValueError:
+            raise CommandError("That season hasn't been played yet.")
+
+        if stat_embed is None:
+            raise CommandError("We don't know what that stat is, chief.")
+        try:
+            await interaction.response.send_message(embed=stat_embed)
+            return
+        except:
+            raise CommandError("Nobody's played enough games to get meaningful stats in that category yet, chief. Try again after the next game or two.")
+
+    raise CommandError("Can't find that league, boss.")
 
 class LeagueDivisionDisplayCommand(Command):
     name = "divisionstandings"
     template = "m;divisionstandings [league name]\n[division name]"
     description = "Displays the current standings for the given division in the given league."
+        
 
-    async def execute(self, msg, command, flags):
-        if league_exists(command.split("\n")[0].strip()):
-            league = leagues.load_league_file(command.split("\n")[0].strip())
-            division_name = command.split("\n")[1].strip()
-            division = None
-            for subleague in iter(league.league.keys()):
-                for div in iter(league.league[subleague].keys()):
-                    if div == division_name:
-                        division = league.league[subleague][div]
-            if division is None:
-                raise CommandError("Chief, that division doesn't exist in that league.")
-            try:
-                await msg.channel.send(embed=league.standings_embed_div(division, division_name))
-            except:
-                raise CommandError("Something went wrong, boss. Check your staging.")
-        else:
-            raise CommandError("Can't find that league, boss.")
+@client.tree.command()
+@app_commands.rename(league_name="leaguename", division_name="division")
+async def divisionstandings(interaction, league_name: str, division_name: str):
+    """Displays the current standings for the given division in the given league."""
+    if league_exists(league_name):
+        league = leagues.load_league_file(league_name)
+        division = None
+        for subleague in iter(league.league.keys()):
+            for div in iter(league.league[subleague].keys()):
+                if div == division_name:
+                    division = league.league[subleague][div]
+        if division is None:
+            raise CommandError("Chief, that division doesn't exist in that league.")
+        try:
+            await interaction.response.send_message(embed=league.standings_embed_div(division, division_name))
+        except:
+            raise CommandError("Something went wrong, boss. Check your staging.")
+    else:
+        raise CommandError("Can't find that league, boss.")
 
 class LeagueWildcardCommand(Command):
     name = "leaguewildcard"
     template = "m;leaguewildcard [league name]"
     description = "Displays the current wildcard race for the given league, if the league has wildcard slots."
-
-    async def execute(self, msg, command, flags):
-        if league_exists(command.strip()):
-            league = leagues.load_league_file(command.strip())
-            if league.constraints["wild_cards"] > 0:
-                await msg.channel.send(embed=league.wildcard_embed())
-            else:
-                raise CommandError("That league doesn't have wildcards, boss.")
+        
+@client.tree.command()
+@app_commands.rename(league_name="leaguename")
+async def wildcard(interaction, league_name: str):
+    """Displays the current wildcard race for the given league, if the league has wildcard slots."""
+    if league_exists(league_name):
+        league = leagues.load_league_file(league_name)
+        if league.constraints["wild_cards"] > 0:
+            await interaction.response.send_message(embed=league.wildcard_embed())
         else:
-            raise CommandError("Can't find that league, boss.")
+            raise CommandError("That league doesn't have wildcards, boss.")
+    else:
+        raise CommandError("Can't find that league, boss.")
 
 class LeaguePauseCommand(Command):
     name = "pauseleague"
     template = "m;pauseleague [league name]"
     description = "Tells a currently running league to stop running after the current series."
+    
 
-    async def execute(self, msg, command, flags):
-        league_name = command.strip()
-        for active_league in active_leagues:
-            if active_league.name == league_name:
-                if (active_league.owner is not None and msg.author.id in active_league.owner) or msg.author.id in config()["owners"]:
-                    active_league.autoplay = 0
-                    await msg.channel.send(f"Loud and clear, chief. {league_name} will stop after this series is over.")
-                    return
-                else:
-                    raise CommandError("You don't have permission to manage that league.")
-        raise CommandError("That league either doesn't exist or isn't running.")
+@client.tree.command()
+@app_commands.rename(league_name="leaguename")
+async def leaguepause(interaction, league_name: str):
+    """Tells a currently running league to stop running after the current series."""
+    for active_league in active_leagues:
+        if active_league.name == league_name:
+            if (active_league.owner is not None and interaction.user.id in active_league.owner) or interaction.user.id in config()["owners"]:
+                active_league.autoplay = 0
+                await interaction.response.send_message(f"Loud and clear, chief. {league_name} will stop after this series is over.")
+                return
+            else:
+                raise CommandError("You don't have permission to manage that league.")
+    raise CommandError("That league either doesn't exist or isn't running.")
 
 class LeagueClaimCommand(Command):
     name = "claimleague"
     template = "m;claimleague [league name]"
     description = "Claims an unclaimed league. Do this as soon as possible after creating the league, or it will remain unclaimed."
+    
 
-    async def execute(self, msg, command, flags):
-        league_name = command.strip()
-        if league_exists(league_name):
-            league = leagues.load_league_file(league_name)
-            if league.owner is None:
-                league.owner = [msg.author.id]
-                leagues.save_league(league)
-                await msg.channel.send(f"The {league.name} commissioner is doing a great job. That's you, by the way.")
-                return
-            else:
-                raise CommandError("That league has already been claimed!")
+@client.tree.command()
+@app_commands.rename(league_name="leaguename")
+async def claimleague(interaction, league_name: str):
+    """Claims an unclaimed league. Do this as soon as possible after creating the league, or it will remain unclaimed."""
+    if league_exists(league_name):
+        league = leagues.load_league_file(league_name)
+        if league.owner is None:
+            league.owner = [interaction.user.id]
+            leagues.save_league(league)
+            await interaction.response.send_message(f"The {league.name} commissioner is doing a great job. That's you, by the way.")
+            return
         else:
-            raise CommandError("Can't find that league, boss.")
+            raise CommandError("That league has already been claimed!")
+    else:
+        raise CommandError("Can't find that league, boss.")
 
 class LeagueAddOwnersCommand(Command):
     name = "addleagueowner"
     template = "m;addleagueowner [league name]\n[user mentions]"
     description = "Adds additional owners to a league."
+    
 
-    async def execute(self, msg, command, flags):
-        league_name = command.split("\n")[0].strip()
-        if league_exists(league_name):
-            league = leagues.load_league_file(league_name)
-            if (league.owner is not None and msg.author.id in league.owner) or (league.owner is not None and msg.author.id in config()["owners"]):
-                for user in msg.mentions:
-                    if user.id not in league.owner:
-                        league.owner.append(user.id)
-                leagues.save_league(league)
-                await msg.channel.send(f"The new {league.name} front office is now up and running.")
-                return
-            else:
-                raise CommandError(f"That league isn't yours, boss.")
+@client.tree.command()
+@app_commands.rename(league_name="leaguename", newowner="newownermention")
+async def addleagueowner(interaction, league_name: str, newowner: str):
+    """Adds an owner to a league."""
+    if league_exists(league_name):
+        league = leagues.load_league_file(league_name)
+        if (league.owner is not None and interaction.user.id in league.owner) or (league.owner is not None and interaction.user.id in config()["owners"]):
+            if int(newowner[2:-1]) not in league.owner:
+                league.owner.append(int(newowner[2:-1]))
+            leagues.save_league(league)
+            await interaction.response.send(f"The new {league.name} front office is now up and running.")
+            return
         else:
-            raise CommandError("Can't find that league, boss.")
+            raise CommandError(f"That league isn't yours, boss.")
+    else:
+        raise CommandError("Can't find that league, boss.")
             
 class LeagueScheduleCommand(Command):
     name = "leagueschedule"
     template = "m;leagueschedule [league name]"
     description = "Sends an embed with the given league's schedule for the next 4 series."
 
-    async def execute(self, msg, command, flags):
-        league_name = command.split("\n")[0].strip()
-        if league_exists(league_name):
-            league = leagues.load_league_file(league_name)
-            current_series = league.day_to_series_num(league.day)
-            if str(current_series+1) in league.schedule.keys():
-                sched_embed = discord.Embed(title=f"{league.name}'s Schedule:", color=discord.Color.magenta())
-                days = [0,1,2,3]
-                for day in days:
-                    embed_title = f"Days {((current_series+day-1)*league.series_length) + 1} - {(current_series+day)*(league.series_length)}"
-                    parts = 1
-                    if str(current_series+day) in league.schedule.keys():
-                        schedule_text = ""
-                        teams = league.team_names_in_league()
-                        for game in league.schedule[str(current_series+day)]:
-                            emojis = ""
-                            for day_offset in range((current_series+day - 1)*league.series_length, (current_series+day)*(league.series_length)):
-                                try:
-                                    emojis += weather.all_weathers()[league.weather_forecast[game[1]][day_offset]].emoji + " "
-                                except:
-                                    False
-                            schedule_text += f"**{game[0]}** @ **{game[1]}** {emojis}\n"
+@client.tree.command()
+@app_commands.rename(league_name="leaguename")
+async def leagueschedule(interaction, league_name:str):
+    """Show a league's 4-series schedule."""
+    if league_exists(league_name):
+        league = leagues.load_league_file(league_name)
+        current_series = league.day_to_series_num(league.day)
+        if str(current_series+1) in league.schedule.keys():
+            sched_embed = discord.Embed(title=f"{league.name}'s Schedule:", color=discord.Color.magenta())
+            days = [0,1,2,3]
+            for day in days:
+                embed_title = f"Days {((current_series+day-1)*league.series_length) + 1} - {(current_series+day)*(league.series_length)}"
+                parts = 1
+                if str(current_series+day) in league.schedule.keys():
+                    schedule_text = ""
+                    teams = league.team_names_in_league()
+                    for game in league.schedule[str(current_series+day)]:
+                        emojis = ""
+                        for day_offset in range((current_series+day - 1)*league.series_length, (current_series+day)*(league.series_length)):
+                            try:
+                                emojis += weather.all_weathers()[league.weather_forecast[game[1]][day_offset]].emoji + " "
+                            except:
+                                False
+                        schedule_text += f"**{game[0]}** @ **{game[1]}** {emojis}\n"
 
+                        if len(schedule_text) >= 900:
+                            embed_title += f" Part {parts}"
+                            sched_embed.add_field(name=embed_title, value=schedule_text, inline = False)
+                            parts += 1
+                            embed_title = f"Days {((current_series+day-1)*league.series_length) + 1} - {(current_series+day)*(league.series_length)} Part {parts}"
+                            schedule_text = ""
+
+                        teams.pop(teams.index(game[0]))
+                        teams.pop(teams.index(game[1]))
+                    if len(teams) > 0:
+                        schedule_text += "Resting:\n"
+                        for team in teams:
+                            schedule_text += f"**{team}**\n"
                             if len(schedule_text) >= 900:
                                 embed_title += f" Part {parts}"
                                 sched_embed.add_field(name=embed_title, value=schedule_text, inline = False)
@@ -1227,97 +1283,87 @@ class LeagueScheduleCommand(Command):
                                 embed_title = f"Days {((current_series+day-1)*league.series_length) + 1} - {(current_series+day)*(league.series_length)} Part {parts}"
                                 schedule_text = ""
 
-                            teams.pop(teams.index(game[0]))
-                            teams.pop(teams.index(game[1]))
-                        if len(teams) > 0:
-                            schedule_text += "Resting:\n"
-                            for team in teams:
-                                schedule_text += f"**{team}**\n"
-                                if len(schedule_text) >= 900:
-                                    embed_title += f" Part {parts}"
-                                    sched_embed.add_field(name=embed_title, value=schedule_text, inline = False)
-                                    parts += 1
-                                    embed_title = f"Days {((current_series+day-1)*league.series_length) + 1} - {(current_series+day)*(league.series_length)} Part {parts}"
-                                    schedule_text = ""
-
-                        sched_embed.add_field(name=embed_title, value=schedule_text, inline = False)
-                await msg.channel.send(embed=sched_embed)
-            else:
-                raise CommandError("That league's already finished with this season, boss.")
+                    sched_embed.add_field(name=embed_title, value=schedule_text, inline = False)
+            await interaction.response.send_message(embed=sched_embed)
         else:
-            raise CommandError("We can't find that league. Typo?")
+            raise CommandError("That league's already finished with this season, boss.")
+    else:
+        raise CommandError("We can't find that league. Typo?")
 
 class LeagueTeamScheduleCommand(Command):
     name = "teamschedule"
     template = "m;teamschedule [league name]\n[team name]"
     description = "Sends an embed with the given team's schedule in the given league for the next 7 series."
+    
 
-    async def execute(self, msg, command, flags):
-        league_name = command.split("\n")[0].strip()
-        team_name = command.split("\n")[1].strip()
-        team = get_team_fuzzy_search(team_name)
-        if league_exists(league_name):
-            league = leagues.load_league_file(league_name)
-            current_series = league.day_to_series_num(league.day)
+@client.tree.command()
+@app_commands.rename(league_name="leaguename", team_name="teamname")
+async def teamschedule(interaction, league_name: str, team_name: str):
+    """Shows a team's 7-series schedule in a specific league."""
+    team = get_team_fuzzy_search(team_name)
+    if league_exists(league_name):
+        league = leagues.load_league_file(league_name)
+        current_series = league.day_to_series_num(league.day)
 
-            if team.name not in league.team_names_in_league():
-                raise CommandError("Can't find that team in that league, chief.")
+        if team.name not in league.team_names_in_league():
+            raise CommandError("Can't find that team in that league, chief.")
 
-            if str(current_series+1) in league.schedule.keys():
-                sched_embed = discord.Embed(title=f"{team.name}'s Schedule for the {league.name}:", color=discord.Color.purple())
-                days = [0,1,2,3,4,5,6]
-                for day in days:
-                    if str(current_series+day) in league.schedule.keys():
-                        schedule_text = ""
-
-                        
-                        for game in league.schedule[str(current_series+day)]:
-                            if team.name in game:
-                                emojis = ""
-                                for day_offset in range((current_series+day - 1)*league.series_length, (current_series+day)*(league.series_length)):
-                                    emojis += weather.all_weathers()[league.weather_forecast[game[1]][day_offset]].emoji + " "
-                                schedule_text += f"**{game[0]}** @ **{game[1]}** {emojis}"
-                        if schedule_text == "":
-                            schedule_text += "Resting"
-                        sched_embed.add_field(name=f"Days {((current_series+day-1)*league.series_length) + 1} - {(current_series+day)*(league.series_length)}", value=schedule_text, inline = False)
-                await msg.channel.send(embed=sched_embed)
-            else:
-                raise CommandError("That league's already finished with this season, boss.")
+        if str(current_series+1) in league.schedule.keys():
+            sched_embed = discord.Embed(title=f"{team.name}'s Schedule for the {league.name}:", color=discord.Color.purple())
+            days = [0,1,2,3,4,5,6]
+            for day in days:
+                if str(current_series+day) in league.schedule.keys():
+                    schedule_text = ""
+                    
+                    for game in league.schedule[str(current_series+day)]:
+                        if team.name in game:
+                            emojis = ""
+                            for day_offset in range((current_series+day - 1)*league.series_length, (current_series+day)*(league.series_length)):
+                                emojis += weather.all_weathers()[league.weather_forecast[game[1]][day_offset]].emoji + " "
+                            schedule_text += f"**{game[0]}** @ **{game[1]}** {emojis}"
+                    if schedule_text == "":
+                        schedule_text += "Resting"
+                    sched_embed.add_field(name=f"Days {((current_series+day-1)*league.series_length) + 1} - {(current_series+day)*(league.series_length)}", value=schedule_text, inline = False)
+            await interaction.response.send_message(embed=sched_embed)
         else:
-            raise CommandError("We can't find that league. Typo?")
+            raise CommandError("That league's already finished with this season, boss.")
+    else:
+        raise CommandError("We can't find that league. Typo?")
             
 class LeagueRegenerateScheduleCommand(Command):
     name = "leagueseasonreset"
     template = "m;leagueseasonreset [league name]"
     description = "Completely scraps the given league's current season, resetting everything to day 1 of the current season. Requires ownership."
 
-    async def execute(self, msg, command, flags):
-        league_name = command.split("\n")[0].strip()
-        if league_exists(league_name):
-            league = leagues.load_league_file(league_name)
-            if (league.owner is not None and msg.author.id in league.owner) or (league.owner is not None and msg.author.id in config()["owners"]):
-                await msg.channel.send("You got it, boss. Give us two seconds and a bucket of white-out.")
-                season_restart(league)
-                league.season -= 1
-                league.season_reset()               
-                await asyncio.sleep(1)
-                await msg.channel.send("Done and dusted. Go ahead and start the league again whenever you want.")
-                return
-            else:
-                raise CommandError("That league isn't yours, boss.")
+@client.tree.command()
+@app_commands.rename(league_name="leaguename")
+async def leaguereset(interaction, league_name: str):
+    """Completely scraps the given league's current season, resetting everything to day 1 of the current season. Requires ownership."""
+    if league_exists(league_name):
+        league = leagues.load_league_file(league_name)
+        if (league.owner is not None and interaction.user.id in league.owner) or (league.owner is not None and interaction.user.id in config()["owners"]):
+            await interaction.response.send_message("You got it, boss. Give us two seconds and a bucket of white-out.")
+            season_restart(league)
+            league.season -= 1
+            league.season_reset()               
+            await asyncio.sleep(1)
+            await interaction.channel.send("Done and dusted. Go ahead and start the league again whenever you want.")
+            return
         else:
-            raise CommandError("We can't find that league. Yay?")
+            raise CommandError("That league isn't yours, boss.")
+    else:
+        raise CommandError("We can't find that league. Yay?")
 
 class LeagueForceStopCommand(Command):
     name = "leagueforcestop"
-    template = "m;leagueforcestop [league name]"
+    template = "m;leagueforcestop [league name] [bot mention]"
     description = "Halts a league and removes it from the list of currently running leagues. To be used in the case of crashed loops."
 
     def isauthorized(self, user):
         return user.id in config()["owners"]
 
     async def execute(self, msg, command, flags):
-        league_name = command.split("\n")[0].strip()
+        league_name = command.split("\n")[0].split(" ")[0].strip()
         for index in range(0,len(active_leagues)):
             if active_leagues[index].name == league_name:
                 active_leagues.pop(index)
@@ -1329,47 +1375,50 @@ class LeagueReplaceTeamCommand(Command):
     name = "leaguereplaceteam"
     template = "m;leaguereplaceteam [league name]\n[team to remove]\n[team to add]"
     description = "Adds a team to a league, removing the old one in the process. Can only be executed by a league owner, and only before the start of a new season."
-         
-    async def execute(self, msg, command, flags):
-        league_name = command.split("\n")[0].strip()
-        if league_exists(league_name):
-            league = leagues.load_league_file(league_name)
-            if league.day != 1:
-                await msg.channel.send("That league hasn't finished its current season yet, chief. Either reset it, or be patient.")
-                return
-            if (league.owner is not None and msg.author.id in league.owner) or (league.owner is not None and msg.author.id in config()["owners"]):
-                try:
-                    team_del = get_team_fuzzy_search(command.split("\n")[1].strip())
-                    team_add = get_team_fuzzy_search(command.split("\n")[2].strip())
-                except IndexError:
-                    raise CommandError("Three lines, boss. Make sure you give us the team to remove, then the team to add.")
-                if team_add.name == team_del.name:
-                    raise CommandError("Quit being cheeky. The teams have to be different.")
+    
 
-                if team_del is None or team_add is None:
-                    raise CommandError("We couldn't find one or both of those teams, boss. Try again.")
+@client.tree.command()
+@app_commands.rename(league_name="leaguename")
+async def leaguereplaceteam(interaction, league_name: str, removeteam: str, addteam: str):
+    """Removes a team from a league, replacing it with another."""
+    if league_exists(league_name):
+        league = leagues.load_league_file(league_name)
+        if league.day != 1:
+            await interaction.response.send("That league hasn't finished its current season yet, chief. Either reset it, or be patient.")
+            return
+        if (league.owner is not None and interaction.user.id in league.owner) or (league.owner is not None and interaction.user.id in config()["owners"]):
+            try:
+                team_del = get_team_fuzzy_search(removeteam)
+                team_add = get_team_fuzzy_search(addteam)
+            except IndexError:
+                raise CommandError("Three lines, boss. Make sure you give us the team to remove, then the team to add.")
+            if team_add.name == team_del.name:
+                raise CommandError("Quit being cheeky. The teams have to be different.")
 
-                subleague, division = league.find_team(team_del)               
+            if team_del is None or team_add is None:
+                raise CommandError("We couldn't find one or both of those teams, boss. Try again.")
 
-                if subleague is None or division is None:
-                    raise CommandError("That first team isn't in that league, chief. So, that's good, right?")
+            subleague, division = league.find_team(team_del)               
 
-                if league.find_team(team_add)[0] is not None:
-                    raise CommandError("That second team is already in that league, chief. No doubles.")
+            if subleague is None or division is None:
+                raise CommandError("That first team isn't in that league, chief. So, that's good, right?")
 
-                for index in range(0, len(league.league[subleague][division])):
-                    if league.league[subleague][division][index].name == team_del.name:
-                        league.league[subleague][division].pop(index)
-                        league.league[subleague][division].append(team_add)
-                league.schedule = {}
-                league.generate_schedule()
-                leagues.save_league_as_new(league)
-                await msg.channel.send(embed=league.standings_embed())
-                await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
-            else:
-                raise CommandError("That league isn't yours, chief.")
+            if league.find_team(team_add)[0] is not None:
+                raise CommandError("That second team is already in that league, chief. No doubles.")
+
+            for index in range(0, len(league.league[subleague][division])):
+                if league.league[subleague][division][index].name == team_del.name:
+                    league.league[subleague][division].pop(index)
+                    league.league[subleague][division].append(team_add)
+            league.schedule = {}
+            league.generate_schedule()
+            leagues.save_league_as_new(league)
+            await interaction.response.send_message(embed=league.standings_embed())
+            await interaction.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
         else:
-            raise CommandError("We can't find that league.")
+            raise CommandError("That league isn't yours, chief.")
+    else:
+        raise CommandError("We can't find that league.")
 
 class LeagueSwapTeamCommand(Command):
     name = "leagueswapteams"
@@ -1378,48 +1427,53 @@ class LeagueSwapTeamCommand(Command):
 
     async def execute(self, msg, command, flags):
         league_name = command.split("\n")[0].strip()
-        if league_exists(league_name):
-            league = leagues.load_league_file(league_name)
-            if league.day != 1:
-                await msg.channel.send("That league hasn't finished its current season yet, chief. Either reset it, or be patient.")
-                return
-            if (league.owner is not None and msg.author.id in league.owner) or (league.owner is not None and msg.author.id in config()["owners"]):
-                try:
-                    team_a = get_team_fuzzy_search(command.split("\n")[1].strip())
-                    team_b = get_team_fuzzy_search(command.split("\n")[2].strip())
-                except IndexError:
-                    raise CommandError("Three lines, boss. Make sure you give us the team to remove, then the team to add.")
-                if team_a.name == team_b.name:
-                    raise CommandError("Quit being cheeky. The teams have to be different.")
+    
 
-                if team_a is None or team_b is None:
-                    raise CommandError("We couldn't find one or both of those teams, boss. Try again.")
+@client.tree.command()
+@app_commands.rename(league_name="leaguename")
+async def leagueswapteam(interaction, league_name: str, teama: str, teamb: str):
+    """Swaps two teams' divisional assignments."""
+    if league_exists(league_name):
+        league = leagues.load_league_file(league_name)
+        if league.day != 1:
+            await interaction.response.send_message("That league hasn't finished its current season yet, chief. Either reset it, or be patient.")
+            return
+        if (league.owner is not None and interaction.user.id in league.owner) or (league.owner is not None and interaction.user.id in config()["owners"]):
+            try:
+                team_a = get_team_fuzzy_search(teama)
+                team_b = get_team_fuzzy_search(teamb)
+            except IndexError:
+                raise CommandError("Three lines, boss. Make sure you give us the team to remove, then the team to add.")
+            if team_a.name == team_b.name:
+                raise CommandError("Quit being cheeky. The teams have to be different.")
 
-                a_subleague, a_division = league.find_team(team_a)               
-                b_subleague, b_division = league.find_team(team_b)
+            if team_a is None or team_b is None:
+                raise CommandError("We couldn't find one or both of those teams, boss. Try again.")
 
-                if a_subleague is None or b_subleague is None:
-                    raise CommandError("One of those teams isn't in the league. Try leaguereplaceteam instead.")
+            a_subleague, a_division = league.find_team(team_a)               
+            b_subleague, b_division = league.find_team(team_b)
 
-                for index in range(0, len(league.league[a_subleague][a_division])):
-                    if league.league[a_subleague][a_division][index].name == team_a.name:
-                        a_index = index
-                for index in range(0, len(league.league[b_subleague][b_division])):
-                    if league.league[b_subleague][b_division][index].name == team_b.name:
-                        b_index = index
+            if a_subleague is None or b_subleague is None:
+                raise CommandError("One of those teams isn't in the league. Try leaguereplaceteam instead.")
 
-                league.league[a_subleague][a_division][a_index] = team_b
-                league.league[b_subleague][b_division][b_index] = team_a
-                league.schedule = {}
-                league.generate_schedule()
-                leagues.save_league_as_new(league)
-                await msg.channel.send(embed=league.standings_embed())
-                await msg.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
-            else:
-                raise CommandError("That league isn't yours, chief.")
+            for index in range(0, len(league.league[a_subleague][a_division])):
+                if league.league[a_subleague][a_division][index].name == team_a.name:
+                    a_index = index
+            for index in range(0, len(league.league[b_subleague][b_division])):
+                if league.league[b_subleague][b_division][index].name == team_b.name:
+                    b_index = index
+
+            league.league[a_subleague][a_division][a_index] = team_b
+            league.league[b_subleague][b_division][b_index] = team_a
+            league.schedule = {}
+            league.generate_schedule()
+            leagues.save_league_as_new(league)
+            await interaction.response.send_message(embed=league.standings_embed())
+            await interaction.channel.send("Paperwork signed, stamped, copied, and faxed up to the goddess. Xie's pretty quick with this stuff.")
         else:
-            raise CommandError("We can't find that league.")
-
+            raise CommandError("That league isn't yours, chief.")
+    else:
+        raise CommandError("We can't find that league.")
 
 class LeagueRenameCommand(Command):
     name = "leaguerename"
@@ -1480,146 +1534,156 @@ class OBLExplainCommand(Command):
     name = "oblhelp"
     template = "m;oblhelp"
     description = "Explains the One Big League!"
+        
 
-    async def execute(self, msg, command, flags):
-        await msg.channel.send("""The One Big League, or OBL, is an asynchronous league that includes every team in the simsim's database. To participate, just use the m;oblteam command with your team of choice. **No signup is required!** This will give you a list of five opponents; playing against one of them and winning nets you a point, and will refresh the list with five new opponents. **Losing results in no penalty!** Each meta-season will last for a few weeks, after which the leaderboards are reset to start the race again!
+@client.tree.command()
+async def oblhelp(interaction):
+    """Explains the One Big League!"""
+    await interaction.response.send_message("""The One Big League, or OBL, is an asynchronous league that includes every team in sim16's database. To participate, just use the oblteam command with your team of choice. **No signup is required!** This will give you a list of five opponents; playing against one of them and winning nets you a point, and will refresh the list with five new opponents. **Losing results in no penalty!** Each meta-season will last for ~~a few weeks~~ *shrugs*, after which the leaderboards are reset to start the race again!
 
-Look out for the people wrestling emoji, which indicates the potential for a :people_wrestling:Wrassle Match:people_wrestling:, where both teams are on each others' lists and both have the opportunity to score a point. Team rankings and points can also be viewed in the m;oblteam command, and the overall OBL leaderboard can be checked with the m;oblstandings command. Best of luck!!
+Look out for the people wrestling emoji, which indicates the potential for a 🤼Wrassle Match🤼, where both teams are on each others' lists and both have the opportunity to score a point. Team rankings and points can also be viewed in the oblteam command, and the overall OBL leaderboard can be checked with the oblstandings command. Best of luck!!
 """)
 
 class OBLLeaderboardCommand(Command):
     name = "oblstandings"
     template = "m;oblstandings"
     description = "Displays the 15 teams with the most OBL points in this meta-season."
-         
-    async def execute(self, msg, command, flags):
-        leaders_list = db.obl_leaderboards()[:15]
-        leaders = []
-        rank = 1
-        for team, points in leaders_list:
-            leaders.append({"name" : team, "points" : points})
-            rank += 1
+        
 
-        embed = discord.Embed(color=discord.Color.red(), title="The One Big League")
-        for index in range(0, len(leaders)):
-            embed.add_field(name=f"{index+1}. {leaders[index]['name']}", value=f"{leaders[index]['points']} points" , inline = False)
-        await msg.channel.send(embed=embed)
+@client.tree.command()
+async def oblstandings(interaction):
+    leaders_list = db.obl_leaderboards()[:15]
+    leaders = []
+    rank = 1
+    for team, points in leaders_list:
+        leaders.append({"name" : team, "points" : points})
+        rank += 1
+
+    embed = discord.Embed(color=discord.Color.red(), title="The One Big League")
+    for index in range(0, len(leaders)):
+        embed.add_field(name=f"{index+1}. {leaders[index]['name']}", value=f"{leaders[index]['points']} points" , inline = False)
+    await interaction.response.send_message(embed=embed)
 
 class OBLTeamCommand(Command):
     name = "oblteam"
     template = "m;oblteam [team name]"
     description = "Displays a team's rank, current OBL points, and current opponent selection."
 
-    async def execute(self, msg, command, flags):
-        team = get_team_fuzzy_search(command.strip())
-        if team is None:
-            raise CommandError("Sorry boss, we can't find that team.")
+@client.tree.command()
+@app_commands.rename(team_name="team")
+async def oblteam(interaction, team_name: str): 
+    """Displays a team's rank, current OBL points, and current opponent selection."""
+    team = get_team_fuzzy_search(team_name)
+    if team is None:
+        raise CommandError("Sorry boss, we can't find that team.")
 
-        rival_team = None
-        points, beaten_teams_list, opponents_string, rank, rival_name = db.get_obl_stats(team, full=True)
-        opponents_list = db.newline_string_to_list(opponents_string)
-        for index in range(0, len(opponents_list)):
-            oppteam = get_team_fuzzy_search(opponents_list[index])
-            opplist = db.get_obl_stats(oppteam)[1]
-            if team.name in opplist:
-                opponents_list[index] = opponents_list[index] + " 🤼"
-            if rival_name == opponents_list[index]:
-                opponents_list[index] = opponents_list[index] + " 😈"
-        if rival_name is not None:
-            rival_team = games.get_team(rival_name)
-        opponents_string = db.list_to_newline_string(opponents_list)
+    rival_team = None
+    points, beaten_teams_list, opponents_string, rank, rival_name = db.get_obl_stats(team, full=True)
+    opponents_list = db.newline_string_to_list(opponents_string)
+    for index in range(0, len(opponents_list)):
+        oppteam = get_team_fuzzy_search(opponents_list[index])
+        opplist = db.get_obl_stats(oppteam)[1]
+        if team.name in opplist:
+            opponents_list[index] = opponents_list[index] + " 🤼"
+        if rival_name == opponents_list[index]:
+            opponents_list[index] = opponents_list[index] + " 😈"
+    if rival_name is not None:
+        rival_team = games.get_team(rival_name)
+    opponents_string = db.list_to_newline_string(opponents_list)
 
-        embed = discord.Embed(color=discord.Color.red(), title=f"{team.name} in the One Big League")
-        embed.add_field(name="OBL Points", value=points)
-        embed.add_field(name="Rank", value=rank)
-        embed.add_field(name="Bounty Board", value=opponents_string, inline=False)
-        if rival_team is not None:
-            r_points, r_beaten_teams_list, r_opponents_string, r_rank, r_rival_name = db.get_obl_stats(rival_team, full=True)
-            embed.add_field(name="Rival", value=f"**{rival_team.name}**: Rank {r_rank}\n{rival_team.slogan}\nPoints: {r_points}")
-            if r_rival_name == team.name:
-                embed.set_footer(text="🔥")
-        else:
-            embed.set_footer(text="Set a rival with m;oblrival!")
-        await msg.channel.send(embed=embed)
+    embed = discord.Embed(color=discord.Color.red(), title=f"{team.name} in the One Big League")
+    embed.add_field(name="OBL Points", value=points)
+    embed.add_field(name="Rank", value=rank)
+    embed.add_field(name="Bounty Board", value=opponents_string, inline=False)
+    if rival_team is not None:
+        r_points, r_beaten_teams_list, r_opponents_string, r_rank, r_rival_name = db.get_obl_stats(rival_team, full=True)
+        embed.add_field(name="Rival", value=f"**{rival_team.name}**: Rank {r_rank}\n{rival_team.slogan}\nPoints: {r_points}")
+        if r_rival_name == team.name:
+            embed.set_footer(text="🔥")
+    else:
+        embed.set_footer(text="Set a rival with m;oblrival!")
+    await interaction.response.send_message(embed=embed)
+
 
 class OBLSetRivalCommand(Command):
     name = "oblrival"
     template = "m;oblrival\n[your team name]\n[rival team name]"
     description = "Sets your team's OBL rival. Can be changed at any time. Requires ownership."
 
-    async def execute(self, msg, command, flags):
-        try:
-            team_i = get_team_fuzzy_search(command.split("\n")[1].strip())
-            team_r = get_team_fuzzy_search(command.split("\n")[2].strip())
-        except IndexError:
-            raise CommandError("You didn't give us enough lines. Command on the top, your team in the middle, and your rival at the bottom.")
-        team, owner_id = games.get_team_and_owner(team_i.name)
-        if team is None or team_r is None:
-            raise CommandError("Can't find one of those teams, boss. Typo?")
-        elif owner_id != msg.author.id and msg.author.id not in config()["owners"]:
-            raise CommandError("You're not authorized to mess with this team. Sorry, boss.")
-        try:
-            db.set_obl_rival(team, team_r)
-            await msg.channel.send("One pair of mortal enemies, coming right up. Unless you're more of the 'enemies to lovers' type. We can manage that too, don't worry.")
-        except:
-            raise CommandError("Hm. We don't think that team has tried to do anything in the One Big League yet, so you'll have to wait for consent. Get them to check their bounty board.")
+@client.tree.command()
+@app_commands.rename(owned_team_name="yourteam", rival_team_name="newrivalteam")
+async def oblsetrival(interaction, owned_team_name: str, rival_team_name: str):
+    """Sets your team's OBL rival. Can be changed at any time."""
+    team_i = get_team_fuzzy_search(owned_team_name)
+    team_r = get_team_fuzzy_search(rival_team_name)
+    team, owner_id = games.get_team_and_owner(team_i.name)
+    if team is None or team_r is None:
+        raise CommandError("Can't find one of those teams, boss. Typo?")
+    elif owner_id != interaction.user.id and interaction.user.id not in config()["owners"]:
+        raise CommandError("You're not authorized to mess with this team. Sorry, boss.")
+    try:
+        db.set_obl_rival(team, team_r)
+        await interaction.response.send_message("One pair of mortal enemies, coming right up. Unless you're more of the 'enemies to lovers' type. We can manage that too, don't worry.")
+    except:
+        raise CommandError("Hm. We don't think that team has tried to do anything in the One Big League yet, so you'll have to wait for consent. Get them to check their bounty board.")
+
 
 class OBLConqueredCommand(Command):
     name = "oblwins"
     template = "m;oblwins [team name]"
     description = "Displays all teams that a given team has won points off of."
 
-    async def execute(self, msg, command, flags):
-        team = get_team_fuzzy_search(command.strip())
-        if team is None:
-            raise CommandError("Sorry boss, we can't find that team.")
+@client.tree.command()
+@app_commands.rename(team_name="team")
+async def oblconquestlist(interaction, team_name:str):
+    team = get_team_fuzzy_search(team_name)
+    if team is None:
+        raise CommandError("Sorry boss, we can't find that team.")
 
-        points, teams, oppTeams, rank, rivalName = db.get_obl_stats(team, full=True)
-        pages = []
-        page_max = math.ceil(len(teams)/25)
+    points, teams, oppTeams, rank, rivalName = db.get_obl_stats(team, full=True)
+    pages = []
+    page_max = math.ceil(len(teams)/25)
 
-        title_text = f"Rank {rank}: {team.name}"
+    title_text = f"Rank {rank}: {team.name}"
 
-        for page in range(0,page_max):
-            embed = discord.Embed(color=discord.Color.red(), title=title_text)
-            embed.set_footer(text = f"{points} OBL Points")
-            for i in range(0,25):             
-                try:
-                    thisteam = games.get_team(teams[i+25*page])
-                    if thisteam.slogan.strip() != "":
-                        embed.add_field(name=thisteam.name, value=thisteam.slogan)
-                    else:
-                        embed.add_field(name=thisteam.name, value="404: Slogan not found")
-                except:
-                    break
-            pages.append(embed)
+    for page in range(0,page_max):
+        embed = discord.Embed(color=discord.Color.red(), title=title_text)
+        embed.set_footer(text = f"{points} OBL Points")
+        for i in range(0,25):             
+            try:
+                thisteam = games.get_team(teams[i+25*page])
+                if thisteam.slogan.strip() != "":
+                    embed.add_field(name=thisteam.name, value=thisteam.slogan)
+                else:
+                    embed.add_field(name=thisteam.name, value="404: Slogan not found")
+            except:
+                break
+        pages.append(embed)
 
-        teams_list = await msg.channel.send(embed=pages[0])
-        current_page = 0
+    teams_list = await interaction.channel.send(embed=pages[0])
+    current_page = 0
 
-        if page_max > 1:
-            await teams_list.add_reaction("◀")
-            await teams_list.add_reaction("▶")
+    if page_max > 1:
+        await teams_list.add_reaction("◀")
+        await teams_list.add_reaction("▶")
 
-            def react_check(react, user):
-                return user == msg.author and react.message == teams_list
+        def react_check(payload):
+            return payload.user_id == interaction.user.id and payload.message_id == teams_list.id
 
-            while True:
-                try:
-                    react, user = await client.wait_for('reaction_add', timeout=60.0, check=react_check)
-                    if react.emoji == "◀" and current_page > 0:
-                        current_page -= 1
-                        await react.remove(user)
-                    elif react.emoji == "▶" and current_page < (page_max-1):
-                        current_page += 1
-                        await react.remove(user)
-                    await teams_list.edit(embed=pages[current_page])
-                except asyncio.TimeoutError:
-                    return
+        while True:
+            try:
+                payload = await client.wait_for('raw_reaction_add', timeout=60.0, check=react_check)
+                if payload.emoji.name == "◀" and current_page > 0:
+                    current_page -= 1
+                elif payload.emoji.name == "▶" and current_page < (page_max-1):
+                    current_page += 1
+                await teams_list.edit(embed=pages[current_page])
+            except asyncio.TimeoutError:
+                return
 
 class OBLResetCommand(Command):
     name = "oblreset"
-    template = "m;oblreset"
+    template = "m;oblreset [bot mention]"
     description = "NUKES THE OBL BOARD. BE CAREFUL."
 
     def isauthorized(self, user):
@@ -1632,7 +1696,7 @@ class OBLResetCommand(Command):
 
 class TeamsInfoCommand(Command):
     name = "teamcount"
-    template = "m;teamcount"
+    template = "m;teamcount [bot mention]"
     description = "Prints a readout of how many teams exist in the sim."
 
     async def execute(self, msg, command, flags):
@@ -1640,64 +1704,59 @@ class TeamsInfoCommand(Command):
         await msg.channel.send(f"We've got {len(games.get_all_teams())} teams! Thanks for asking.")
 
 commands = [
-    IntroduceCommand(),
-    CountActiveGamesCommand(),
-    TeamsInfoCommand(),
-    AssignOwnerCommand(),
-    IdolizeCommand(),
-    ShowIdolCommand(),
-    ShowPlayerCommand(),
-    SetupGameCommand(),
-    SaveTeamCommand(),
-    AssignArchetypeCommand(),
-    ViewArchetypesCommand(),
-    ArchetypeHelpCommand(),
+    IntroduceCommand(), #not needed
+    CountActiveGamesCommand(), #owner only
+    TeamsInfoCommand(), #workaround
+    AssignOwnerCommand(), #owner only
+    ShowPlayerCommand(), #done
+    SaveTeamCommand(), #done
+    AssignArchetypeCommand(), #done
+    ViewArchetypesCommand(), #done
+    ArchetypeHelpCommand(), #done
     ImportCommand(),
-    SwapPlayerCommand(),
-    MovePlayerCommand(),
-    AddPlayerCommand(),
-    RemovePlayerCommand(),
-    ReplacePlayerCommand(),
-    DeleteTeamCommand(),
-    ShowTeamCommand(),
-    ShowAllTeamsCommand(),
-    SearchTeamsCommand(),
-    StartGameCommand(),
-    StartRandomGameCommand(),
-    StartTournamentCommand(),
-    OBLExplainCommand(),
-    OBLTeamCommand(),
-    OBLSetRivalCommand(),
-    OBLConqueredCommand(),
-    OBLLeaderboardCommand(),
-    OBLResetCommand(),
-    LeagueClaimCommand(),
-    LeagueAddOwnersCommand(),
-    LeagueSetPlayerModifiersCommand(),
-    StartLeagueCommand(),
-    LeagueSubscribeCommand(),
-    LeaguePauseCommand(),
-    LeagueDisplayCommand(),
-    LeagueLeadersCommand(),
-    LeagueDivisionDisplayCommand(),
-    LeagueWildcardCommand(),
-    LeagueScheduleCommand(),
-    LeagueTeamScheduleCommand(),
-    LeagueRegenerateScheduleCommand(),
-    LeagueSwapTeamCommand(),
-    LeagueReplaceTeamCommand(),
-    LeagueRenameCommand(),
-    LeagueForceStopCommand(),
-    CreditCommand(),
-    RomanCommand(),
-    HelpCommand(),
+    SwapPlayerCommand(), #done
+    MovePlayerCommand(), #done
+    AddPlayerCommand(), #done
+    RemovePlayerCommand(), #done
+    ReplacePlayerCommand(), #gonna delay
+    DeleteTeamCommand(), #done
+    ShowTeamCommand(), #done
+    SearchTeamsCommand(), #not needed
+    StartGameCommand(), #done
+    StartRandomGameCommand(), #done
+    StartTournamentCommand(), #workaround
+    OBLExplainCommand(), #done
+    OBLTeamCommand(), #done
+    OBLSetRivalCommand(), #done
+    OBLConqueredCommand(), #done
+    OBLLeaderboardCommand(), #done
+    OBLResetCommand(), #not needed
+    LeagueClaimCommand(), #done
+    LeagueAddOwnersCommand(), #done
+    LeagueSetPlayerModifiersCommand(), #was a test command, never fully tested
+    StartLeagueCommand(), #done
+    LeagueSubscribeCommand(), #done
+    LeaguePauseCommand(), #done
+    LeagueDisplayCommand(), #done
+    LeagueLeadersCommand(), #done
+    LeagueDivisionDisplayCommand(), #done
+    LeagueWildcardCommand(), #done
+    LeagueScheduleCommand(), #done
+    LeagueTeamScheduleCommand(), #done
+    LeagueRegenerateScheduleCommand(), #done
+    LeagueSwapTeamCommand(), #done
+    LeagueReplaceTeamCommand(), #done
+    LeagueRenameCommand(), #postponing
+    LeagueForceStopCommand(), #not needed
+    CreditCommand(), #done
+    RomanCommand(), #not needed
+    HelpCommand(), 
     StartDraftCommand(),
     DraftFlagsCommand(),
     DraftPlayerCommand()
 ]
 
 watching = False
-client = discord.Client()
 gamesarray = []
 active_tournaments = []
 active_leagues = []
@@ -1746,6 +1805,9 @@ async def on_ready():
         watch_task = asyncio.create_task(game_watcher())
         await watch_task
 
+@client.tree.error
+async def on_app_command_error(interaction, error):
+    await interaction.response.send_message(str(error.__cause__), ephemeral=True)
 
 @client.event
 async def on_reaction_add(reaction, user):
@@ -1761,7 +1823,7 @@ async def on_reaction_add(reaction, user):
                 game.teams["home"].add_lineup(new_player)
                 await reaction.message.channel.send(f"{new_player} {new_player.star_string('batting_stars')} takes spot #{len(game.teams['home'].lineup)} on the home lineup.")
         except:
-            await reaction.message.channel.send(f"{user.display_name}, we can't find your idol. Maybe you don't have one yet?")
+            await reaction.message.channel.send(f"{user.display_name}, we can't find your idol. Maybe you don't have one yet?") 
 
 @client.event
 async def on_message(msg):
@@ -1800,7 +1862,6 @@ async def on_message(msg):
             await msg.channel.send("Can't find that command, boss; try checking the list with `m;help`.")
         except CommandError as ce:
             await msg.channel.send(str(ce))
-
 
 async def setup_game(channel, owner, newgame):
     newgame.owner = owner
@@ -1926,7 +1987,7 @@ Creator, type `{newgame.name} done` to finalize lineups.""")
     game_task = asyncio.create_task(watch_game(channel, newgame))
     await game_task
 
-async def watch_game(channel, newgame, user = None, league = None):
+async def watch_game(channel, newgame, user = None, league = None, interaction = None):
     newgame, state_init = prepare_game(newgame)
 
     if league is not None:
@@ -1947,8 +2008,11 @@ async def watch_game(channel, newgame, user = None, league = None):
     ext = "?game="+id
     if league is not None:
         ext += "&league=" + urllib.parse.quote_plus(league)
-
-    await channel.send(f"{newgame.teams['away'].name} vs. {newgame.teams['home'].name}, starting at {config()['simmadome_url']+ext}")
+    
+    if interaction is None:
+        await channel.send(f"{newgame.teams['away'].name} vs. {newgame.teams['home'].name}, starting at {config()['simmadome_url']+ext}")
+    else:
+        await interaction.response.send_message(f"{newgame.teams['away'].name} vs. {newgame.teams['home'].name}, starting at {config()['simmadome_url']+ext}")
     gamesarray.append((newgame, channel, user, id))
 
     main_controller.master_games_dic[id] = (newgame, state_init, discrim_string)
@@ -2214,12 +2278,12 @@ async def team_delete_confirm(channel, team, owner):
     await checkmsg.add_reaction("👍")
     await checkmsg.add_reaction("👎")
 
-    def react_check(react, user):
-        return user == owner and react.message == checkmsg
+    def react_check(payload):
+        return payload.user_id == message.author.id and payload.message_id == checkmsg.id
 
     try:
-        react, user = await client.wait_for('reaction_add', timeout=20.0, check=react_check)
-        if react.emoji == "👍":
+        payload = await client.wait_for('raw_reaction_add', timeout=20.0, check=react_check)
+        if react.emoji.name == "👍":
             await channel.send("Step back, this could get messy.")
             if db.delete_team(team):
                 await asyncio.sleep(2)
@@ -2228,7 +2292,7 @@ async def team_delete_confirm(channel, team, owner):
                 await asyncio.sleep(2)
                 await channel.send("Huh. Didn't quite work. Tell xvi next time you see xer.")
             return
-        elif react.emoji == "👎":
+        elif react.emoji.name == "👎":
             await channel.send("Message received. Pumping brakes, turning this car around.")
             return
     except asyncio.TimeoutError:
@@ -2347,17 +2411,17 @@ async def save_team_confirm(message, newteam):
     await checkmsg.add_reaction("👍")
     await checkmsg.add_reaction("👎")
 
-    def react_check(react, user):
-        return user == message.author and react.message == checkmsg
+    def react_check(payload):
+        return payload.user_id == message.author.id and payload.message_id == checkmsg.id
 
     try:
-        react, user = await client.wait_for('reaction_add', timeout=20.0, check=react_check)
-        if react.emoji == "👍":
+        payload = await client.wait_for('raw_reaction_add', timeout=20.0, check=react_check)
+        if payload.emoji.name == "👍":
             await message.channel.send("You got it, chief. Saving now.")
             games.save_team(newteam, message.author.id)
             await message.channel.send("Saved! Thank you for flying Air Matteo. We hope you had a pleasant data entry.")
             return
-        elif react.emoji == "👎":
+        elif payload.emoji.name == "👎":
             await message.channel.send("Message received. Pumping brakes, turning this car around. Try again, chief.")
             return
     except asyncio.TimeoutError:
