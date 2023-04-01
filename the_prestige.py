@@ -598,9 +598,6 @@ class DeleteTeamCommand(Command):
     name = "deleteteam"
     template = "m;deleteteam [name]"
     description = "Allows you to delete the team with the provided name. You'll get an embed with a confirmation to prevent accidental deletions. Hit the 👍 and your team will be deleted.. Requires team ownership. If you are the owner and the bot is telling you it's not yours, contact xvi and xie can assist."
-
-    async def execute(self, msg, command, flags):
-        team_name = command.strip()
         
 
 @client.tree.command()
@@ -2278,11 +2275,11 @@ async def team_delete_confirm(channel, team, owner):
     await checkmsg.add_reaction("👎")
 
     def react_check(payload):
-        return payload.user_id == message.author.id and payload.message_id == checkmsg.id
+        return payload.user_id == owner.id and payload.message_id == checkmsg.id
 
     try:
         payload = await client.wait_for('raw_reaction_add', timeout=20.0, check=react_check)
-        if react.emoji.name == "👍":
+        if payload.emoji.name == "👍":
             await channel.send("Step back, this could get messy.")
             if db.delete_team(team):
                 await asyncio.sleep(2)
@@ -2291,7 +2288,7 @@ async def team_delete_confirm(channel, team, owner):
                 await asyncio.sleep(2)
                 await channel.send("Huh. Didn't quite work. Tell xvi next time you see xer.")
             return
-        elif react.emoji.name == "👎":
+        elif payload.emoji.name == "👎":
             await channel.send("Message received. Pumping brakes, turning this car around.")
             return
     except asyncio.TimeoutError:
